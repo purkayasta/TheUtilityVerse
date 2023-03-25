@@ -9,8 +9,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UtilityVerse", "UtilityVers
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{3D24A8E3-F6A7-4A0E-B22B-4DF324D85BB6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UtilityVerse.Test.Console-4.8", "UtilityVerse.Test.Console-4.8\UtilityVerse.Test.Console-4.8.csproj", "{28606EC6-EF13-47F0-B8DC-0C7253C11A1D}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__solution-items__", "__solution-items__", "{EB18ECF8-4342-4BA6-8901-3753C6F337DF}"
 	ProjectSection(SolutionItems) = preProject
 		.gitattributes = .gitattributes
@@ -29,17 +27,12 @@ Global
 		{256CD825-08FD-4531-8095-08833BABE1D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{256CD825-08FD-4531-8095-08833BABE1D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{256CD825-08FD-4531-8095-08833BABE1D3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{28606EC6-EF13-47F0-B8DC-0C7253C11A1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{28606EC6-EF13-47F0-B8DC-0C7253C11A1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{28606EC6-EF13-47F0-B8DC-0C7253C11A1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{28606EC6-EF13-47F0-B8DC-0C7253C11A1D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{256CD825-08FD-4531-8095-08833BABE1D3} = {4CA7E6FA-0DC4-4E66-BD2E-31A6447E6CD7}
-		{28606EC6-EF13-47F0-B8DC-0C7253C11A1D} = {3D24A8E3-F6A7-4A0E-B22B-4DF324D85BB6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5D3B1F59-B642-4106-91C6-ADDA4D3BD4A5}
