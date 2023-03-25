@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http.Internal;
 
 namespace UtilityVerse
 {
-    public partial class UtilityVerse
+    public sealed partial class UtilityVerse
     {
         /// <summary>
         /// this is a method to create http request for unit/integration tests.

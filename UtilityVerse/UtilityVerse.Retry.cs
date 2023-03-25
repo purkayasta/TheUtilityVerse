@@ -3,7 +3,7 @@ using Humanizer;
 
 namespace UtilityVerse
 {
-    public partial class UtilityVerse
+    public sealed partial class UtilityVerse
     {
         /// <summary>
         /// Retry Operation. This utility method will help you do retry on any method. It will retry on exception.

@@ -2,7 +2,10 @@
 
 namespace UtilityVerse
 {
-    public partial class UtilityVerse
+    /// <summary>
+    /// Base utility verse class for writing helpers.
+    /// </summary>
+    public sealed partial class UtilityVerse
     {
     }
 }

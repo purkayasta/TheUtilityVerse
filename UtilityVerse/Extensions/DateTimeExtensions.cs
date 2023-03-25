@@ -14,19 +14,30 @@
         /// <exception cref="ArgumentNullException"></exception>
         public static bool IsInBetween(this DateTime? dt, DateTime? startDateTime, DateTime? endDateTime)
         {
-            if (dt is null) throw new ArgumentNullException(nameof(dt));
-            if (startDateTime is null) throw new ArgumentNullException(nameof(startDateTime));
-            if (endDateTime is null) throw new ArgumentNullException(nameof(endDateTime));
+            ArgumentNullException.ThrowIfNull(dt, nameof(dt));
+            ArgumentNullException.ThrowIfNull(startDateTime, nameof(startDateTime));
+            ArgumentNullException.ThrowIfNull(endDateTime, nameof(endDateTime));
 
             return dt >= startDateTime && dt < endDateTime;
         }
 
+        /// <summary>
+        /// This method will convert datetime object into unix time stamp
+        /// </summary>
+        /// <param name="dt"></param>
+        /// <returns></returns>
         public static int ToUnixTimeStamp(this DateTime? dt)
         {
             if (dt is null) return 0;
             return (int)dt.Value.Subtract(_defaultDateTime).TotalSeconds;
         }
 
+        /// <summary>
+        /// This method will convert any valid timestamp into a DateTime object
+        /// </summary>
+        /// <param name="timeStamp"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public static DateTime ToDateTime(this int? timeStamp)
         {
             ArgumentNullException.ThrowIfNull(timeStamp);
