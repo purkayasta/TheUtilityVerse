@@ -5,7 +5,7 @@ VisualStudioVersion = 17.5.33502.453
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{4CA7E6FA-0DC4-4E66-BD2E-31A6447E6CD7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UtilityVerse", "UtilityVerse\UtilityVerse.csproj", "{256CD825-08FD-4531-8095-08833BABE1D3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UtilityVerse", "src\UtilityVerse\UtilityVerse.csproj", "{256CD825-08FD-4531-8095-08833BABE1D3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{3D24A8E3-F6A7-4A0E-B22B-4DF324D85BB6}"
 EndProject
@@ -15,6 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__solution-items__", "__sol
 		.gitignore = .gitignore
 		LICENSE.txt = LICENSE.txt
 		README.md = README.md
+		assets\utility-verse.png = assets\utility-verse.png
 	EndProjectSection
 EndProject
 Global
