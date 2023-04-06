@@ -4,10 +4,10 @@
 
 UtilityVerse is for you to do what you do best. 
 
-
 ![Nuget](https://img.shields.io/github/repo-size/purkayasta/TheUtilityVerse?style=social)
 ![Nuget](https://img.shields.io/github/last-commit/purkayasta/TheUtilityVerse?style=flat-square)
 
+Want to contribute? Here is the [guideline](./CONTRIBUTING.md)
 
 There are multiple packages of this universe.
 
