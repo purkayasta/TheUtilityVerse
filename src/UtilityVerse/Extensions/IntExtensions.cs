@@ -17,6 +17,5 @@
 
             return min <= source && max <= source;
         }
-
     }
 }

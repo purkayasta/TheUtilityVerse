@@ -1,5 +1,4 @@
 ﻿using UtilityVerse.Contracts;
-using Humanizer;
 
 namespace UtilityVerse
 {
@@ -54,7 +53,7 @@ namespace UtilityVerse
 
                     retryOption.Count--;
 
-                    Console.WriteLine("Next Execution in: {time}", retryOption.Delay!.Value.Humanize());
+                    Console.WriteLine("Next Execution in: {time} second", retryOption.Delay!.Value.TotalSeconds);
 
                     Task.Delay(retryOption.Delay!.Value);
                 }

@@ -8,7 +8,7 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<IsPackable>true</IsPackable>
 		<PackageId>UtilityVerse</PackageId>
-		<PackageVersion>0.1</PackageVersion>
+		<PackageVersion>0.2</PackageVersion>
 		<PackageTags>utility, utils, C#, dotnet</PackageTags>
 		<Description>a curated list of utility methods that will help you, do your work at your best.</Description>
 		<Authors>Pritom Purkayasta</Authors>
@@ -23,7 +23,7 @@
 		<GenerateDocumentationFile>False</GenerateDocumentationFile>
 		<Title>TheUtilityVerse</Title>
 		<PackageIcon>utility-verse.png</PackageIcon>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageReadmeFile>nuget.md</PackageReadmeFile>
 		<IncludeSymbols>True</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
@@ -44,17 +44,10 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<None Include="..\..\README.md">
+		<None Update="nuget.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Humanizer.Core" Version="2.14.1" />
-		<PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
-		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
 	</ItemGroup>
 
 </Project>
