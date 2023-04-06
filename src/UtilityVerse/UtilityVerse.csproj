@@ -10,11 +10,10 @@
 		<PackageId>UtilityVerse</PackageId>
 		<PackageVersion>0.1</PackageVersion>
 		<PackageTags>utility, utils, C#, dotnet</PackageTags>
-		<Description>a currated list of utility methods that will help you, do your work at your best.</Description>
+		<Description>a curated list of utility methods that will help you, do your work at your best.</Description>
 		<Authors>Pritom Purkayasta</Authors>
-		<RepositoryType>Git</RepositoryType>
 		<RepositoryUrl>https://github.com/purkayasta/TheUtilityVerse</RepositoryUrl>
-		<PackageProjectUrl>https://www.nuget.org/packages/TheUtilityVerse/</PackageProjectUrl>
+		<PackageProjectUrl>https://www.nuget.org/packages/UtilityVerse/</PackageProjectUrl>
 		<RepositoryType>git</RepositoryType>
 		<Copyright>
 			Pritom Purkayasta
@@ -25,7 +24,8 @@
 		<Title>TheUtilityVerse</Title>
 		<PackageIcon>utility-verse.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-
+		<IncludeSymbols>True</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 	</PropertyGroup>
 

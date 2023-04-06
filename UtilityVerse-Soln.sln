@@ -13,7 +13,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__solution-items__", "__sol
 	ProjectSection(SolutionItems) = preProject
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
+		CONTRIBUTING.md = CONTRIBUTING.md
 		LICENSE.txt = LICENSE.txt
+		nuget.md = nuget.md
 		README.md = README.md
 		assets\utility-verse.png = assets\utility-verse.png
 	EndProjectSection
