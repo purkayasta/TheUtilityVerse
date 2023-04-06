@@ -6,18 +6,9 @@ UtilityVerse is for you to do what you do best.
 
 Invoke this library using ```UtilityVerse``` class.
 
-## Extensions
-- DateOnly
-- DateTime
-- Generic
-- Integer
-- Object
-- String
-
-
 ## Helpers
 - HttpRequest Creation.
-- Manual Retry Mechanism
+
 
 
 Made ❤ with C#.

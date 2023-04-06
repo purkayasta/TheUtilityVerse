@@ -1,0 +1,58 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<IsPackable>true</IsPackable>
+		<PackageId>UtilityVerse.ASPNET</PackageId>
+		<PackageVersion>0.2</PackageVersion>
+		<PackageTags>utility, utils, C#, dotnet, aspnet, aspnet.core, dotnet core</PackageTags>
+		<Description>a curated list of utility methods that will help you, do your work at your best.</Description>
+		<Authors>Pritom Purkayasta</Authors>
+		<RepositoryUrl>https://github.com/purkayasta/TheUtilityVerse</RepositoryUrl>
+		<PackageProjectUrl>https://www.nuget.org/packages/UtilityVerse/</PackageProjectUrl>
+		<RepositoryType>git</RepositoryType>
+		<Copyright>
+			Pritom Purkayasta
+			Copyright (c) Pritom Purkayasta All rights reserved.
+			FREE TO USE TO CONNECT THE WORLD
+		</Copyright>
+		<GenerateDocumentationFile>False</GenerateDocumentationFile>
+		<Title>TheUtilityVerse.ASPNET</Title>
+		<PackageIcon>utility-verse.png</PackageIcon>
+		<PackageReadmeFile>nuget.md</PackageReadmeFile>
+		<IncludeSymbols>True</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\assets\utility-verse.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Update="nuget.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
+		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
+	</ItemGroup>
+
+</Project>
