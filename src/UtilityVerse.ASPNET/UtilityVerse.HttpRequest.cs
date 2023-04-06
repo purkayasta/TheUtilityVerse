@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Internal;
+using Microsoft.Extensions.Primitives;
 
-namespace UtilityVerse
+namespace UtilityVerse.ASPNET
 {
     public sealed partial class UtilityVerse
     {
         /// <summary>
-        /// this is a method to create http request for unit/integration tests.
+        /// this is a method to create HTTP request for unit/integration tests.
         /// </summary>
         /// <param name="queryStringKey"></param>
         /// <param name="queryStringValue"></param>
@@ -15,7 +16,7 @@ namespace UtilityVerse
         {
             var defaultRequest = new DefaultHttpContext();
             var httpRequest = defaultRequest.Request;
-            httpRequest.Query = new QueryCollection(new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
+            httpRequest.Query = new QueryCollection(new Dictionary<string, StringValues>
             {
                 {queryStringKey, queryStringValue}
             });
@@ -23,7 +24,7 @@ namespace UtilityVerse
         }
 
         /// <summary>
-        /// this is a method to create httprequest object for unit/integration tests.
+        /// this is a method to create HTTP request object for unit/integration tests.
         /// </summary>
         /// <returns></returns>
         public static HttpRequest CreateHttpRequest() => new DefaultHttpContext().Request;

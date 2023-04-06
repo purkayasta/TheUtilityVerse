@@ -1,5 +1,4 @@
-﻿
-namespace UtilityVerse
+﻿namespace UtilityVerse.ASPNET
 {
     /// <summary>
     /// Base utility verse class for writing helpers.

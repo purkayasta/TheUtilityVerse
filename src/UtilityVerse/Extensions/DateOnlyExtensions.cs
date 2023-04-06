@@ -3,7 +3,7 @@
     public static class DateOnlyExtensions
     {
         /// <summary>
-        /// This method will help to determine is the dateonly instance is in between range or not.
+        /// This method will help to determine is the date only instance is in between range or not.
         /// </summary>
         /// <param name="dt"></param>
         /// <param name="startDate"></param>

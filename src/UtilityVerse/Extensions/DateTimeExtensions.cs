@@ -2,10 +2,10 @@
 {
     public static class DateTimeExtensions
     {
-        private static DateTime _defaultDateTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        private static DateTime _defaultDateTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         /// <summary>
-        /// This method will help you determine if the target datetime is within the given range (start and end)
+        /// This method will help you determine if the target date time is within the given range (start and end)
         /// </summary>
         /// <param name="dt"></param>
         /// <param name="startDateTime"></param>
@@ -22,7 +22,7 @@
         }
 
         /// <summary>
-        /// This method will convert datetime object into unix time stamp
+        /// This method will convert date time object into UNIX time stamp
         /// </summary>
         /// <param name="dt"></param>
         /// <returns></returns>
@@ -33,7 +33,7 @@
         }
 
         /// <summary>
-        /// This method will convert any valid timestamp into a DateTime object
+        /// This method will convert any valid time stamp into a DateTime object
         /// </summary>
         /// <param name="timeStamp"></param>
         /// <returns></returns>
