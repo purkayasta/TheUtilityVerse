@@ -14,11 +14,11 @@
         /// <exception cref="ArgumentNullException"></exception>
         public static bool IsInBetween(this DateTime? dt, DateTime? startDateTime, DateTime? endDateTime)
         {
-            ArgumentNullException.ThrowIfNull(dt, nameof(dt));
+            ArgumentNullException.ThrowIfNull(dt);
             ArgumentNullException.ThrowIfNull(startDateTime, nameof(startDateTime));
             ArgumentNullException.ThrowIfNull(endDateTime, nameof(endDateTime));
 
-            return dt >= startDateTime && dt < endDateTime;
+            return dt.Value >= startDateTime && dt.Value <= endDateTime;
         }
 
         /// <summary>
@@ -28,7 +28,7 @@
         /// <returns></returns>
         public static int ToUnixTimeStamp(this DateTime? dt)
         {
-            if (dt is null) return 0;
+            ArgumentNullException.ThrowIfNull(dt);
             return (int)dt.Value.Subtract(_defaultDateTime).TotalSeconds;
         }
 
@@ -41,7 +41,7 @@
         public static DateTime ToDateTime(this int? timeStamp)
         {
             ArgumentNullException.ThrowIfNull(timeStamp);
-            if (timeStamp < 1) throw new ArgumentOutOfRangeException(nameof(timeStamp), "invalid value");
+            if (timeStamp < 1) throw new ArgumentOutOfRangeException(nameof(timeStamp), "invalid time stamp value");
             return _defaultDateTime.AddSeconds(timeStamp.Value);
         }
     }

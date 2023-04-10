@@ -11,11 +11,11 @@
         /// <returns></returns>
         public static bool IsInBetween(this DateOnly? dt, DateOnly? startDate, DateOnly? endDate)
         {
-            ArgumentNullException.ThrowIfNull(dt, nameof(dt));
+            ArgumentNullException.ThrowIfNull(dt);
             ArgumentNullException.ThrowIfNull(startDate, nameof(startDate));
             ArgumentNullException.ThrowIfNull(endDate, nameof(endDate));
 
-            return dt.Value >= startDate && dt < endDate;
+            return dt.Value >= startDate && dt.Value <= endDate;
         }
     }
 }

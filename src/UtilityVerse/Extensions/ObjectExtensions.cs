@@ -24,7 +24,6 @@ namespace UtilityVerse.Extensions
         public static object? ToObject(this byte[]? byteArr)
         {
             ArgumentNullException.ThrowIfNull(byteArr);
-
             return JsonSerializer.Deserialize<object>(byteArr);
         }
 
@@ -33,6 +32,7 @@ namespace UtilityVerse.Extensions
         /// </summary>
         /// <param name="byteArr"></param>
         /// <returns></returns>
-        public static object? ToObject(this ReadOnlySpan<byte> byteArr) => JsonSerializer.Deserialize<object>(byteArr);
+        public static object? ToObject(this ReadOnlySpan<byte> byteArr) 
+            => JsonSerializer.Deserialize<object>(byteArr);
     }
 }

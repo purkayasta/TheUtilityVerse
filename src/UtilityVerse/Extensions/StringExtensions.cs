@@ -11,7 +11,7 @@ namespace UtilityVerse.Extensions
         /// <returns></returns>
         public static bool IsNullEmptyOrWhiteSpace(this string? val)
         {
-            if (val == null) return false;
+            if (val is null) return true;
             return string.IsNullOrEmpty(val) || string.IsNullOrWhiteSpace(val.Trim());
         }
 

@@ -11,11 +11,11 @@
         /// <returns></returns>
         public static bool IsInBetween(this int? source, int? min, int? max)
         {
-            ArgumentNullException.ThrowIfNull(source, nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(min, nameof(min));
             ArgumentNullException.ThrowIfNull(max, nameof(max));
 
-            return min <= source && max <= source;
+            return source.Value >= min && source.Value <= max;
         }
     }
 }
