@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace UtilityVerse.Extensions
 {
-    public static class ObjectExtensions
+    public static class ObjectExtension
     {
         /// <summary>
         /// This method will convert any object into a byte array.

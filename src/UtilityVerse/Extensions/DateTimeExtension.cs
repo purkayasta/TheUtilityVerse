@@ -1,6 +1,6 @@
 ﻿namespace UtilityVerse.Extensions
 {
-    public static class DateTimeExtensions
+    public static class DateTimeExtension
     {
         private static DateTime _defaultDateTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 

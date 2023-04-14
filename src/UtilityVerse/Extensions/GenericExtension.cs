@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace UtilityVerse.Extensions
 {
-    public static class GenericExtensions
+    public static class GenericExtension
     {
         /// <summary>
         /// This method will convert byte array into desired model.

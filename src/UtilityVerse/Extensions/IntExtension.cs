@@ -1,6 +1,6 @@
 ﻿namespace UtilityVerse.Extensions
 {
-    public static class IntExtensions
+    public static class IntExtension
     {
         /// <summary>
         /// This method will help to determine that source number is in between or not.

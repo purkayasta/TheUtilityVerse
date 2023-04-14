@@ -2,7 +2,7 @@
 
 namespace UtilityVerse.Extensions
 {
-    public static class StringExtensions
+    public static class StringExtension
     {
         /// <summary>
         /// This extension method will help to validate if the string is null empty and whitespace or not.
