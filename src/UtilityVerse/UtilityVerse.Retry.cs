@@ -5,35 +5,36 @@ namespace UtilityVerse
     public sealed partial class UtilityVerse
     {
         /// <summary>
-        /// Retry Operation. This utility method will help you do retry on any method. It will retry on exception.
+        /// The method will retry on exception.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="handler"></param>
         /// <param name="retryOption"></param>
         /// <returns></returns>
-        public static T? AddRetry<T>(Func<T> handler, RetryOption? retryOption = null)
+        public static T? AddRetry<T>(Func<T>? handler, RetryOption? retryOption = null)
         {
+            ArgumentNullException.ThrowIfNull(handler, "Function is null");
+
             retryOption ??= EvaluateOption(retryOption);
-
             T? genericReturn = default;
-
-            return ExecuteRetryOperation(handler, retryOption, genericReturn).GetAwaiter().GetResult();
-
+            return ExecuteRetryOperation(handler, retryOption, genericReturn)
+                .GetAwaiter().GetResult();
         }
 
         /// <summary>
-        /// Retry Operation Async Version. This utility method will help you do retry on any method. It will retry on exception.
+        /// Retry Operation Async Version. 
+        /// This utility method will help you do retry on any method. It will retry on exception.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="handler"></param>
         /// <param name="retryOption"></param>
         /// <returns></returns>
-        public static Task<T?> AddRetryAsync<T>(Func<T> handler, RetryOption? retryOption = null)
+        public static Task<T?> AddRetryAsync<T>(Func<T>? handler, RetryOption? retryOption = null)
         {
+            ArgumentNullException.ThrowIfNull(handler, "Function is null");
+
             retryOption ??= EvaluateOption(retryOption);
-
             T? genericReturn = default;
-
             return ExecuteRetryOperation(handler, retryOption, genericReturn);
         }
 
@@ -49,11 +50,11 @@ namespace UtilityVerse
                 }
                 catch (Exception retryException)
                 {
-                    Console.WriteLine("Exception Occurred - {handlerException}", retryException);
+                    Console.WriteLine($"Exception Occurred: - {retryException.Message}");
 
                     retryOption.Count--;
 
-                    Console.WriteLine("Next Execution in: {time} second", retryOption.Delay!.Value.TotalSeconds);
+                    Console.WriteLine($"Next Execution in: {retryOption.Delay!.Value.TotalSeconds} seconds");
 
                     Task.Delay(retryOption.Delay!.Value);
                 }

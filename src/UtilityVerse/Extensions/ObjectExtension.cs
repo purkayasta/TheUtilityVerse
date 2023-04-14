@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace UtilityVerse.Extensions
 {
-    public static class ObjectExtensions
+    public static class ObjectExtension
     {
         /// <summary>
         /// This method will convert any object into a byte array.
@@ -24,7 +24,6 @@ namespace UtilityVerse.Extensions
         public static object? ToObject(this byte[]? byteArr)
         {
             ArgumentNullException.ThrowIfNull(byteArr);
-
             return JsonSerializer.Deserialize<object>(byteArr);
         }
 
@@ -33,6 +32,7 @@ namespace UtilityVerse.Extensions
         /// </summary>
         /// <param name="byteArr"></param>
         /// <returns></returns>
-        public static object? ToObject(this ReadOnlySpan<byte> byteArr) => JsonSerializer.Deserialize<object>(byteArr);
+        public static object? ToObject(this ReadOnlySpan<byte> byteArr)
+            => JsonSerializer.Deserialize<object>(byteArr);
     }
 }

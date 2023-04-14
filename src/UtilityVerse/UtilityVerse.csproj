@@ -8,8 +8,8 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<IsPackable>true</IsPackable>
 		<PackageId>UtilityVerse</PackageId>
-		<PackageVersion>0.2</PackageVersion>
-		<PackageTags>utility, utils, C#, dotnet</PackageTags>
+		<PackageVersion>0.3</PackageVersion>
+		<PackageTags>utility, utils, C#, dotnet, c# utility, dotnet core</PackageTags>
 		<Description>a curated list of utility methods that will help you, do your work at your best.</Description>
 		<Authors>Pritom Purkayasta</Authors>
 		<RepositoryUrl>https://github.com/purkayasta/TheUtilityVerse</RepositoryUrl>
@@ -26,7 +26,6 @@
 		<PackageReadmeFile>nuget.md</PackageReadmeFile>
 		<IncludeSymbols>True</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

@@ -2,7 +2,7 @@
 
 namespace UtilityVerse.Extensions
 {
-    public static class StringExtensions
+    public static class StringExtension
     {
         /// <summary>
         /// This extension method will help to validate if the string is null empty and whitespace or not.
@@ -11,7 +11,7 @@ namespace UtilityVerse.Extensions
         /// <returns></returns>
         public static bool IsNullEmptyOrWhiteSpace(this string? val)
         {
-            if (val == null) return false;
+            if (val is null) return true;
             return string.IsNullOrEmpty(val) || string.IsNullOrWhiteSpace(val.Trim());
         }
 
@@ -27,7 +27,7 @@ namespace UtilityVerse.Extensions
 
             var sb = new StringBuilder();
 
-            bool isSeparatorExist = !separator.IsNullEmptyOrWhiteSpace();
+            bool isSeparatorExist = !string.IsNullOrEmpty(separator);
 
             for (int index = 0; index < strs.Length; index++)
             {
