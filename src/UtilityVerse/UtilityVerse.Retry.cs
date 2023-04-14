@@ -32,7 +32,7 @@ namespace UtilityVerse
         public static Task<T?> AddRetryAsync<T>(Func<T>? handler, RetryOption? retryOption = null)
         {
             ArgumentNullException.ThrowIfNull(handler, "Function is null");
-            
+
             retryOption ??= EvaluateOption(retryOption);
             T? genericReturn = default;
             return ExecuteRetryOperation(handler, retryOption, genericReturn);

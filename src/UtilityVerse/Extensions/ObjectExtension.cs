@@ -32,7 +32,7 @@ namespace UtilityVerse.Extensions
         /// </summary>
         /// <param name="byteArr"></param>
         /// <returns></returns>
-        public static object? ToObject(this ReadOnlySpan<byte> byteArr) 
+        public static object? ToObject(this ReadOnlySpan<byte> byteArr)
             => JsonSerializer.Deserialize<object>(byteArr);
     }
 }

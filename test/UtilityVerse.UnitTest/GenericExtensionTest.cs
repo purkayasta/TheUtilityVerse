@@ -1,5 +1,4 @@
-﻿using System.Text;
-using UtilityVerse.Extensions;
+﻿using UtilityVerse.Extensions;
 
 namespace UtilityVerse.UnitTest
 {
