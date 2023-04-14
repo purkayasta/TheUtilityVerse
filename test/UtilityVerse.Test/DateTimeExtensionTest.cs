@@ -54,5 +54,19 @@ namespace UtilityVerse.UnitTesting
             DateTime? endDate = new DateTime(2022, 01, 01);
             Assert.False(examDate.IsInBetween(startDate, endDate));
         }
+
+        [Fact]
+        public void ToUnixTimeStamp_ThrowsException_WhenNullIsGiven()
+        {
+            DateTime? dt = default;
+            Assert.Throws<ArgumentNullException>(() => dt.ToUnixTimeStamp(Contracts.UtilityVerseTimeEnum.Second));
+        }
+
+        [Fact]
+        public void ToUnixTimeStamp_ReturnValidIntTimeStamp_WhenValidDateIsProvided()
+        {
+            DateTime? dt = new DateTime(1994, 08, 05, 00, 00, 01, DateTimeKind.Unspecified);
+            Assert.Equal(776023201, dt.ToUnixTimeStamp(Contracts.UtilityVerseTimeEnum.Second));
+        }
     }
 }

@@ -1,8 +1,10 @@
-﻿namespace UtilityVerse.Extensions
+﻿using UtilityVerse.Contracts;
+
+namespace UtilityVerse.Extensions
 {
     public static class DateTimeExtension
     {
-        private static DateTime _defaultDateTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        private static DateTime _defaultDateTime = new(1970, 1, 1);
 
         /// <summary>
         /// This method will help you determine if the target date time is within the given range (start and end)
@@ -42,10 +44,23 @@
         /// </summary>
         /// <param name="dt"></param>
         /// <returns></returns>
-        public static int ToUnixTimeStamp(this DateTime? dt)
+        public static long ToUnixTimeStamp(this DateTime? dt, UtilityVerseTimeEnum timeEnum)
         {
             ArgumentNullException.ThrowIfNull(dt);
-            return (int)dt.Value.Subtract(_defaultDateTime).TotalSeconds;
+            return ToUnixTimeStamp(dt.Value, timeEnum);
+        }
+
+        public static long ToUnixTimeStamp(this DateTime dt, UtilityVerseTimeEnum timeEnum)
+        {
+            var offset = new DateTimeOffset(dt);
+
+            return timeEnum switch
+            {
+                UtilityVerseTimeEnum.MilliSecond => offset.ToUnixTimeMilliseconds(),
+                UtilityVerseTimeEnum.Second => offset.ToUnixTimeSeconds(),
+                _ => throw new NotImplementedException()
+            };
+
         }
 
         /// <summary>
@@ -54,11 +69,23 @@
         /// <param name="timeStamp"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static DateTime ToDateTime(this int? timeStamp)
+        public static DateTime ToDateTime(this long? timeStamp, UtilityVerseTimeEnum timeEnum)
         {
             ArgumentNullException.ThrowIfNull(timeStamp);
-            if (timeStamp < 1) throw new ArgumentOutOfRangeException(nameof(timeStamp), "invalid time stamp value");
-            return _defaultDateTime.AddSeconds(timeStamp.Value);
+            return ToDateTime(timeStamp.Value, timeEnum);
+        }
+
+        public static DateTime ToDateTime(this long timeStamp, UtilityVerseTimeEnum timeEnum)
+        {
+            if (timeStamp < 1)
+                throw new ArgumentOutOfRangeException(nameof(timeStamp), "invalid time stamp value");
+
+            return timeEnum switch
+            {
+                UtilityVerseTimeEnum.MilliSecond => DateTimeOffset.FromUnixTimeMilliseconds(timeStamp).DateTime,
+                UtilityVerseTimeEnum.Second => DateTimeOffset.FromUnixTimeSeconds(timeStamp).DateTime,
+                _ => throw new NotImplementedException()
+            };
         }
     }
 }
