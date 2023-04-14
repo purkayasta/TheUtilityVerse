@@ -19,7 +19,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__solution-items__", "__sol
 		assets\utility-verse.png = assets\utility-verse.png
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UtilityVerse.ASPNET", "src\UtilityVerse.ASPNET\UtilityVerse.ASPNET.csproj", "{D357B055-BFC5-4D26-B517-33F8ADB4B33E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UtilityVerse.ASPNET", "src\UtilityVerse.ASPNET\UtilityVerse.ASPNET.csproj", "{D357B055-BFC5-4D26-B517-33F8ADB4B33E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UtilityVerse.Test", "test\UtilityVerse.Test\UtilityVerse.Test.csproj", "{8E9B3E7F-4E9A-429E-B180-8FC9A0641008}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,6 +37,10 @@ Global
 		{D357B055-BFC5-4D26-B517-33F8ADB4B33E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D357B055-BFC5-4D26-B517-33F8ADB4B33E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D357B055-BFC5-4D26-B517-33F8ADB4B33E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E9B3E7F-4E9A-429E-B180-8FC9A0641008}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E9B3E7F-4E9A-429E-B180-8FC9A0641008}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E9B3E7F-4E9A-429E-B180-8FC9A0641008}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E9B3E7F-4E9A-429E-B180-8FC9A0641008}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -42,6 +48,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{256CD825-08FD-4531-8095-08833BABE1D3} = {4CA7E6FA-0DC4-4E66-BD2E-31A6447E6CD7}
 		{D357B055-BFC5-4D26-B517-33F8ADB4B33E} = {4CA7E6FA-0DC4-4E66-BD2E-31A6447E6CD7}
+		{8E9B3E7F-4E9A-429E-B180-8FC9A0641008} = {3D24A8E3-F6A7-4A0E-B22B-4DF324D85BB6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5D3B1F59-B642-4106-91C6-ADDA4D3BD4A5}

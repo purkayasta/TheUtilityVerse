@@ -2,12 +2,12 @@
 
 ## Give it a star if you like the project. 👏 🌠 🌟
 
-UtilityVerse (Multi verse of utility methods) is a library for all the helper methods that you might use.
+### UtilityVerse (Multi verse of utility methods) is a library for all the helper methods that you might use.
 
 ![Nuget](https://img.shields.io/github/repo-size/purkayasta/TheUtilityVerse?style=social)
 ![Nuget](https://img.shields.io/github/last-commit/purkayasta/TheUtilityVerse?style=flat-square)
 
-Want to contribute? Here is the [guideline](./CONTRIBUTING.md)
+> Want to contribute? Here is the [guideline](./CONTRIBUTING.md)
 
 There are multiple packages in this universe. Use whatever suits you.
 
@@ -47,3 +47,4 @@ To Invoke this library, you may want to use ```UtilityVerse``` class.
 
 
 Made ❤ with C#.
+
