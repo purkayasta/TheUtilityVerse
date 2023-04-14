@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace UtilityVerse.Extensions
+﻿namespace UtilityVerse.Extensions
 {
     public static class DateOnlyExtension
     {
@@ -22,6 +20,9 @@ namespace UtilityVerse.Extensions
 
         public static bool IsInBetween(this DateOnly dateTime, DateOnly startDate, DateOnly endDate)
         {
+            if (startDate > endDate)
+                throw new ArgumentOutOfRangeException(nameof(startDate) + " cannot be greater than " + nameof(endDate));
+
             return dateTime >= startDate && dateTime <= endDate;
         }
     }

@@ -41,5 +41,14 @@ namespace UtilityVerse.UnitTesting
             DateOnly? secondDate = null;
             Assert.Throws<ArgumentNullException>(() => examDate.IsInBetween(firstDate, secondDate));
         }
+
+        [Fact]
+        public void IsInBetween_ThrowsException_WhenStartDateIsHigherThanEndDate()
+        {
+            DateOnly examDate = new(1993, 08, 05);
+            DateOnly secondDate = new(1990, 01, 01);
+            DateOnly firstDate = new(2000, 01, 01);
+            Assert.Throws<ArgumentOutOfRangeException>(() => examDate.IsInBetween(firstDate, secondDate));
+        }
     }
 }
