@@ -18,7 +18,23 @@
             ArgumentNullException.ThrowIfNull(startDateTime, nameof(startDateTime));
             ArgumentNullException.ThrowIfNull(endDateTime, nameof(endDateTime));
 
-            return dt.Value >= startDateTime && dt.Value <= endDateTime;
+            return IsInBetween(dt.Value, startDateTime.Value, endDateTime.Value);
+        }
+
+        /// <summary>
+        /// This method will help you determine if the target date time is within the given range (start and end)
+        /// </summary>
+        /// <param name="dt"></param>
+        /// <param name="startDateTime"></param>
+        /// <param name="endDateTime"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static bool IsInBetween(this DateTime dt, DateTime startDateTime, DateTime endDateTime)
+        {
+            if (endDateTime < startDateTime)
+                throw new ArgumentOutOfRangeException(nameof(endDateTime) + " cannot be smaller than " + nameof(startDateTime));
+
+            return dt >= startDateTime && dt <= endDateTime;
         }
 
         /// <summary>
