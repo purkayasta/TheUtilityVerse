@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UtilityVerse.Extensions;
+﻿using UtilityVerse.Extensions;
 
 namespace UtilityVerse.UnitTesting
 {
@@ -67,6 +62,44 @@ namespace UtilityVerse.UnitTesting
         {
             DateTime? dt = new DateTime(1994, 08, 05, 00, 00, 01, DateTimeKind.Unspecified);
             Assert.Equal(776023201, dt.ToUnixTimeStamp(Contracts.UtilityVerseTimeEnum.Second));
+        }
+
+        [Fact]
+        public void ToDateTime_ThrowsException_WhenInvalidLongNumberProvided()
+        {
+            long? longNumber = default;
+            Assert.Throws<ArgumentNullException>(() => longNumber.ToDateTime(Contracts.UtilityVerseTimeEnum.MilliSecond));
+        }
+
+        [Fact]
+        public void ToDateTime_ThrowsException_WhenNumberIsBelowOne()
+        {
+            long? longNumber = 0;
+            Assert.Throws<ArgumentOutOfRangeException>(() => longNumber.ToDateTime(Contracts.UtilityVerseTimeEnum.Second));
+        }
+
+        [Fact]
+        public void ToDateTime_ReturnValidDateTime_WhenValidUnixEpochTimeIsProvided()
+        {
+            var newYear = new DateTime(2024, 01, 01, 0, 0, 0, DateTimeKind.Utc);
+            var unixEpochTime = newYear.ToUnixTimeStamp(Contracts.UtilityVerseTimeEnum.Second);
+            Assert.Equal(unixEpochTime.ToDateTime(Contracts.UtilityVerseTimeEnum.Second), newYear);
+        }
+
+        [Fact]
+        public void ToDateTime_ReturnValidDateTime_WhenValidUnixEpochMillisecondTimeIsProvided()
+        {
+            var newYear = new DateTime(2024, 01, 01, 0, 0, 0, DateTimeKind.Utc);
+            var unixEpochTime = newYear.ToUnixTimeStamp(Contracts.UtilityVerseTimeEnum.MilliSecond);
+            Assert.Equal(unixEpochTime.ToDateTime(Contracts.UtilityVerseTimeEnum.MilliSecond), newYear);
+        }
+
+        [Fact]
+        public void ToDateTime_ReturnDoesNotMatch_WhenMillisecondUnixTimeIsGiven_ButSecondUnixTimeIsExpected()
+        {
+            var newYear = new DateTime(2024, 01, 01, 0, 0, 0, DateTimeKind.Utc);
+            var unixEpochTime = newYear.ToUnixTimeStamp(Contracts.UtilityVerseTimeEnum.Second);
+            Assert.NotEqual(unixEpochTime.ToDateTime(Contracts.UtilityVerseTimeEnum.MilliSecond), newYear);
         }
     }
 }

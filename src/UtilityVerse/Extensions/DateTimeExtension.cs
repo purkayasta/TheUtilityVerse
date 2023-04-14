@@ -4,8 +4,6 @@ namespace UtilityVerse.Extensions
 {
     public static class DateTimeExtension
     {
-        private static DateTime _defaultDateTime = new(1970, 1, 1);
-
         /// <summary>
         /// This method will help you determine if the target date time is within the given range (start and end)
         /// </summary>
@@ -50,6 +48,11 @@ namespace UtilityVerse.Extensions
             return ToUnixTimeStamp(dt.Value, timeEnum);
         }
 
+        /// <summary>
+        /// This method will convert date time object into UNIX time stamp
+        /// </summary>
+        /// <param name="dt"></param>
+        /// <returns></returns>
         public static long ToUnixTimeStamp(this DateTime dt, UtilityVerseTimeEnum timeEnum)
         {
             var offset = new DateTimeOffset(dt);
@@ -75,6 +78,12 @@ namespace UtilityVerse.Extensions
             return ToDateTime(timeStamp.Value, timeEnum);
         }
 
+        /// <summary>
+        /// This method will convert any valid time stamp into a DateTime object
+        /// </summary>
+        /// <param name="timeStamp"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public static DateTime ToDateTime(this long timeStamp, UtilityVerseTimeEnum timeEnum)
         {
             if (timeStamp < 1)
