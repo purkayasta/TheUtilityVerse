@@ -27,7 +27,7 @@ namespace UtilityVerse.Extensions
 
             var sb = new StringBuilder();
 
-            bool isSeparatorExist = !separator.IsNullEmptyOrWhiteSpace();
+            bool isSeparatorExist = !string.IsNullOrEmpty(separator);
 
             for (int index = 0; index < strs.Length; index++)
             {
