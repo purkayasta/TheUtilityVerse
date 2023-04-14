@@ -21,7 +21,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__solution-items__", "__sol
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UtilityVerse.ASPNET", "src\UtilityVerse.ASPNET\UtilityVerse.ASPNET.csproj", "{D357B055-BFC5-4D26-B517-33F8ADB4B33E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UtilityVerse.Test", "test\UtilityVerse.Test\UtilityVerse.Test.csproj", "{8E9B3E7F-4E9A-429E-B180-8FC9A0641008}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UtilityVerse.UnitTest", "test\UtilityVerse.UnitTest\UtilityVerse.UnitTest.csproj", "{8E9B3E7F-4E9A-429E-B180-8FC9A0641008}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

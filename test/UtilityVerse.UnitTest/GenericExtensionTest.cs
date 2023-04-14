@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using UtilityVerse.Extensions;
 
-namespace UtilityVerse.UnitTesting
+namespace UtilityVerse.UnitTest
 {
     public class GenericExtensionTest
     {
