@@ -17,7 +17,7 @@ namespace UtilityVerse.UnitTest
         [Fact]
         public void To_ThrowException_WhenNullByteArrayIsGiven()
         {
-            byte[] array = default;
+            byte[]? array = default;
             Assert.Throws<ArgumentNullException>(() => array.To<User>());
         }
 
