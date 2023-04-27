@@ -1,4 +1,10 @@
-﻿namespace UtilityVerse.Extensions
+﻿// ---------------------------------------------------------------
+// Copyright (c) Pritom Purkayasta All rights reserved.
+// FREE TO USE TO CONNECT THE WORLD
+// ---------------------------------------------------------------
+
+
+namespace UtilityVerse.Extensions
 {
     public static class IntExtension
     {
@@ -32,5 +38,8 @@
 
             return source >= min && source <= max;
         }
+
+
+        public static int ToInt(this bool value) => value ? 1 : 0;
     }
 }

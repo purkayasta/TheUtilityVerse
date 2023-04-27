@@ -1,8 +1,14 @@
-﻿using UtilityVerse.Contracts;
+﻿// ---------------------------------------------------------------
+// Copyright (c) Pritom Purkayasta All rights reserved.
+// FREE TO USE TO CONNECT THE WORLD
+// ---------------------------------------------------------------
+
+
+using UtilityVerse.Contracts;
 
 namespace UtilityVerse
 {
-    public sealed partial class UtilityVerse
+    public sealed partial class Utility
     {
         /// <summary>
         /// The method will retry on exception.

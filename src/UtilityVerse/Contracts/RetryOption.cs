@@ -1,4 +1,10 @@
-﻿namespace UtilityVerse.Contracts
+﻿// ---------------------------------------------------------------
+// Copyright (c) Pritom Purkayasta All rights reserved.
+// FREE TO USE TO CONNECT THE WORLD
+// ---------------------------------------------------------------
+
+
+namespace UtilityVerse.Contracts
 {
     public class RetryOption
     {

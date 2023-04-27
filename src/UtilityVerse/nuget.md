@@ -9,7 +9,7 @@ There are multiple packages in this universe. Use whatever suits you.
 1. [UtilityVerse](https://www.nuget.org/packages/UtilityVerse/)
 2. [UtilityVerse.ASPNET](https://www.nuget.org/packages/UtilityVerse.ASPNET/)
 
-To Invoke this library, you may want to use ```UtilityVerse``` class.
+To Invoke this library, you may want to use ```Utility``` class.
 
 ## Extensions
 - DateOnly

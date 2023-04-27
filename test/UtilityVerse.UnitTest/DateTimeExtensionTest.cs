@@ -54,52 +54,52 @@ namespace UtilityVerse.UnitTest
         public void ToUnixTimeStamp_ThrowsException_WhenNullIsGiven()
         {
             DateTime? dt = default;
-            Assert.Throws<ArgumentNullException>(() => dt.ToUnixTimeStamp(Contracts.UtilityVerseTimeEnum.Second));
+            Assert.Throws<ArgumentNullException>(() => dt.ToUnixTimeStamp(Contracts.TimeEnum.Second));
         }
 
         [Fact]
         public void ToUnixTimeStamp_ReturnValidIntTimeStamp_WhenValidDateIsProvided()
         {
             DateTime? dt = new DateTime(1994, 08, 05, 00, 00, 01, DateTimeKind.Unspecified);
-            Assert.Equal(776023201, dt.ToUnixTimeStamp(Contracts.UtilityVerseTimeEnum.Second));
+            Assert.Equal(776023201, dt.ToUnixTimeStamp(Contracts.TimeEnum.Second));
         }
 
         [Fact]
         public void ToDateTime_ThrowsException_WhenInvalidLongNumberProvided()
         {
             long? longNumber = default;
-            Assert.Throws<ArgumentNullException>(() => longNumber.ToDateTime(Contracts.UtilityVerseTimeEnum.MilliSecond));
+            Assert.Throws<ArgumentNullException>(() => longNumber.ToDateTime(Contracts.TimeEnum.MilliSecond));
         }
 
         [Fact]
         public void ToDateTime_ThrowsException_WhenNumberIsBelowOne()
         {
             long? longNumber = 0;
-            Assert.Throws<ArgumentOutOfRangeException>(() => longNumber.ToDateTime(Contracts.UtilityVerseTimeEnum.Second));
+            Assert.Throws<ArgumentOutOfRangeException>(() => longNumber.ToDateTime(Contracts.TimeEnum.Second));
         }
 
         [Fact]
         public void ToDateTime_ReturnValidDateTime_WhenValidUnixEpochTimeIsProvided()
         {
             var newYear = new DateTime(2024, 01, 01, 0, 0, 0, DateTimeKind.Utc);
-            var unixEpochTime = newYear.ToUnixTimeStamp(Contracts.UtilityVerseTimeEnum.Second);
-            Assert.Equal(unixEpochTime.ToDateTime(Contracts.UtilityVerseTimeEnum.Second), newYear);
+            var unixEpochTime = newYear.ToUnixTimeStamp(Contracts.TimeEnum.Second);
+            Assert.Equal(unixEpochTime.ToDateTime(Contracts.TimeEnum.Second), newYear);
         }
 
         [Fact]
         public void ToDateTime_ReturnValidDateTime_WhenValidUnixEpochMillisecondTimeIsProvided()
         {
             var newYear = new DateTime(2024, 01, 01, 0, 0, 0, DateTimeKind.Utc);
-            var unixEpochTime = newYear.ToUnixTimeStamp(Contracts.UtilityVerseTimeEnum.MilliSecond);
-            Assert.Equal(unixEpochTime.ToDateTime(Contracts.UtilityVerseTimeEnum.MilliSecond), newYear);
+            var unixEpochTime = newYear.ToUnixTimeStamp(Contracts.TimeEnum.MilliSecond);
+            Assert.Equal(unixEpochTime.ToDateTime(Contracts.TimeEnum.MilliSecond), newYear);
         }
 
         [Fact]
         public void ToDateTime_ReturnDoesNotMatch_WhenMillisecondUnixTimeIsGiven_ButSecondUnixTimeIsExpected()
         {
             var newYear = new DateTime(2024, 01, 01, 0, 0, 0, DateTimeKind.Utc);
-            var unixEpochTime = newYear.ToUnixTimeStamp(Contracts.UtilityVerseTimeEnum.Second);
-            Assert.NotEqual(unixEpochTime.ToDateTime(Contracts.UtilityVerseTimeEnum.MilliSecond), newYear);
+            var unixEpochTime = newYear.ToUnixTimeStamp(Contracts.TimeEnum.Second);
+            Assert.NotEqual(unixEpochTime.ToDateTime(Contracts.TimeEnum.MilliSecond), newYear);
         }
     }
 }
