@@ -11,8 +11,8 @@ There are multiple packages in this universe. Use whatever suits you.
 
 To Invoke this library, you may want to use ```UtilityVerse``` class.
 
-## Helpers
-- HttpRequest Creation.
+## Features:
+- [x] CreateHttpRequest()
 
 
 
