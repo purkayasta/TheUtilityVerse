@@ -8,21 +8,21 @@ namespace UtilityVerse.UnitTest
         public void IsNullEmptyOrWhiteSpace_ReturnTrue_WhenValueIsNull()
         {
             string? value = default;
-            Assert.True(value.IsNullEmptyOrWhiteSpace());
+            Assert.True(value.IsNullOrEmptyOrWhiteSpace());
         }
 
         [Fact]
         public void IsNullEmptyOrWhiteSpace_ReturnTrue_WhenValueIsEmpty()
         {
             string? value = string.Empty;
-            Assert.True(value.IsNullEmptyOrWhiteSpace());
+            Assert.True(value.IsNullOrEmptyOrWhiteSpace());
         }
 
         [Fact]
         public void IsNullEmptyOrWhiteSpace_ReturnTrue_WhenValueIsWhiteSpace()
         {
             string? value = " ";
-            Assert.True(value.IsNullEmptyOrWhiteSpace());
+            Assert.True(value.IsNullOrEmptyOrWhiteSpace());
         }
 
         [Fact]

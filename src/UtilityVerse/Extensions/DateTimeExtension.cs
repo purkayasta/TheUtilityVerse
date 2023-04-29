@@ -109,7 +109,7 @@ namespace UtilityVerse.Extensions
         /// <param name="timeStamp"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static (int year, int month, int day, int hour, int minute, int second, int milisecond) FromDateTime(this DateTime? dateTime)
+        public static (int year, int month, int day, int hour, int minute, int second, int milisecond) DestructFromDateTime(this DateTime? dateTime)
         {
             ArgumentNullException.ThrowIfNull(dateTime);
             return (dateTime.Value.Year, dateTime.Value.Month, dateTime.Value.Day, dateTime.Value.Hour, dateTime.Value.Minute, dateTime.Value.Second, dateTime.Value.Millisecond);

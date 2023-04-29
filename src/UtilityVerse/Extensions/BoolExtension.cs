@@ -8,9 +8,14 @@ namespace UtilityVerse.Extensions
 {
     public static class BoolExtension
     {
+        /// <summary>
+        /// This method will convert any boolean string value to boolean
+        /// </summary>
+        /// <param name="value">"YES", "1", "true"</param>
+        /// <returns></returns>
         public static bool ToBoolean(this string? value)
         {
-            if (value.IsNullEmptyOrWhiteSpace()) return false;
+            if (value.IsNullOrEmptyOrWhiteSpace()) return false;
 
             value = value!.ToLower();
 

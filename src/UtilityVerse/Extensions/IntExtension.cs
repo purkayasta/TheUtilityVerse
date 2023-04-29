@@ -39,7 +39,11 @@ namespace UtilityVerse.Extensions
             return source >= min && source <= max;
         }
 
-
+        /// <summary>
+        /// This method will convert 1 or 0 to boolean
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
         public static int ToInt(this bool value) => value ? 1 : 0;
     }
 }

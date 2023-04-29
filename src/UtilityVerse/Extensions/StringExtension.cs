@@ -16,7 +16,7 @@ namespace UtilityVerse.Extensions
         /// </summary>
         /// <param name="val"></param>
         /// <returns></returns>
-        public static bool IsNullEmptyOrWhiteSpace(this string? val)
+        public static bool IsNullOrEmptyOrWhiteSpace(this string? val)
         {
             if (val is null) return true;
             return string.IsNullOrEmpty(val) || string.IsNullOrWhiteSpace(val.Trim());
@@ -157,7 +157,7 @@ namespace UtilityVerse.Extensions
 
         public static string ConvertOsWisePath(this string? path)
         {
-            if (path.IsNullEmptyOrWhiteSpace()) return string.Empty;
+            if (path.IsNullOrEmptyOrWhiteSpace()) return string.Empty;
 
             if (Utility.IsWindows) return path!.Replace("/", "\\");
             return path!.Replace("\\", "/");
@@ -165,7 +165,7 @@ namespace UtilityVerse.Extensions
 
         public static string EncodeToBase64(this string? value, EncodingEnum encoding = EncodingEnum.UTF8)
         {
-            if (value.IsNullEmptyOrWhiteSpace()) return string.Empty;
+            if (value.IsNullOrEmptyOrWhiteSpace()) return string.Empty;
 
             return encoding switch
             {
@@ -180,7 +180,7 @@ namespace UtilityVerse.Extensions
 
         public static string DecodeFromBase64(this string? value, EncodingEnum encoding = EncodingEnum.UTF8)
         {
-            if (value.IsNullEmptyOrWhiteSpace()) return string.Empty;
+            if (value.IsNullOrEmptyOrWhiteSpace()) return string.Empty;
 
             return encoding switch
             {
