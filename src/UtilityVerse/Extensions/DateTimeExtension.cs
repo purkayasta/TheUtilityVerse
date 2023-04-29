@@ -1,4 +1,10 @@
-﻿using UtilityVerse.Contracts;
+﻿// ---------------------------------------------------------------
+// Copyright (c) Pritom Purkayasta All rights reserved.
+// FREE TO USE TO CONNECT THE WORLD
+// ---------------------------------------------------------------
+
+
+using UtilityVerse.Contracts;
 
 namespace UtilityVerse.Extensions
 {
@@ -42,7 +48,7 @@ namespace UtilityVerse.Extensions
         /// </summary>
         /// <param name="dt"></param>
         /// <returns></returns>
-        public static long ToUnixTimeStamp(this DateTime? dt, UtilityVerseTimeEnum timeEnum)
+        public static long ToUnixTimeStamp(this DateTime? dt, TimeEnum timeEnum)
         {
             ArgumentNullException.ThrowIfNull(dt);
             return ToUnixTimeStamp(dt.Value, timeEnum);
@@ -53,14 +59,14 @@ namespace UtilityVerse.Extensions
         /// </summary>
         /// <param name="dt"></param>
         /// <returns></returns>
-        public static long ToUnixTimeStamp(this DateTime dt, UtilityVerseTimeEnum timeEnum)
+        public static long ToUnixTimeStamp(this DateTime dt, TimeEnum timeEnum)
         {
             var offset = new DateTimeOffset(dt);
 
             return timeEnum switch
             {
-                UtilityVerseTimeEnum.MilliSecond => offset.ToUnixTimeMilliseconds(),
-                UtilityVerseTimeEnum.Second => offset.ToUnixTimeSeconds(),
+                TimeEnum.MilliSecond => offset.ToUnixTimeMilliseconds(),
+                TimeEnum.Second => offset.ToUnixTimeSeconds(),
                 _ => throw new NotImplementedException()
             };
 
@@ -72,7 +78,7 @@ namespace UtilityVerse.Extensions
         /// <param name="timeStamp"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static DateTime ToDateTime(this long? timeStamp, UtilityVerseTimeEnum timeEnum)
+        public static DateTime ToDateTime(this long? timeStamp, TimeEnum timeEnum)
         {
             ArgumentNullException.ThrowIfNull(timeStamp);
             return ToDateTime(timeStamp.Value, timeEnum);
@@ -84,17 +90,29 @@ namespace UtilityVerse.Extensions
         /// <param name="timeStamp"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static DateTime ToDateTime(this long timeStamp, UtilityVerseTimeEnum timeEnum)
+        public static DateTime ToDateTime(this long timeStamp, TimeEnum timeEnum)
         {
             if (timeStamp < 1)
                 throw new ArgumentOutOfRangeException(nameof(timeStamp), "invalid time stamp value");
 
             return timeEnum switch
             {
-                UtilityVerseTimeEnum.MilliSecond => DateTimeOffset.FromUnixTimeMilliseconds(timeStamp).DateTime,
-                UtilityVerseTimeEnum.Second => DateTimeOffset.FromUnixTimeSeconds(timeStamp).DateTime,
+                TimeEnum.MilliSecond => DateTimeOffset.FromUnixTimeMilliseconds(timeStamp).DateTime,
+                TimeEnum.Second => DateTimeOffset.FromUnixTimeSeconds(timeStamp).DateTime,
                 _ => throw new NotImplementedException()
             };
+        }
+
+        /// <summary>
+        /// This method will extract datetime information from the datetime object.
+        /// </summary>
+        /// <param name="timeStamp"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public static (int year, int month, int day, int hour, int minute, int second, int milisecond) DestructFromDateTime(this DateTime? dateTime)
+        {
+            ArgumentNullException.ThrowIfNull(dateTime);
+            return (dateTime.Value.Year, dateTime.Value.Month, dateTime.Value.Day, dateTime.Value.Hour, dateTime.Value.Minute, dateTime.Value.Second, dateTime.Value.Millisecond);
         }
     }
 }

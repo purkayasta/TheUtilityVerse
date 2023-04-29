@@ -1,10 +1,16 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿// ---------------------------------------------------------------
+// Copyright (c) Pritom Purkayasta All rights reserved.
+// FREE TO USE TO CONNECT THE WORLD
+// ---------------------------------------------------------------
+
+
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.Extensions.Primitives;
 
 namespace UtilityVerse.ASPNET
 {
-    public sealed partial class UtilityVerse
+    public sealed partial class Utility
     {
         /// <summary>
         /// this is a method to create HTTP request for unit/integration tests.

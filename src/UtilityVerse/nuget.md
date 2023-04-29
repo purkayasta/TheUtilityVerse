@@ -9,15 +9,35 @@ There are multiple packages in this universe. Use whatever suits you.
 1. [UtilityVerse](https://www.nuget.org/packages/UtilityVerse/)
 2. [UtilityVerse.ASPNET](https://www.nuget.org/packages/UtilityVerse.ASPNET/)
 
-To Invoke this library, you may want to use ```UtilityVerse``` class.
+To Invoke this library, you may want to use ```Utility``` class.
 
-## Extensions
-- DateOnly
-- DateTime
-- Generic
-- Integer
-- Object
-- String
+## Methods:
 
-## Manual Retry Mechanism
-- Manual Retry Mechanism
+- [ ] Boolean Extensions
+	- [x] ToBoolean(string value);
+- [ ] Date Extensions
+	- [x] IsInBetween()
+	- [x] ToUnixTimeStamp()
+	- [x] ToDateTime()
+	- [x] DestructFromDateTime()
+
+- [ ] Generic Extensions
+	- [x] ToByteArray()
+	- [x] To<T>()
+
+- [ ] Integer Extensions
+	- [x] IsInBetween()
+	- [x] ToInt(bool value)
+
+- [ ] Object Extensions
+	- [x] ToByteArray()
+	- [x] ToObject()
+
+- [ ] String Extensions
+	- [x] IsNullOrEmptyOrWhiteSpace()
+	- [x] AsString()
+	- [x] EncodeToBase64()
+	- [x] DecodeFromBase64()
+
+- [ ] Features:
+	- [x] Retry Mechanism
