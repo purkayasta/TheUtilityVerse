@@ -1,18 +1,16 @@
-﻿# The UtilityVerse
-
-## Give it a star if you like the project. 👏 🌠 🌟
-
-### UtilityVerse (Multi verse of utility methods) is a library for all the helper methods that you might use.
+﻿# The UtilityVerse 🧰 -  *(Multi verse of utility methods) is a library for all the helper methods that you might want to use.*
 
 ![Nuget](https://img.shields.io/github/repo-size/purkayasta/TheUtilityVerse?style=social)
 ![Nuget](https://img.shields.io/github/last-commit/purkayasta/TheUtilityVerse?style=flat-square)
 
-> Want to contribute? Here is the [guideline](./CONTRIBUTING.md)
+> Give it a star if you like the project. 👏 🌠 🌟
+
+*Want to contribute? Here is the [guideline](./CONTRIBUTING.md)*
 
 There are multiple packages in this universe. Use whatever suits you.
 
-1. [UtilityVerse](https://www.nuget.org/packages/UtilityVerse/)
-2. [UtilityVerse.ASPNET](https://www.nuget.org/packages/UtilityVerse.ASPNET/)
+1. [UtilityVerse](https://www.nuget.org/packages/UtilityVerse/) - No dependency. Just the core utilities. 
+2. [UtilityVerse.ASPNET](https://www.nuget.org/packages/UtilityVerse.ASPNET/) - This is based on aspnet core.
 
 To Invoke this library, you may want to use ```Utility``` class.
 
@@ -26,33 +24,34 @@ To Invoke this library, you may want to use ```Utility``` class.
 ## Methods:
 
 - [ ] Boolean Extensions
-	- [x] ToBoolean(string value);
+	- [x] ToBoolean(string value).
 - [ ] Date Extensions
-	- [x] IsInBetween()
-	- [x] ToUnixTimeStamp()
-	- [x] ToDateTime()
-	- [x] DestructFromDateTime()
+	- [x] IsInBetween().
+	- [x] ToUnixTimeStamp().
+	- [x] ToDateTime().
+	- [x] DestructFromDateTime().
 
 - [ ] Generic Extensions
-	- [x] ToByteArray()
-	- [x] To<T>()
+	- [x] ToByteArray().
+	- [x] To<T>().
 
 - [ ] Integer Extensions
-	- [x] IsInBetween()
-	- [x] ToInt(bool value)
+	- [x] IsInBetween().
+	- [x] ToInt(bool value).
 
 - [ ] Object Extensions
-	- [x] ToByteArray()
-	- [x] ToObject()
+	- [x] ToByteArray().
+	- [x] ToObject().
 
 - [ ] String Extensions
-	- [x] IsNullOrEmptyOrWhiteSpace()
-	- [x] AsString()
-	- [x] EncodeToBase64()
-	- [x] DecodeFromBase64()
+	- [x] IsNullOrEmptyOrWhiteSpace().
+	- [x] AsString().
+	- [x] EncodeToBase64().
+	- [x] DecodeFromBase64().
 
 - [ ] Features:
-	- [x] Retry Mechanism
+	- [x] Retry Mechanism.
+	- [x] Dollar Cent Conversion.
 
 
 
