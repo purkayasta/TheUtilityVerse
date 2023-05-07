@@ -1,4 +1,4 @@
-﻿# The UtilityVerse 🧰 -  *(Multi verse of utility methods) is a library for all the helper methods that you might want to use.*
+﻿### The UtilityVerse 🧰 -  *(Multi verse of utility methods) is a library for all the helper methods that you might want to use.*
 
 ![Nuget](https://img.shields.io/github/repo-size/purkayasta/TheUtilityVerse?style=social)
 ![Nuget](https://img.shields.io/github/last-commit/purkayasta/TheUtilityVerse?style=flat-square)
@@ -25,6 +25,7 @@ To Invoke this library, you may want to use ```Utility``` class.
 
 - [ ] Boolean Extensions
 	- [x] ToBoolean(string value).
+
 - [ ] Date Extensions
 	- [x] IsInBetween().
 	- [x] ToUnixTimeStamp().
@@ -49,6 +50,9 @@ To Invoke this library, you may want to use ```Utility``` class.
 	- [x] EncodeToBase64().
 	- [x] DecodeFromBase64().
 
+- [ ] Enumerable Extension
+	- [x] IsNullOrEmpty. 
+
 - [ ] Features:
 	- [x] Retry Mechanism.
 	- [x] Dollar Cent Conversion.
@@ -67,4 +71,3 @@ To Invoke this library, you may want to use ```Utility``` class.
 
 
 Made ❤ with C#.
-
