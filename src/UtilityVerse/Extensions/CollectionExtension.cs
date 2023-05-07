@@ -1,3 +1,9 @@
+// ---------------------------------------------------------------
+// Copyright (c) Pritom Purkayasta All rights reserved.
+// FREE TO USE TO CONNECT THE WORLD
+// ---------------------------------------------------------------
+
+
 using System.Collections.Concurrent;
 
 namespace UtilityVerse.Extensions;

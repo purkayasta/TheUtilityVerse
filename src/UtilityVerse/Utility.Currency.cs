@@ -1,6 +1,12 @@
+// ---------------------------------------------------------------
+// Copyright (c) Pritom Purkayasta All rights reserved.
+// FREE TO USE TO CONNECT THE WORLD
+// ---------------------------------------------------------------
+
+
 namespace UtilityVerse;
 
-public partial class Utility
+public sealed partial class Utility
 {
     /// <summary>
     /// This will convert dollar value to cent

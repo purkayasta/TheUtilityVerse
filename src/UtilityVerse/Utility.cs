@@ -6,13 +6,12 @@
 
 using System.Runtime.InteropServices;
 
-namespace UtilityVerse
+namespace UtilityVerse;
+
+/// <summary>
+/// Base utility verse class for writing helpers.
+/// </summary>
+public sealed partial class Utility
 {
-    /// <summary>
-    /// Base utility verse class for writing helpers.
-    /// </summary>
-    public sealed partial class Utility
-    {
-        public static bool IsWindows { get => RuntimeInformation.IsOSPlatform(OSPlatform.Windows); }
-    }
+    public static bool IsWindows { get => RuntimeInformation.IsOSPlatform(OSPlatform.Windows); }
 }
