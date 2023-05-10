@@ -27,16 +27,16 @@ public static class DateOnlyExtension
     /// <summary>
     /// This method will help to determine is the date only instance is in between range or not.
     /// </summary>
-    /// <param name="dateTime"></param>
+    /// <param name="dateOnly"></param>
     /// <param name="startDate"></param>
     /// <param name="endDate"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public static bool IsInBetween(this DateOnly dateTime, DateOnly startDate, DateOnly endDate)
+    public static bool IsInBetween(this DateOnly dateOnly, DateOnly startDate, DateOnly endDate)
     {
         if (startDate > endDate)
             throw new ArgumentOutOfRangeException(nameof(startDate) + " cannot be greater than " + nameof(endDate));
 
-        return dateTime >= startDate && dateTime <= endDate;
+        return dateOnly >= startDate && dateOnly <= endDate;
     }
 }

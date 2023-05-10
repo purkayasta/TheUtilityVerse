@@ -12,18 +12,6 @@ namespace UtilityVerse.Extensions;
 public static class GenericExtension
 {
     /// <summary>
-    /// This method will convert byte array into desired model.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="byteArr"></param>
-    /// <returns></returns>
-    public static T? To<T>(this byte[]? byteArr)
-    {
-        ArgumentNullException.ThrowIfNull(byteArr);
-        return JsonSerializer.Deserialize<T>(byteArr);
-    }
-
-    /// <summary>
     /// This method will convert poco model into byte array.
     /// </summary>
     /// <typeparam name="T"></typeparam>

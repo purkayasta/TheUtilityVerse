@@ -20,4 +20,15 @@ public static class ByteExtension
         return JsonSerializer.Deserialize<object>(byteArr);
     }
 
+    /// <summary>
+    /// This method will convert byte array into desired model.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="byteArr"></param>
+    /// <returns></returns>
+    public static T? To<T>(this byte[]? byteArr)
+    {
+        ArgumentNullException.ThrowIfNull(byteArr);
+        return JsonSerializer.Deserialize<T>(byteArr);
+    }
 }
