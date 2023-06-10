@@ -104,4 +104,22 @@ public class DateTimeExtensionTest
         var unixEpochTime = newYear.ToUnixTimeStamp(Contracts.TimeEnum.Second);
         Assert.NotEqual(unixEpochTime.ToDateTime(Contracts.TimeEnum.MilliSecond), newYear);
     }
+
+    [Theory]
+    [InlineData("2023-01-01", 20230101)]
+    [InlineData("2023-02-02", 20230202)]
+    public void ToIntDate_ReturnValidInt_WhenValidDateTimeIsProvided(string dt, int dtInt)
+    {
+        var dateTime = DateTime.Parse(dt);
+        Assert.Equal(dateTime.ToIntDate(), dtInt);
+    }
+
+    [Theory]
+    [InlineData("2023-01-01", "yyMMdd", 230101)]
+    public void ToIntDate_ReturnValidInt_WhenCustomFormatIsGiven(string dt, string format, int dtInt)
+    {
+        var datetime = DateTime.Parse(dt);
+        var result = datetime.ToIntDate(format);
+        Assert.Equal(result, dtInt);
+    }
 }

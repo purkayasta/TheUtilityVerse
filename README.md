@@ -29,7 +29,7 @@ To Invoke this library, you may want to use ```Utility``` class.
 - [ ] Date Extensions
 	- [x] IsInBetween().
 	- [x] ToUnixTimeStamp().
-	- [x] ToDateTime().
+	- [x] ToIntDate().
 	- [x] DestructFromDateTime().
 
 - [ ] Generic Extensions

@@ -39,4 +39,32 @@ public static class DateOnlyExtension
 
         return dateOnly >= startDate && dateOnly <= endDate;
     }
+
+
+    /// <summary>
+    /// This method will extract dateonly information from the datetime object.
+    /// </summary>
+    /// <param name="dateOnly"></param>
+    /// <param name="format"></param>
+    /// <returns></returns>
+    public static int ToIntDate(this DateOnly? dateOnly, string format = "yyyyMMdd")
+    {
+        ArgumentNullException.ThrowIfNull(dateOnly);
+        return ToIntDate(dateOnly.Value, format);
+    }
+
+    /// <summary>
+    /// This method will extract dateonly information from the datetime object.
+    /// </summary>
+    /// <param name="dateOnly"></param>
+    /// <param name="format"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidDataException"></exception>
+    public static int ToIntDate(this DateOnly dateOnly, string format = "yyyyMMdd")
+    {
+        if (string.IsNullOrEmpty(format) || string.IsNullOrWhiteSpace(format))
+            throw new InvalidDataException(nameof(format) + " is null or empty");
+
+        return int.TryParse(dateOnly.ToString(format), out var result) ? result : -1;
+    }
 }

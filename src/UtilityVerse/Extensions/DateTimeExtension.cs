@@ -38,7 +38,8 @@ public static class DateTimeExtension
     public static bool IsInBetween(this DateTime dt, DateTime startDateTime, DateTime endDateTime)
     {
         if (endDateTime < startDateTime)
-            throw new ArgumentOutOfRangeException(nameof(endDateTime) + " cannot be smaller than " + nameof(startDateTime));
+            throw new ArgumentOutOfRangeException(nameof(endDateTime) + " cannot be smaller than " +
+                                                  nameof(startDateTime));
 
         return dt >= startDateTime && dt <= endDateTime;
     }
@@ -69,7 +70,33 @@ public static class DateTimeExtension
             TimeEnum.Second => offset.ToUnixTimeSeconds(),
             _ => throw new NotImplementedException()
         };
+    }
 
+    /// <summary>
+    /// Convert datetime object into custom int format. If this method cannot parse the format it will return -1;
+    /// </summary>
+    /// <param name="dateTime">new DateTime() like [6/10/2023 4:02:06 PM]/param>
+    /// <param name="format">yyyyMMdd</param>
+    /// <returns>integer number (20230610)</returns>
+    public static int ToIntDate(this DateTime? dateTime, string format = "yyyyMMdd")
+    {
+        ArgumentNullException.ThrowIfNull(dateTime);
+        return ToIntDate(dateTime.Value, format);
+    }
+
+    /// <summary>
+    /// Convert datetime object into custom int format. If this method cannot parse the format it will return -1;
+    /// </summary>
+    /// <param name="dateTime">new DateTime() like [6/10/2023 4:02:06 PM]/param>
+    /// <param name="format">yyyyMMdd</param>
+    /// <returns>integer number (20230610)</returns>
+    /// <exception cref="InvalidDataException"></exception>
+    public static int ToIntDate(this DateTime dateTime, string format = "yyyyMMdd")
+    {
+        if (string.IsNullOrEmpty(format) || string.IsNullOrWhiteSpace(format))
+            throw new InvalidDataException(nameof(format) + " is null or empty");
+
+        return int.TryParse(dateTime.ToString(format), out var result) ? result : -1;
     }
 
     /// <summary>
@@ -78,9 +105,11 @@ public static class DateTimeExtension
     /// <param name="timeStamp"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public static (int year, int month, int day, int hour, int minute, int second, int milisecond) DestructFromDateTime(this DateTime? dateTime)
+    public static (int year, int month, int day, int hour, int minute, int second, int milisecond) DestructFromDateTime(
+        this DateTime? dateTime)
     {
         ArgumentNullException.ThrowIfNull(dateTime);
-        return (dateTime.Value.Year, dateTime.Value.Month, dateTime.Value.Day, dateTime.Value.Hour, dateTime.Value.Minute, dateTime.Value.Second, dateTime.Value.Millisecond);
+        return (dateTime.Value.Year, dateTime.Value.Month, dateTime.Value.Day, dateTime.Value.Hour,
+            dateTime.Value.Minute, dateTime.Value.Second, dateTime.Value.Millisecond);
     }
 }

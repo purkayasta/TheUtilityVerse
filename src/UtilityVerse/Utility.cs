@@ -13,5 +13,5 @@ namespace UtilityVerse;
 /// </summary>
 public sealed partial class Utility
 {
-    public static bool IsWindows { get => RuntimeInformation.IsOSPlatform(OSPlatform.Windows); }
+    public static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 }
