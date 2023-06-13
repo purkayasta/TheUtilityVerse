@@ -59,6 +59,7 @@ public static class DateTimeExtension
     /// This method will convert date time object into UNIX time stamp
     /// </summary>
     /// <param name="dt"></param>
+    /// <param name="timeEnum"></param>
     /// <returns></returns>
     public static long ToUnixTimeStamp(this DateTime dt, TimeEnum timeEnum)
     {
@@ -75,7 +76,7 @@ public static class DateTimeExtension
     /// <summary>
     /// Convert datetime object into custom int format. If this method cannot parse the format it will return -1;
     /// </summary>
-    /// <param name="dateTime">new DateTime() like [6/10/2023 4:02:06 PM]/param>
+    /// <param name="dateTime">new DateTime() like [6/10/2023 4:02:06 PM]</param>
     /// <param name="format">yyyyMMdd</param>
     /// <returns>integer number (20230610)</returns>
     public static int ToIntDate(this DateTime? dateTime, string format = "yyyyMMdd")
@@ -87,7 +88,7 @@ public static class DateTimeExtension
     /// <summary>
     /// Convert datetime object into custom int format. If this method cannot parse the format it will return -1;
     /// </summary>
-    /// <param name="dateTime">new DateTime() like [6/10/2023 4:02:06 PM]/param>
+    /// <param name="dateTime">new DateTime() like [6/10/2023 4:02:06 PM]</param>
     /// <param name="format">yyyyMMdd</param>
     /// <returns>integer number (20230610)</returns>
     /// <exception cref="InvalidDataException"></exception>
@@ -102,7 +103,7 @@ public static class DateTimeExtension
     /// <summary>
     /// This method will extract datetime information from the datetime object.
     /// </summary>
-    /// <param name="timeStamp"></param>
+    /// <param name="dateTime"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public static (int year, int month, int day, int hour, int minute, int second, int milisecond) DestructFromDateTime(
@@ -112,4 +113,19 @@ public static class DateTimeExtension
         return (dateTime.Value.Year, dateTime.Value.Month, dateTime.Value.Day, dateTime.Value.Hour,
             dateTime.Value.Minute, dateTime.Value.Second, dateTime.Value.Millisecond);
     }
+
+    /// <summary>
+    /// this method will convert your current datetime into utc formatted datetime
+    /// </summary>
+    /// <param name="dateTime"></param>
+    /// <param name="includeTime"></param>
+    /// <returns></returns>
+    public static DateTime? ToUtcDateTime(this DateTime dateTime, bool includeTime = false)
+    {
+        if (dateTime == default) return default;
+        if (includeTime) 
+            return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second, DateTimeKind.Utc);
+        return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, 0, 0, 0, DateTimeKind.Utc);
+    }
+    
 }

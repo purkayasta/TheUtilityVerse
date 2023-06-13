@@ -67,4 +67,26 @@ public static class DateOnlyExtension
 
         return int.TryParse(dateOnly.ToString(format), out var result) ? result : -1;
     }
+
+    /// <summary>
+    /// this method convert dateonly to a valid local datetime
+    /// </summary>
+    /// <param name="dateOnly"></param>
+    /// <returns></returns>
+    public static DateTime? ToDateTime(this DateOnly dateOnly)
+    {
+        if (dateOnly == default) return default;
+        return new DateTime(dateOnly.Year, dateOnly.Month, dateOnly.Day, 0, 0, 0, DateTimeKind.Local);
+    }
+
+    /// <summary>
+    /// this method will convert dateonly object into a valid utc datetime object
+    /// </summary>
+    /// <param name="dateOnly"></param>
+    /// <returns></returns>
+    public static DateTime? ToUtcDateTime(this DateOnly dateOnly)
+    {
+        if (dateOnly == default) return default;
+        return new DateTime(dateOnly.Year, dateOnly.Month, dateOnly.Day, 0, 0, 0, DateTimeKind.Utc);
+    }
 }
