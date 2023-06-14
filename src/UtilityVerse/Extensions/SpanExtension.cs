@@ -1,7 +1,16 @@
+// ---------------------------------------------------------------
+// Copyright (c) Pritom Purkayasta All rights reserved.
+// FREE TO USE TO CONNECT THE WORLD
+// ---------------------------------------------------------------
+
+
 using System.Text.Json;
 
 namespace UtilityVerse.Extensions;
 
+/// <summary>
+/// Span Extension
+/// </summary>
 public static class SpanExtension
 {
     /// <summary>

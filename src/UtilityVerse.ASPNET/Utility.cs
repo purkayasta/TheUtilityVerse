@@ -4,12 +4,11 @@
 // ---------------------------------------------------------------
 
 
-namespace UtilityVerse.ASPNET
+namespace UtilityVerse.ASPNET;
+
+/// <summary>
+/// Base utility verse class for writing helpers.
+/// </summary>
+public sealed partial class Utility
 {
-    /// <summary>
-    /// Base utility verse class for writing helpers.
-    /// </summary>
-    public sealed partial class Utility
-    {
-    }
 }

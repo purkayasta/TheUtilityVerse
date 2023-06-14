@@ -11,6 +11,9 @@ using UtilityVerse.Helpers;
 
 namespace UtilityVerse.Extensions;
 
+/// <summary>
+/// All string extensions
+/// </summary>
 public static class StringExtension
 {
     /// <summary>
@@ -83,7 +86,7 @@ public static class StringExtension
     {
         if (path.IsNullOrEmptyOrWhiteSpace()) return string.Empty;
 
-        if (Utility.IsWindows) return path!.Replace("/", "\\");
+        if (Utility.IsItWindows) return path!.Replace("/", "\\");
         return path!.Replace("\\", "/");
     }
 
