@@ -1,11 +1,11 @@
-﻿### The UtilityVerse 🧰 -  *(Multi verse of utility methods) is a library for all the helper methods that you might want to use.*
+﻿# The UtilityVerse 🧰 -  *(Multi verse of utility methods) is a library for all the helper methods that you might want to use.*
 
 ![Nuget](https://img.shields.io/github/repo-size/purkayasta/TheUtilityVerse?style=social)
 ![Nuget](https://img.shields.io/github/last-commit/purkayasta/TheUtilityVerse?style=flat-square)
 
 > Give it a star if you like the project. 👏 🌠 🌟
 
-*Want to contribute? Here is the [guideline](./CONTRIBUTING.md)*
+> *Want to contribute? Here is the [guideline](./CONTRIBUTING.md)*
 
 There are multiple packages in this universe. Use whatever suits you.
 
@@ -13,6 +13,10 @@ There are multiple packages in this universe. Use whatever suits you.
 2. [UtilityVerse.ASPNET](https://www.nuget.org/packages/UtilityVerse.ASPNET/) - This is based on aspnet core.
 
 To Invoke this library, you may want to use ```Utility``` class.
+
+-------------------------------
+
+### Documentation Work in progress. ⚒️
 
 -------------------------------
 
@@ -31,6 +35,8 @@ To Invoke this library, you may want to use ```Utility``` class.
 	- [x] ToUnixTimeStamp().
 	- [x] ToIntDate().
 	- [x] DestructFromDateTime().
+	- [x] ToDateTime().
+	- [x] ToUtcDateTime().
 
 - [ ] Generic Extensions
 	- [x] ToByteArray().
@@ -65,6 +71,9 @@ To Invoke this library, you may want to use ```Utility``` class.
 	- [x] EncodeToBase64().
 	- [x] DecodeFromBase64().
 	- [x] ConvertOsWisePath().
+	- [x] ToSlugUrl().
+	- [x] IsInIpAddress().
+	- [x] IsValidEmail().
 
 - [ ] Collection Extensions
 	- [x] IsNullOrEmpty().
@@ -81,7 +90,6 @@ To Invoke this library, you may want to use ```Utility``` class.
 
 ## Features:
 - [x] CreateHttpRequest()
-
 
 
 

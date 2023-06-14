@@ -22,4 +22,5 @@ public sealed partial class Utility
     /// <param name="cent"></param>
     /// <returns></returns>
     public static decimal CentToDollar(decimal cent) => cent / 100;
+
 }

@@ -7,36 +7,41 @@ using UtilityVerse.Contracts;
 
 namespace UtilityVerse.Extensions;
 
+/// <summary>
+/// Long Extension
+/// </summary>
 public static class LongExtension
 {
-    /// <summary>
-    /// This method will convert any valid time stamp into a DateTime object
-    /// </summary>
-    /// <param name="timeStamp"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public static DateTime ToDateTime(this long? timeStamp, TimeEnum timeEnum)
-    {
-        ArgumentNullException.ThrowIfNull(timeStamp);
-        return ToDateTime(timeStamp.Value, timeEnum);
-    }
+	/// <summary>
+	/// This method will convert any valid time stamp into a DateTime object
+	/// </summary>
+	/// <param name="timeStamp"></param>
+	/// <param name="timeEnum"></param>
+	/// <returns></returns>
+	public static DateTime ToDateTime(this long? timeStamp, TimeEnum timeEnum)
+	{
+		ArgumentNullException.ThrowIfNull(timeStamp);
+		return ToDateTime(timeStamp.Value, timeEnum);
+	}
 
-    /// <summary>
-    /// This method will convert any valid time stamp into a DateTime object
-    /// </summary>
-    /// <param name="timeStamp"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public static DateTime ToDateTime(this long timeStamp, TimeEnum timeEnum)
-    {
-        if (timeStamp < 1)
-            throw new ArgumentOutOfRangeException(nameof(timeStamp), "invalid time stamp value");
+	/// <summary>
+	/// This method will convert any valid time stamp into a DateTime object
+	/// </summary>
+	/// <param name="timeStamp"></param>
+	/// <param name="timeEnum"></param>
+	/// <returns></returns>
+	/// <exception cref="ArgumentOutOfRangeException"></exception>
+	/// <exception cref="NotImplementedException"></exception>
+	public static DateTime ToDateTime(this long timeStamp, TimeEnum timeEnum)
+	{
+		if (timeStamp < 1)
+			throw new ArgumentOutOfRangeException(nameof(timeStamp), "invalid time stamp value");
 
-        return timeEnum switch
-        {
-            TimeEnum.MilliSecond => DateTimeOffset.FromUnixTimeMilliseconds(timeStamp).DateTime,
-            TimeEnum.Second => DateTimeOffset.FromUnixTimeSeconds(timeStamp).DateTime,
-            _ => throw new NotImplementedException()
-        };
-    }
+		return timeEnum switch
+		{
+			TimeEnum.MilliSecond => DateTimeOffset.FromUnixTimeMilliseconds(timeStamp).DateTime,
+			TimeEnum.Second => DateTimeOffset.FromUnixTimeSeconds(timeStamp).DateTime,
+			_ => throw new NotImplementedException()
+		};
+	}
 }
