@@ -16,7 +16,9 @@ To Invoke this library, you may want to use ```Utility``` class.
 
 -------------------------------
 
-### Documentation Work in progress. ⚒️
+### Documentation Work in progress. (Experimental build) ⚒️
+-- `cd documentation/docfx_project/`
+-- `docfx ./docfx.json --serve`
 
 -------------------------------
 

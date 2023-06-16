@@ -50,6 +50,7 @@ public static class DateTimeExtension
 	/// This method will convert date time object into UNIX time stamp
 	/// </summary>
 	/// <param name="dt"></param>
+	/// <param name="timeEnum"></param>
 	/// <returns></returns>
 	public static long ToUnixTimeStamp(this DateTime? dt, TimeEnum timeEnum)
 	{

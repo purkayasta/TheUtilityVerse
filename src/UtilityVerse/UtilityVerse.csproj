@@ -20,7 +20,7 @@
             Copyright (c) Pritom Purkayasta All rights reserved.
             FREE TO USE TO CONNECT THE WORLD
         </Copyright>
-        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Title>TheUtilityVerse</Title>
         <PackageIcon>utility-verse.png</PackageIcon>
         <PackageReadmeFile>nuget.md</PackageReadmeFile>
