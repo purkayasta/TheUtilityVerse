@@ -4,6 +4,7 @@
 // ---------------------------------------------------------------
 
 using UtilityVerse.Contracts;
+using UtilityVerse.Helpers;
 
 namespace UtilityVerse.Extensions;
 
