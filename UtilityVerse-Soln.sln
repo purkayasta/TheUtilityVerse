@@ -13,6 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__solution-items__", "__sol
 	ProjectSection(SolutionItems) = preProject
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
+		src\UtilityVerse\breaking-changes.md = src\UtilityVerse\breaking-changes.md
 		CONTRIBUTING.md = CONTRIBUTING.md
 		LICENSE.txt = LICENSE.txt
 		README.md = README.md
@@ -24,7 +25,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UtilityVerse.ASPNET", "src\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UtilityVerse.UnitTest", "test\UtilityVerse.UnitTest\UtilityVerse.UnitTest.csproj", "{8E9B3E7F-4E9A-429E-B180-8FC9A0641008}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UtilityVerse.Shared", "src\UtilityVerse.Shared\UtilityVerse.Shared.csproj", "{AEFA0EB9-2A91-4FA2-9476-378A6DB76270}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UtilityVerse.Shared", "src\UtilityVerse.Shared\UtilityVerse.Shared.csproj", "{AEFA0EB9-2A91-4FA2-9476-378A6DB76270}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
