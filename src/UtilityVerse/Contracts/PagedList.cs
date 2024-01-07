@@ -4,6 +4,9 @@
 // ---------------------------------------------------------------
 
 
+using System.Collections.Generic;
+using System.Linq;
+
 namespace UtilityVerse.Contracts;
 
 /// <summary>
@@ -30,5 +33,5 @@ public class PagedList<T>
     /// <summary>
     /// If there is any error, if found any this error object will be populated.
     /// </summary>
-    public string? Errors { get; set; } = string.Empty;
+    public string Errors { get; set; } = string.Empty;
 }

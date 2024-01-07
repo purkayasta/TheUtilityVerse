@@ -3,9 +3,6 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
-
-using System.Text;
-
 namespace UtilityVerse.Extensions;
 
 /// <summary>
@@ -13,27 +10,27 @@ namespace UtilityVerse.Extensions;
 /// </summary>
 public static class DoubleExtension
 {
-	/// <summary>
-	/// This extension method will convert any double array into string with separator.
-	/// </summary>
-	/// <param name="doubleArray"></param>
-	/// <param name="separator"></param>
-	/// <returns></returns>
-	public static string ToStr(this double[]? doubleArray, string? separator = null)
-	{
-		if (doubleArray is null || doubleArray.Length < 1) return string.Empty;
-		var sb = new StringBuilder();
+    /// <summary>
+    /// This extension method will convert any double array into string with separator.
+    /// </summary>
+    /// <param name="doubleArray"></param>
+    /// <param name="separator"></param>
+    /// <returns></returns>
+    public static string ToStr(this double[] doubleArray, string separator = null)
+    {
+        if (doubleArray is null || doubleArray.Length < 1) return string.Empty;
+        var sb = new System.Text.StringBuilder();
 
-		bool isSeparatorExist = !string.IsNullOrEmpty(separator);
+        bool isSeparatorExist = !string.IsNullOrEmpty(separator);
 
-		for (int index = 0; index < doubleArray.Length; index++)
-		{
-			sb.Append(doubleArray[index]);
+        for (int index = 0; index < doubleArray.Length; index++)
+        {
+            sb.Append(doubleArray[index]);
 
-			if (isSeparatorExist && index < doubleArray.Length - 1)
-				sb.Append(separator);
-		}
+            if (isSeparatorExist && index < doubleArray.Length - 1)
+                sb.Append(separator);
+        }
 
-		return sb.ToString();
-	}
+        return sb.ToString();
+    }
 }

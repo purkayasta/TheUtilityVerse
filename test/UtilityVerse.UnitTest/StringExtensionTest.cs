@@ -10,28 +10,28 @@ public class StringExtensionTest
     [Fact]
     public void IsNullEmptyOrWhiteSpace_ReturnTrue_WhenValueIsNull()
     {
-        string? value = default;
+        string value = default;
         Assert.True(value.IsNullOrEmptyOrWhiteSpace());
     }
 
     [Fact]
     public void IsNullEmptyOrWhiteSpace_ReturnTrue_WhenValueIsEmpty()
     {
-        string? value = string.Empty;
+        string value = string.Empty;
         Assert.True(value.IsNullOrEmptyOrWhiteSpace());
     }
 
     [Fact]
     public void IsNullEmptyOrWhiteSpace_ReturnTrue_WhenValueIsWhiteSpace()
     {
-        string? value = " ";
+        string value = " ";
         Assert.True(value.IsNullOrEmptyOrWhiteSpace());
     }
 
     [Fact]
     public void AsString_ReturnEmpty_WhenArrayIsEmpty()
     {
-        string[] arr = Array.Empty<string>();
+        string[] arr = [];
         Assert.Equal(string.Empty, arr.ToStr());
     }
 
@@ -45,7 +45,7 @@ public class StringExtensionTest
     [Fact]
     public void AsString_ReturnValid_WhenArrayWithSeperatorIsValid()
     {
-        string[] arr = new[] { "Pritom", "Purkayasta" };
+        string[] arr = ["Pritom", "Purkayasta"];
         Assert.Equal("Pritom Purkayasta", arr.ToStr(" "));
     }
 }

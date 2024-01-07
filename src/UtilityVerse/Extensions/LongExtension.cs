@@ -3,7 +3,9 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
+using System;
 using UtilityVerse.Contracts;
+using UtilityVerse.Helpers;
 
 namespace UtilityVerse.Extensions;
 
@@ -20,7 +22,7 @@ public static class LongExtension
 	/// <returns></returns>
 	public static DateTime ToDateTime(this long? timeStamp, TimeEnum timeEnum)
 	{
-		ArgumentNullException.ThrowIfNull(timeStamp);
+		UtilityVerseException.ThrowIfNull(timeStamp);
 		return ToDateTime(timeStamp.Value, timeEnum);
 	}
 
@@ -30,12 +32,12 @@ public static class LongExtension
 	/// <param name="timeStamp"></param>
 	/// <param name="timeEnum"></param>
 	/// <returns></returns>
-	/// <exception cref="ArgumentOutOfRangeException"></exception>
+	/// <exception cref="Exception"></exception>
 	/// <exception cref="NotImplementedException"></exception>
 	public static DateTime ToDateTime(this long timeStamp, TimeEnum timeEnum)
 	{
 		if (timeStamp < 1)
-			throw new ArgumentOutOfRangeException(nameof(timeStamp), "invalid time stamp value");
+            UtilityVerseException.Throw($"{nameof(timeStamp)} invalid time stamp value");
 
 		return timeEnum switch
 		{

@@ -11,15 +11,15 @@ namespace UtilityVerse.Contracts;
 /// </summary>
 public enum TimeEnum
 {
-	/// <summary>
-	/// This represent second
-	/// </summary>
-	Second,
+    /// <summary>
+    /// This represent second
+    /// </summary>
+    Second,
 
-	/// <summary>
-	/// This represent millisecond
-	/// </summary>
-	MilliSecond
+    /// <summary>
+    /// This represent millisecond
+    /// </summary>
+    MilliSecond
 }
 
 /// <summary>
@@ -27,28 +27,30 @@ public enum TimeEnum
 /// </summary>
 public enum EncodingEnum
 {
-	/// <summary>
-	/// UTF8
-	/// </summary>
-	UTF8,
+    /// <summary>
+    /// UTF8
+    /// </summary>
+    UTF8,
 
-	/// <summary>
-	/// UTF32
-	/// </summary>
-	UTF32,
+    /// <summary>
+    /// UTF32
+    /// </summary>
+    UTF32,
 
-	/// <summary>
-	/// UNICODE
-	/// </summary>
-	Unicode,
+    /// <summary>
+    /// UNICODE
+    /// </summary>
+    Unicode,
 
-	/// <summary>
-	/// ASCII
-	/// </summary>
-	Ascii,
+    /// <summary>
+    /// ASCII
+    /// </summary>
+    Ascii,
 
-	/// <summary>
-	/// LATIN
-	/// </summary>
-	Latin
+#if NETCOREAPP3_1_OR_GREATER
+    /// <summary>
+    /// LATIN
+    /// </summary>
+    Latin
+#endif
 }

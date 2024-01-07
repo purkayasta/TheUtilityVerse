@@ -20,14 +20,14 @@ public class GenericExtensionTest
     [Fact]
     public void To_ThrowException_WhenNullByteArrayIsGiven()
     {
-        byte[]? array = default;
-        Assert.Throws<ArgumentNullException>(() => array.To<User>());
+        byte[] array = default;
+        Assert.Throws<Exception>(() => array.To<User>());
     }
 
     [Fact]
     public void ToByteArray_ThrowsException_WhenNullClassIsProvided()
     {
-        User? user = default;
-        Assert.Throws<ArgumentNullException>(() => user.ToByteArray());
+        User user = default;
+        Assert.Throws<Exception>(() => user.ToByteArray());
     }
 }

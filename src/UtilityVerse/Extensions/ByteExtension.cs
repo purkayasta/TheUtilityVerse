@@ -3,7 +3,8 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
-using System.Text.Json;
+using System;
+using UtilityVerse.Helpers;
 
 namespace UtilityVerse.Extensions;
 
@@ -12,26 +13,31 @@ namespace UtilityVerse.Extensions;
 /// </summary>
 public static class ByteExtension
 {
-	/// <summary>
-	/// This method will convert to an object from byte array
-	/// </summary>
-	/// <param name="byteArr"></param>
-	/// <returns></returns>
-	public static object? ToObject(this byte[]? byteArr)
-	{
-		ArgumentNullException.ThrowIfNull(byteArr);
-		return JsonSerializer.Deserialize<object>(byteArr);
-	}
+#if NETCOREAPP3_1_OR_GREATER
+    /// <summary>
+    /// This method will convert to an object from byte array
+    /// </summary>
+    /// <param name="byteArr"></param>
+    /// <returns>object</returns>
+    public static object ToObject(this byte[] byteArr)
+    {
+        UtilityVerseException.ThrowIfNull(byteArr);
+        return System.Text.Json.JsonSerializer.Deserialize<object>(byteArr);
+    }
+#endif
 
-	/// <summary>
-	/// This method will convert byte array into desired model.
-	/// </summary>
-	/// <typeparam name="T"></typeparam>
-	/// <param name="byteArr"></param>
-	/// <returns></returns>
-	public static T? To<T>(this byte[]? byteArr)
-	{
-		ArgumentNullException.ThrowIfNull(byteArr);
-		return JsonSerializer.Deserialize<T>(byteArr);
-	}
+#if NETCOREAPP3_1_OR_GREATER
+
+    /// <summary>
+    /// This method will convert byte array into desired model.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="byteArr"></param>
+    /// <returns>T</returns>
+    public static T To<T>(this byte[] byteArr)
+    {
+        UtilityVerseException.ThrowIfNull(byteArr);
+        return System.Text.Json.JsonSerializer.Deserialize<T>(byteArr);
+    }
+#endif
 }

@@ -3,8 +3,8 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
-using System.Text;
-using System.Text.Json;
+using System;
+using UtilityVerse.Helpers;
 
 namespace UtilityVerse.Extensions;
 
@@ -13,14 +13,17 @@ namespace UtilityVerse.Extensions;
 /// </summary>
 public static class ObjectExtension
 {
-	/// <summary>
-	/// This method will convert any object into a byte array.
-	/// </summary>
-	/// <param name="obj"></param>
-	/// <returns></returns>
-	public static byte[] ToByteArray(this object? obj)
-	{
-		ArgumentNullException.ThrowIfNull(obj);
-		return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(obj));
-	}
+#if NETCOREAPP3_1_OR_GREATER
+    /// <summary>
+    /// This method will convert any object into a byte array.
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <returns>byte[]</returns>
+    /// <exception cref="Exception"></exception>
+    public static byte[] ToByteArray(this object obj)
+    {
+        UtilityVerseException.ThrowIfNull(obj);
+        return System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(obj));
+    }
+#endif
 }

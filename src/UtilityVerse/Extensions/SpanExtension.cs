@@ -4,9 +4,11 @@
 // ---------------------------------------------------------------
 
 
-using System.Text.Json;
+using System;
 
 namespace UtilityVerse.Extensions;
+
+#if NETCOREAPP3_1_OR_GREATER
 
 /// <summary>
 /// Span Extension
@@ -18,5 +20,7 @@ public static class SpanExtension
     /// </summary>
     /// <param name="spanByteArr"></param>
     /// <returns></returns>
-    public static object? ToObject(this ReadOnlySpan<byte> spanByteArr) => JsonSerializer.Deserialize<object>(spanByteArr);
+    public static object ToObject(this ReadOnlySpan<byte> spanByteArr) => System.Text.Json.JsonSerializer.Deserialize<object>(spanByteArr);
 }
+
+#endif

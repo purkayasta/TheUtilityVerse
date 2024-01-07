@@ -4,6 +4,7 @@
 // ---------------------------------------------------------------
 
 
+using System;
 using System.Text;
 using System.Text.RegularExpressions;
 using UtilityVerse.Contracts;
@@ -20,8 +21,8 @@ public static class StringExtension
     /// This method will convert any boolean string value to boolean
     /// </summary>
     /// <param name="value">"YES", "1", "true"</param>
-    /// <returns></returns>
-    public static bool ToBoolean(this string? value)
+    /// <returns>string</returns>
+    public static bool ToBoolean(this string value)
     {
         if (value.IsNullOrEmptyOrWhiteSpace()) return false;
 
@@ -44,8 +45,8 @@ public static class StringExtension
     /// This extension method will help to validate if the string is null empty and whitespace or not.
     /// </summary>
     /// <param name="val"></param>
-    /// <returns></returns> 
-    public static bool IsNullOrEmptyOrWhiteSpace(this string? val)
+    /// <returns>string</returns> 
+    public static bool IsNullOrEmptyOrWhiteSpace(this string val)
     {
         if (val is null) return true;
         return string.IsNullOrEmpty(val) || string.IsNullOrWhiteSpace(val.Trim());
@@ -57,8 +58,8 @@ public static class StringExtension
     /// </summary>
     /// <param name="strs"></param>
     /// <param name="separator"></param>
-    /// <returns></returns>
-    public static string ToStr(this string[]? strs, string? separator = null)
+    /// <returns>string</returns>
+    public static string ToStr(this string[] strs, string separator = null)
     {
         if (strs is null || strs.Length < 1) return string.Empty;
 
@@ -81,8 +82,8 @@ public static class StringExtension
     /// this method will convert your file path based on the runtime
     /// </summary>
     /// <param name="path"></param>
-    /// <returns></returns>
-    public static string ConvertOsWisePath(this string? path)
+    /// <returns>string</returns>
+    public static string ConvertOsWisePath(this string path)
     {
         if (path.IsNullOrEmptyOrWhiteSpace()) return string.Empty;
 
@@ -95,8 +96,8 @@ public static class StringExtension
     /// </summary>
     /// <param name="value"></param>
     /// <param name="encoding"></param>
-    /// <returns></returns>
-    public static string EncodeToBase64(this string? value, EncodingEnum encoding = EncodingEnum.UTF8)
+    /// <returns>string</returns>
+    public static string EncodeToBase64(this string value, EncodingEnum encoding = EncodingEnum.UTF8)
     {
         if (value.IsNullOrEmptyOrWhiteSpace()) return string.Empty;
 
@@ -106,7 +107,9 @@ public static class StringExtension
             EncodingEnum.UTF32 => Convert.ToBase64String(Encoding.UTF32.GetBytes(value!)),
             EncodingEnum.Unicode => Convert.ToBase64String(Encoding.Unicode.GetBytes(value!)),
             EncodingEnum.Ascii => Convert.ToBase64String(Encoding.ASCII.GetBytes(value!)),
+#if NETCOREAPP3_1_OR_GREATER
             EncodingEnum.Latin => Convert.ToBase64String(Encoding.Latin1.GetBytes(value!)),
+#endif
             _ => string.Empty
         };
     }
@@ -117,7 +120,7 @@ public static class StringExtension
     /// <param name="value"></param>
     /// <param name="encoding"></param>
     /// <returns></returns>
-    public static string DecodeFromBase64(this string? value, EncodingEnum encoding = EncodingEnum.UTF8)
+    public static string DecodeFromBase64(this string value, EncodingEnum encoding = EncodingEnum.UTF8)
     {
         if (value.IsNullOrEmptyOrWhiteSpace()) return string.Empty;
 
@@ -127,7 +130,9 @@ public static class StringExtension
             EncodingEnum.UTF32 => Encoding.UTF32.GetString(Convert.FromBase64String(value!)),
             EncodingEnum.Unicode => Encoding.Unicode.GetString(Convert.FromBase64String(value!)),
             EncodingEnum.Ascii => Encoding.ASCII.GetString(Convert.FromBase64String(value!)),
+#if NETCOREAPP3_1_OR_GREATER
             EncodingEnum.Latin => Encoding.Latin1.GetString(Convert.FromBase64String(value!)),
+#endif
             _ => string.Empty
         };
     }

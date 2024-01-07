@@ -4,7 +4,10 @@
 // ---------------------------------------------------------------
 
 
+using System;
+using System.Linq;
 using UtilityVerse.Contracts;
+using UtilityVerse.Helpers;
 
 namespace UtilityVerse.Extensions;
 
@@ -21,11 +24,11 @@ public static class PagedListExtension
 	/// <param name="index"></param>
 	/// <param name="pageSize"></param>
 	/// <returns></returns>
-	/// <exception cref="InvalidDataException"></exception>
+	/// <exception cref="Exception"></exception>
 	public static PagedList<T> ToPagedList<T>(this IQueryable<T> queryable, int index, int pageSize)
 	{
 		if (index == default || pageSize == default)
-			throw new InvalidDataException($"{nameof(index)} or {nameof(pageSize)} params value is invalid");
+            UtilityVerseException.Throw($"{nameof(index)} or {nameof(pageSize)} params value is invalid");
 
 		var pagedList = new PagedList<T>();
 		try
@@ -45,7 +48,7 @@ public static class PagedListExtension
 	}
 
 
-	private static string ExtractExceptionError(Exception? exception)
+	private static string ExtractExceptionError(Exception exception)
 		=> exception is null
 			? string.Empty
 			: $"Exception Message: {exception.Message}. Inner Exception: {exception.InnerException?.Message}";
