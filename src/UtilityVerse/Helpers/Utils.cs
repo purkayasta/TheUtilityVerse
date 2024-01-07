@@ -1,4 +1,4 @@
-﻿namespace UtilityVerse.Helpers;
+namespace UtilityVerse.Helpers;
 
 internal static class Utils
 {
