@@ -44,6 +44,7 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
+		<ProjectReference Include="..\UtilityVerse.Shared\UtilityVerse.Shared.csproj" />
 		<None Update="nuget.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>

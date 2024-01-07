@@ -7,7 +7,7 @@
 using System;
 using System.Threading.Tasks;
 using UtilityVerse.Contracts;
-using UtilityVerse.Helpers;
+using UtilityVerse.Shared;
 
 namespace UtilityVerse;
 
