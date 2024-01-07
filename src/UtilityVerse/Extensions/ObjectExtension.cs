@@ -19,7 +19,7 @@ public static class ObjectExtension
     /// This method will convert any object into a byte array. (NOTE: Only Json Is Supported)
     /// </summary>
     /// <param name="obj"></param>
-    /// <returns>byte[]</returns>
+    /// <returns>UtilityVerseResult</returns>
     public static UtilityVerseResult<byte[]> ToByteArray(this object obj)
     {
         if (obj is null) return new UtilityVerseResult<byte[]>("Object is null or invalid");

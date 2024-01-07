@@ -6,3 +6,12 @@ internal static class Variables
     internal const string EmailAddressRegex = @"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$";
     internal const string InvalidCharacterRegex = @"[^a-z0-9\s-]";
 }
+
+
+
+internal class StaticMessages
+{
+    internal const string ContactDeveloperError = "Error Occurred, Contact Developer!";
+    internal const string NullOrEmptyError = "Field value is null or empty";
+    internal const string NullOrEmptyErrorWithParam = "{} value is null or empty";
+}

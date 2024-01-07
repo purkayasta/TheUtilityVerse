@@ -3,6 +3,8 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
+using UtilityVerse.Shared;
+
 namespace UtilityVerse.Extensions;
 
 /// <summary>
@@ -15,12 +17,12 @@ public static class DoubleExtension
     /// </summary>
     /// <param name="doubleArray"></param>
     /// <param name="separator"></param>
-    /// <returns></returns>
-    public static string ToStr(this double[] doubleArray, string separator = null)
+    /// <returns>UtilityVerseResult</returns>
+    public static UtilityVerseResult<string> ToStr(this double[] doubleArray, string separator = null)
     {
-        if (doubleArray is null || doubleArray.Length < 1) return string.Empty;
-        var sb = new System.Text.StringBuilder();
+        if (doubleArray is null || doubleArray.Length < 1) return new UtilityVerseResult<string>("Array is null or empty");
 
+        var sb = new System.Text.StringBuilder();
         bool isSeparatorExist = !string.IsNullOrEmpty(separator);
 
         for (int index = 0; index < doubleArray.Length; index++)
@@ -31,6 +33,6 @@ public static class DoubleExtension
                 sb.Append(separator);
         }
 
-        return sb.ToString();
+        return new UtilityVerseResult<string>(sb.ToString());
     }
 }

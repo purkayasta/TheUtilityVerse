@@ -7,6 +7,7 @@
 using System;
 using UtilityVerse.Contracts;
 using UtilityVerse.Helpers;
+using UtilityVerse.Shared;
 
 namespace UtilityVerse.Extensions;
 
@@ -21,18 +22,13 @@ public static class DateTimeExtension
     /// <param name="dt"></param>
     /// <param name="startDateTime"></param>
     /// <param name="endDateTime"></param>
-    /// <returns>bool</returns>
-    /// <exception cref="Exception"></exception>
-    public static bool IsInBetween(this DateTime dt, DateTime startDateTime, DateTime endDateTime)
+    /// <returns>UtilityVerseResult</returns>
+    public static UtilityVerseResult<bool> IsInBetween(this DateTime dt, DateTime startDateTime, DateTime endDateTime)
     {
-        UtilityVerseException.ThrowIfNull(dt);
-        UtilityVerseException.ThrowIfNull(startDateTime);
-        UtilityVerseException.ThrowIfNull(endDateTime);
-
         if (endDateTime < startDateTime)
-            UtilityVerseException.Throw($"{nameof(endDateTime)} cannot be smaller than {nameof(startDateTime)}");
+            return new($"{nameof(endDateTime)} cannot be smaller than {nameof(startDateTime)}");
 
-        return dt >= startDateTime && dt <= endDateTime;
+        return new(dt >= startDateTime && dt <= endDateTime);
     }
 
     /// <summary>
@@ -40,18 +36,14 @@ public static class DateTimeExtension
     /// </summary>
     /// <param name="dt"></param>
     /// <param name="timeEnum"></param>
-    /// <returns>long</returns>
-    /// <exception cref="NotImplementedException"></exception>
-    /// <exception cref="Exception"></exception>
-    public static long ToUnixTimeStamp(this DateTime dt, TimeEnum timeEnum)
+    /// <returns>UtilityVerseResult</returns>
+    public static UtilityVerseResult<long> ToUnixTimeStamp(this DateTime dt, TimeEnum timeEnum)
     {
-        UtilityVerseException.ThrowIfNull(dt);
-
         return timeEnum switch
         {
-            TimeEnum.MilliSecond => new DateTimeOffset(dt).ToUnixTimeMilliseconds(),
-            TimeEnum.Second => new DateTimeOffset(dt).ToUnixTimeSeconds(),
-            _ => throw new NotImplementedException()
+            TimeEnum.MilliSecond => new(new DateTimeOffset(dt).ToUnixTimeMilliseconds()),
+            TimeEnum.Second => new(new DateTimeOffset(dt).ToUnixTimeSeconds()),
+            _ => new(StaticMessages.ContactDeveloperError)
         };
     }
 
@@ -60,13 +52,12 @@ public static class DateTimeExtension
     /// </summary>
     /// <param name="dateTime">new DateTime() like [6/10/2023 4:02:06 PM]</param>
     /// <param name="format">yyyyMMdd</param>
-    /// <returns>int</returns>
-    /// <exception cref="Exception"></exception>
-    public static int ToIntDate(this DateTime dateTime, string format = "yyyyMMdd")
+    /// <returns>UtilityVerseResult</returns>
+    public static UtilityVerseResult<int> ToIntDate(this DateTime dateTime, string format = "yyyyMMdd")
     {
-        UtilityVerseException.ThrowIfNull(dateTime, nameof(dateTime));
-        UtilityVerseException.ThrowIfNullOrEmpty(format, nameof(format));
-        return int.TryParse(dateTime.ToString(format), out var result) ? result : -1;
+        if (format.IsNullOrEmptyOrWhiteSpace()) return new(string.Format(StaticMessages.NullOrEmptyErrorWithParam, format));
+        if (int.TryParse(dateTime.ToString(format), out int result)) return new(result);
+        return new("int parsing failed");
     }
 
     /// <summary>
@@ -74,11 +65,9 @@ public static class DateTimeExtension
     /// </summary>
     /// <param name="dateTime"></param>
     /// <returns>(int, int, int, int, int, int, int)</returns>
-    /// <exception cref="Exception"></exception>
     public static (int year, int month, int day, int hour, int minute, int second, int milisecond) DestructFromDateTime(
         this DateTime dateTime)
     {
-        UtilityVerseException.ThrowIfNull(dateTime);
         return (dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second, dateTime.Millisecond);
     }
 
@@ -88,10 +77,8 @@ public static class DateTimeExtension
     /// <param name="dateTime"></param>
     /// <param name="includeTime"></param>
     /// <returns>DateTime</returns>
-    /// <exception cref="Exception"></exception>
     public static DateTime ToUtcDateTime(this DateTime dateTime, bool includeTime = false)
     {
-        UtilityVerseException.ThrowIfNull(dateTime);
         if (includeTime) return new DateTime(year: dateTime.Year, month: dateTime.Month, day: dateTime.Day, hour: dateTime.Hour, minute: dateTime.Minute, second: dateTime.Second, kind: DateTimeKind.Utc);
         return new DateTime(year: dateTime.Year, month: dateTime.Month, day: dateTime.Day, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
     }

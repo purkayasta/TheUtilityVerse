@@ -5,6 +5,7 @@
 
 
 using System;
+using UtilityVerse.Shared;
 
 namespace UtilityVerse.Extensions;
 
@@ -19,8 +20,24 @@ public static class SpanExtension
     /// This method will convert an readonly span byte array into an object.
     /// </summary>
     /// <param name="spanByteArr"></param>
-    /// <returns></returns>
-    public static object ToObject(this ReadOnlySpan<byte> spanByteArr) => System.Text.Json.JsonSerializer.Deserialize<object>(spanByteArr);
+    /// <returns>UtilityVerseResult</returns>
+    public static UtilityVerseResult<object> ToObject(this ReadOnlySpan<byte> spanByteArr)
+    {
+        if (spanByteArr.Length < 1) return new UtilityVerseResult<object>("Byte Array is invalid");
+
+        try
+        {
+            return new UtilityVerseResult<object>(System.Text.Json.JsonSerializer.Deserialize<object>(spanByteArr));
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return new UtilityVerseResult<object>("Json parsing error");
+        }
+        catch (Exception unknownException)
+        {
+            return new UtilityVerseResult<object>($"Unknown exception: {unknownException}");
+        }
+    }
 }
 
 #endif

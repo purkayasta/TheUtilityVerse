@@ -22,7 +22,7 @@ public class ByteExtensionTest
             { "key2", "value2" }
         };
         var byteArr = JsonSerializer.SerializeToUtf8Bytes(jObject);
-        var result = ByteExtension.ToObject(byteArr);
+        Shared.UtilityVerseResult<object> result = ByteExtension.ToObject(byteArr);
         Assert.Equal(result.Result, jObject.AsObject());
     }
 }

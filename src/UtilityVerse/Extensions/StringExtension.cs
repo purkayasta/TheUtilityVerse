@@ -52,7 +52,6 @@ public static class StringExtension
         return string.IsNullOrEmpty(val) || string.IsNullOrWhiteSpace(val.Trim());
     }
 
-
     /// <summary>
     /// This extension method will convert any string array into string with separator.
     /// </summary>

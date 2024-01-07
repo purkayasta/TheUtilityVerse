@@ -5,6 +5,7 @@
 
 using System;
 using UtilityVerse.Helpers;
+using UtilityVerse.Shared;
 
 namespace UtilityVerse.Extensions;
 
@@ -19,31 +20,13 @@ public static class IntExtension
     /// <param name="source"></param>
     /// <param name="min"></param>
     /// <param name="max"></param>
-    /// <returns>bool</returns>
-    /// <exception cref="Exception"></exception>
-    public static bool IsInBetween(this int? source, int? min, int? max)
-    {
-        UtilityVerseException.ThrowIfNull(source, nameof(source));
-        UtilityVerseException.ThrowIfNull(min, nameof(min));
-        UtilityVerseException.ThrowIfNull(max, nameof(max));
-
-        return IsInBetween(source!.Value, min!.Value, max!.Value);
-    }
-
-    /// <summary>
-    /// This method will help to determine that source number is in between or not.
-    /// </summary>
-    /// <param name="source"></param>
-    /// <param name="min"></param>
-    /// <param name="max"></param>
-    /// <returns>bool</returns>
-    /// <exception cref="Exception"></exception>
-    public static bool IsInBetween(this int source, int min, int max)
+    /// <returns>UtilityVerseResult</returns>
+    public static UtilityVerseResult<bool> IsInBetween(this int source, int min, int max)
     {
         if (min > max)
-            UtilityVerseException.Throw(nameof(min) + " cannot be greater than " + nameof(max));
+            return new UtilityVerseResult<bool>(nameof(min) + " cannot be greater than " + nameof(max));
 
-        return source >= min && source <= max;
+        return new UtilityVerseResult<bool>(source >= min && source <= max);
     }
 
 
@@ -52,10 +35,10 @@ public static class IntExtension
     /// </summary>
     /// <param name="intArray"></param>
     /// <param name="separator"></param>
-    /// <returns></returns>
-    public static string ToStr(this int[] intArray, string separator = null)
+    /// <returns>UtilityVerseResult</returns>
+    public static UtilityVerseResult<string> ToStr(this int[] intArray, string separator = null)
     {
-        if (intArray is null || intArray.Length < 1) return string.Empty;
+        if (intArray is null || intArray.Length < 1) return new UtilityVerseResult<string>("int Array is empty");
 
         var sb = new System.Text.StringBuilder();
 
@@ -69,6 +52,6 @@ public static class IntExtension
                 sb.Append(separator);
         }
 
-        return sb.ToString();
+        return new UtilityVerseResult<string>(sb.ToString());
     }
 }

@@ -3,7 +3,7 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
-using UtilityVerse.Helpers;
+using UtilityVerse.Shared;
 
 namespace UtilityVerse.Extensions;
 
@@ -17,10 +17,10 @@ public static class DecimalExtension
     /// </summary>
     /// <param name="decimalArray"></param>
     /// <param name="separator"></param>
-    /// <returns>string</returns>
-    public static string ToStr(this decimal[] decimalArray, string separator = null)
+    /// <returns>UtilityVerseResult</returns>
+    public static UtilityVerseResult<string> ToStr(this decimal[] decimalArray, string separator = null)
     {
-        if (decimalArray is null || decimalArray.Length < 1) UtilityVerseException.Throw("array is null");
+        if (decimalArray is null || decimalArray.Length < 1) UtilityVerseException.Throw("Decimal Array is null or empty");
 
         var sb = new System.Text.StringBuilder();
 
@@ -34,6 +34,6 @@ public static class DecimalExtension
                 sb.Append(separator);
         }
 
-        return sb.ToString();
+        return new UtilityVerseResult<string>(sb.ToString());
     }
 }

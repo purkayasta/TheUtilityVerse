@@ -6,6 +6,7 @@
 using System;
 using UtilityVerse.Contracts;
 using UtilityVerse.Helpers;
+using UtilityVerse.Shared;
 
 namespace UtilityVerse.Extensions;
 
@@ -14,36 +15,23 @@ namespace UtilityVerse.Extensions;
 /// </summary>
 public static class LongExtension
 {
-	/// <summary>
-	/// This method will convert any valid time stamp into a DateTime object
-	/// </summary>
-	/// <param name="timeStamp"></param>
-	/// <param name="timeEnum"></param>
-	/// <returns></returns>
-	public static DateTime ToDateTime(this long? timeStamp, TimeEnum timeEnum)
-	{
-		UtilityVerseException.ThrowIfNull(timeStamp);
-		return ToDateTime(timeStamp.Value, timeEnum);
-	}
+    /// <summary>
+    /// This method will convert any valid time stamp into a DateTime object
+    /// </summary>
+    /// <param name="timeStamp"></param>
+    /// <param name="timerEnum"></param>
+    /// <returns>UtilityVerseResult</returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public static UtilityVerseResult<DateTime> ToDateTime(this long timeStamp, TimeEnum timerEnum)
+    {
+        if (timeStamp < 1)
+            return new UtilityVerseResult<DateTime>($"{nameof(timeStamp)} invalid time stamp value");
 
-	/// <summary>
-	/// This method will convert any valid time stamp into a DateTime object
-	/// </summary>
-	/// <param name="timeStamp"></param>
-	/// <param name="timeEnum"></param>
-	/// <returns></returns>
-	/// <exception cref="Exception"></exception>
-	/// <exception cref="NotImplementedException"></exception>
-	public static DateTime ToDateTime(this long timeStamp, TimeEnum timeEnum)
-	{
-		if (timeStamp < 1)
-            UtilityVerseException.Throw($"{nameof(timeStamp)} invalid time stamp value");
-
-		return timeEnum switch
-		{
-			TimeEnum.MilliSecond => DateTimeOffset.FromUnixTimeMilliseconds(timeStamp).DateTime,
-			TimeEnum.Second => DateTimeOffset.FromUnixTimeSeconds(timeStamp).DateTime,
-			_ => throw new NotImplementedException()
-		};
-	}
+        return timerEnum switch
+        {
+            TimeEnum.MilliSecond => new UtilityVerseResult<DateTime>(DateTimeOffset.FromUnixTimeMilliseconds(timeStamp).DateTime),
+            TimeEnum.Second => new UtilityVerseResult<DateTime>(DateTimeOffset.FromUnixTimeSeconds(timeStamp).DateTime),
+            _ => throw new NotImplementedException()
+        };
+    }
 }

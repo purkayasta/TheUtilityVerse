@@ -18,12 +18,12 @@ public class PagedList<T>
     /// <summary>
     /// If the instance has any error or not. If error found then it will true.
     /// </summary>
-    public bool IsValid { get; set; }
+    public bool IsValid => Errors.Length > 0;
 
     /// <summary>
     /// Number of results.
     /// </summary>
-    public int Count { get; set; }
+    public int Count => Results.Count();
 
     /// <summary>
     /// The collection.
