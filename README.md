@@ -11,6 +11,7 @@ There are multiple packages in this universe. Use whatever suits you.
 
 1. [UtilityVerse](https://www.nuget.org/packages/UtilityVerse/) - No dependency. Just the core utilities. 
 2. [UtilityVerse.ASPNET](https://www.nuget.org/packages/UtilityVerse.ASPNET/) - This is based on aspnet core.
+3. [UtilityVerse.Copy]() - Roslyn based source generator to create shallow copy and deep copy for your objects.
 
 To Invoke this library, you may want to use ```Utility``` class.
 
