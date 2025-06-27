@@ -1,99 +1,31 @@
-﻿# The UtilityVerse 🧰 -  *(Multi verse of utility methods) is a library for all the helper methods that you might want to use.*
+﻿## The UtilityVerse 🧰
+*(Multi-verse of utility methods)* — a library full of helper methods you might want to use.
 
 ![Nuget](https://img.shields.io/github/repo-size/purkayasta/TheUtilityVerse?style=social)
 ![Nuget](https://img.shields.io/github/last-commit/purkayasta/TheUtilityVerse?style=flat-square)
 
-> Give it a star if you like the project. 👏 🌠 🌟
+> ⭐️ Give it a star if you like the project!
 
-> *Want to contribute? Here is the [guideline](./CONTRIBUTING.md)*
+---
 
-There are multiple packages in this universe. Use whatever suits you.
+## 📦 Packages in This Universe
 
-1. [UtilityVerse](https://www.nuget.org/packages/UtilityVerse/) - No dependency. Just the core utilities. 
-2. [UtilityVerse.ASPNET](https://www.nuget.org/packages/UtilityVerse.ASPNET/) - This is based on aspnet core.
-3. [UtilityVerse.Copy]() - Roslyn based source generator to create shallow copy and deep copy for your objects.
+Use whatever suits your project:
 
-To Invoke this library, you may want to use ```Utility``` class.
+1. [**UtilityVerse**](https://www.nuget.org/packages/UtilityVerse/)  
+   🧰 No dependencies — includes core utility methods.
 
--------------------------------
+2. [**UtilityVerse.ASPNET**](https://www.nuget.org/packages/UtilityVerse.ASPNET/)  
+   🌐 ASP.NET Core-specific helpers and extensions.
 
-### Documentation Work in progress. (Experimental build) ⚒️
--- `cd documentation/docfx_project/`
--- `docfx ./docfx.json --serve`
+3. [**UtilityVerse.Copy**](https://www.nuget.org/packages/UtilityVerse.Copy/)  
+   ✍️ A Roslyn-based source generator that automatically generates `ShallowCopy()` and `DeepCopy()` methods for your models.  
+   → See full details here: [`UtilityVerse.Copy/README.md`](./src/UtilityVerse.Copy/README.md)
 
--------------------------------
+---
 
-# [UtilityVerse](https://www.nuget.org/packages/UtilityVerse/)
-![Nuget](https://img.shields.io/nuget/v/UtilityVerse)
-![Nuget](https://img.shields.io/nuget/dt/UtilityVerse?style=plastic)
+To use this utility library, you may want to start with the `Utility` class.
 
+---
 
-## Methods:
-
-- [ ] Boolean Extensions
-	- [x] ToBoolean(string value).
-
-- [ ] Date Extensions
-	- [x] IsInBetween().
-	- [x] ToUnixTimeStamp().
-	- [x] ToIntDate().
-	- [x] DestructFromDateTime().
-	- [x] ToDateTime().
-	- [x] ToUtcDateTime().
-
-- [ ] Generic Extensions
-	- [x] ToByteArray().
-	- [x] To<T>().
-
-- [ ] Integer Extensions
-	- [x] IsInBetween().
-	- [x] ToInt(bool value).
-	- [x] ToStr()
-
-- [ ] Byte Extensions
-	- [x] ToObject().
-
-- [ ] Object Extensions
-	- [x] ToByteArray().
-
-- [ ] Character Extensions
-	- [x] ToStr().
-
-- [ ] Decimal Extensions
-	- [x] ToStr().
-
-- [ ] Double Extensions.
-	- [x] ToStr().
-
-- [ ] Span Extensions.
-	- [x] ToObject().
-
-- [ ] String Extensions
-	- [x] IsNullOrEmptyOrWhiteSpace().
-	- [x] ToStr().
-	- [x] EncodeToBase64().
-	- [x] DecodeFromBase64().
-	- [x] ConvertOsWisePath().
-	- [x] ToSlugUrl().
-	- [x] IsInIpAddress().
-	- [x] IsValidEmail().
-
-- [ ] Collection Extensions
-	- [x] IsNullOrEmpty().
-
-- [ ] Features:
-	- [x] Retry Mechanism.
-	- [x] Dollar Cent Conversion.
-
-
-# [UtilityVerse.ASPNET](https://www.nuget.org/packages/UtilityVerse.ASPNET/)
-![Nuget](https://img.shields.io/nuget/v/UtilityVerse.ASPNET)
-![Nuget](https://img.shields.io/nuget/dt/UtilityVerse.ASPNET?style=plastic)
-
-
-## Features:
-- [x] CreateHttpRequest()
-
-
-
-Made ❤ with C#.
+Made with ❤️ in C#.

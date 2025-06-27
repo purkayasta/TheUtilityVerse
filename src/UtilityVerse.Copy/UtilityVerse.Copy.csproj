@@ -16,7 +16,7 @@
     <PropertyGroup>
         <Title>Copy</Title>
         <PackageId>UtilityVerse.Copy</PackageId>
-        <Version>1.0</Version>
+        <Version>0.1.0</Version>
         <Authors>Pritom Purkayasta</Authors>
         <Description>A Roslyn source generator for generating shallow copy and deep copy for class,
             records and structs
