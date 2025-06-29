@@ -1,5 +1,7 @@
 /// <summary>
 /// Author: Pritom Purkayasta
+//  Copyright (c) Pritom Purkayasta All rights reserved.
+//  FREE TO USE TO CONNECT THE WORLD
 /// </summary>
 
 using System.Linq;
@@ -13,7 +15,7 @@ using UtilityVerse.Copy.Generators;
 namespace UtilityVerse.Copy;
 
 [Generator]
-public class CopyGenerator : IIncrementalGenerator
+public sealed class CopyGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -22,7 +24,7 @@ public class CopyGenerator : IIncrementalGenerator
                 predicate: (s, _) => s is TypeDeclarationSyntax,
                 transform: (ctx, _) => GetSemanticTarget(ctx))
             .Where(static m => m is not null)
-            .Select<(INamedTypeSymbol Symbol, CopyMode Mode)?, (INamedTypeSymbol Symbol, CopyMode Mode)>(static (m, _) => m!.Value)
+            .Select(static (m, _) => m!.Value)
             .Collect();
 
         context.RegisterSourceOutput(typeDeclarations, (spc, types) =>

@@ -1,12 +1,18 @@
+/// <summary>
+/// Author: Pritom Purkayasta
+//  Copyright (c) Pritom Purkayasta All rights reserved.
+//  FREE TO USE TO CONNECT THE WORLD
+/// </summary>
+
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
 namespace UtilityVerse.Copy.Generators;
 
-public static class DeepCopyGenerator
+internal static class DeepCopyGenerator
 {
-    public static string Generate(INamedTypeSymbol typeSymbol)
+    internal static string Generate(INamedTypeSymbol typeSymbol)
     {
         if (typeSymbol.IsAbstract) return string.Empty;
 
@@ -67,7 +73,7 @@ public static class DeepCopyGenerator
             {
                 var args = ctor.Parameters.Select(p =>
                 {
-                    var prop = typeSymbol.GetMembers().OfType<IPropertySymbol>()
+                    var prop = Helper.GetAllProperties(typeSymbol)
                         .FirstOrDefault(m => m.Name.Equals(p.Name, System.StringComparison.OrdinalIgnoreCase));
 
                     if (prop == null)
@@ -96,7 +102,7 @@ public static class DeepCopyGenerator
             sb.AppendLine($@"            return new {typeName}
             {{");
 
-            foreach (var member in typeSymbol.GetMembers().OfType<IPropertySymbol>())
+            foreach (var member in Helper.GetAllProperties(typeSymbol))
             {
                 if (member.IsReadOnly || member.SetMethod is null)
                     continue;
@@ -109,75 +115,75 @@ public static class DeepCopyGenerator
                     assignment = $"this.{member.Name}";
                 }
                 else switch (propType)
-                {
-                    case IArrayTypeSymbol arrayType:
                     {
-                        var elementType = arrayType.ElementType;
-                        assignment = Helper.IsTrulyPrimitive(elementType)
-                            ? $"this.{member.Name}?.ToArray()"
-                            : $"this.{member.Name}?.Select(x => x?.DeepCopy()).ToArray()";
-                        break;
-                    }
-                    case INamedTypeSymbol { IsGenericType: true } named:
-                    {
-                        var original = named.OriginalDefinition.ToDisplayString();
-                        var typeArgs = named.TypeArguments;
-
-                        if (Helper.IsGenericCollection(original, out var collectionKind))
-                        {
-                            var elementType = typeArgs[0];
-                            var cloneExpr = Helper.IsTrulyPrimitive(elementType)
-                                ? "x"
-                                : "x?.DeepCopy()";
-
-                            if (collectionKind == "HashSet")
+                        case IArrayTypeSymbol arrayType:
                             {
-                                assignment =
-                                    $"this.{member.Name} != null ? new HashSet<{elementType.ToDisplayString()}>(this.{member.Name}.Select(x => {cloneExpr}).ToList()) : null";
+                                var elementType = arrayType.ElementType;
+                                assignment = Helper.IsTrulyPrimitive(elementType)
+                                    ? $"this.{member.Name}?.ToArray()"
+                                    : $"this.{member.Name}?.Select(x => x?.DeepCopy()).ToArray()";
+                                break;
                             }
-                            else if (collectionKind == "Dictionary")
+                        case INamedTypeSymbol { IsGenericType: true } named:
                             {
-                                var keyType = typeArgs[0];
-                                var valueType = typeArgs[1];
+                                var original = named.OriginalDefinition.ToDisplayString();
+                                var typeArgs = named.TypeArguments;
 
-                                var keyCopy = Helper.IsTrulyPrimitive(keyType) ? "x.Key" : "x.Key?.DeepCopy()";
-                                var valueCopy = Helper.IsTrulyPrimitive(valueType) ? "x.Value" : "x.Value?.DeepCopy()";
+                                if (Helper.IsGenericCollection(original, out var collectionKind))
+                                {
+                                    var elementType = typeArgs[0];
+                                    var cloneExpr = Helper.IsTrulyPrimitive(elementType)
+                                        ? "x"
+                                        : "x?.DeepCopy()";
 
-                                assignment = $"this.{member.Name}?.ToDictionary(x => {keyCopy}, x => {valueCopy})";
+                                    if (collectionKind == "HashSet")
+                                    {
+                                        assignment =
+                                            $"this.{member.Name} != null ? new HashSet<{elementType.ToDisplayString()}>(this.{member.Name}.Select(x => {cloneExpr}).ToList()) : null";
+                                    }
+                                    else if (collectionKind == "Dictionary")
+                                    {
+                                        var keyType = typeArgs[0];
+                                        var valueType = typeArgs[1];
+
+                                        var keyCopy = Helper.IsTrulyPrimitive(keyType) ? "x.Key" : "x.Key?.DeepCopy()";
+                                        var valueCopy = Helper.IsTrulyPrimitive(valueType) ? "x.Value" : "x.Value?.DeepCopy()";
+
+                                        assignment = $"this.{member.Name}?.ToDictionary(x => {keyCopy}, x => {valueCopy})";
+                                    }
+                                    else
+                                    {
+                                        // For List, IEnumerable, Collection, ReadOnlyCollection, etc.
+                                        assignment = $"this.{member.Name}?.Select(x => {cloneExpr}).ToList()";
+                                    }
+                                }
+                                else if (original == "System.Collections.Generic.Dictionary<TKey, TValue>")
+                                {
+                                    var keyType = typeArgs[0];
+                                    var valueType = typeArgs[1];
+
+                                    assignment = $"this.{member.Name}?.ToDictionary(" +
+                                                 $"x => {(Helper.IsTrulyPrimitive(keyType) ? "x.Key" : "x.Key?.DeepCopy()")}, " +
+                                                 $"x => {(Helper.IsTrulyPrimitive(valueType) ? "x.Value" : "x.Value?.DeepCopy()")})";
+                                }
+                                else if (original.StartsWith("System.Tuple") || original.StartsWith("System.ValueTuple"))
+                                {
+                                    var tupleArgs = typeArgs.Select((arg, i) =>
+                                        Helper.IsTrulyPrimitive(arg) ? $"x.Item{i + 1}" : $"x.Item{i + 1}?.DeepCopy()");
+
+                                    assignment = $"this.{member.Name} is {{ }} x ? new {propType.ToDisplayString()}({string.Join(", ", tupleArgs)}) : default";
+                                }
+                                else
+                                {
+                                    assignment = $"this.{member.Name}?.DeepCopy()";
+                                }
+
+                                break;
                             }
-                            else
-                            {
-                                // For List, IEnumerable, Collection, ReadOnlyCollection, etc.
-                                assignment = $"this.{member.Name}?.Select(x => {cloneExpr}).ToList()";
-                            }
-                        }
-                        else if (original == "System.Collections.Generic.Dictionary<TKey, TValue>")
-                        {
-                            var keyType = typeArgs[0];
-                            var valueType = typeArgs[1];
-
-                            assignment = $"this.{member.Name}?.ToDictionary(" +
-                                         $"x => {(Helper.IsTrulyPrimitive(keyType) ? "x.Key" : "x.Key?.DeepCopy()")}, " +
-                                         $"x => {(Helper.IsTrulyPrimitive(valueType) ? "x.Value" : "x.Value?.DeepCopy()")})";
-                        }
-                        else if (original.StartsWith("System.Tuple") || original.StartsWith("System.ValueTuple"))
-                        {
-                            var tupleArgs = typeArgs.Select((arg, i) =>
-                                Helper.IsTrulyPrimitive(arg) ? $"x.Item{i + 1}" : $"x.Item{i + 1}?.DeepCopy()");
-
-                            assignment = $"this.{member.Name} is {{ }} x ? new {propType.ToDisplayString()}({string.Join(", ", tupleArgs)}) : default";
-                        }
-                        else
-                        {
+                        default:
                             assignment = $"this.{member.Name}?.DeepCopy()";
-                        }
-
-                        break;
+                            break;
                     }
-                    default:
-                        assignment = $"this.{member.Name}?.DeepCopy()";
-                        break;
-                }
 
                 sb.AppendLine($"                {member.Name} = {assignment},");
             }

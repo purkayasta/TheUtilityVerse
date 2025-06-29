@@ -17,7 +17,7 @@
 ---
 
 
-# > Give it a star if you like the project. 👏 🌠 🌟
+## > Give it a star if you like the project. 👏 🌠 🌟
 
 
 ---
@@ -168,5 +168,3 @@ We welcome contributions! Please see the [CONTRIBUTE.md](CONTRIBUTE.md) file for
 See real-world performance metrics in [BENCHMARK.md](BENCHMARK.md)
 
 ---
-
-Let me know if you’d like to auto-generate this README as part of your build pipeline or package metadata!

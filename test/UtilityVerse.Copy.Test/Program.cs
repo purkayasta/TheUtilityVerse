@@ -1,4 +1,7 @@
-﻿Console.WriteLine("Starting....");
+﻿using UtilityVerse.Copy.Test;
+using UtilityVerse.Copy;
+
+Console.WriteLine("Starting....");
 
 ManualTesting();
 
@@ -18,7 +21,7 @@ static void AutomatedTesting()
         Addresses = new[] { new Address() { StreetNumber = "12" } }
     };
 
-    var clonedObject = originalObject.DeepCopy();
+    var clonedObject = originalObject;
     Console.WriteLine("Before Cloning...");
     
     Console.WriteLine(

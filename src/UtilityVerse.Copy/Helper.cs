@@ -1,7 +1,10 @@
 /// <summary>
 /// Author: Pritom Purkayasta
+//  Copyright (c) Pritom Purkayasta All rights reserved.
+//  FREE TO USE TO CONNECT THE WORLD
 /// </summary>
 
+using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 
 namespace UtilityVerse.Copy;
@@ -10,7 +13,7 @@ internal static class Helper
 {
     internal static bool IsPrimitive(ITypeSymbol symbol) =>
         symbol.IsValueType || symbol.SpecialType == SpecialType.System_String;
-    
+
     internal static bool IsTrulyPrimitive(ITypeSymbol symbol)
     {
         return symbol.SpecialType switch
@@ -45,7 +48,7 @@ internal static class Helper
             "System.ComponentModel.BindingList<T>" => "List",
             "System.Collections.Immutable.ImmutableList<T>" => "List",
             "System.Collections.Generic.ReadOnlyList<T>" => "List", // custom/unofficial
-        
+
             // Enumerable-like collections
             "System.Collections.Generic.IEnumerable<T>" => "Enumerable",
             "System.Collections.Generic.ICollection<T>" => "Enumerable",
@@ -59,7 +62,7 @@ internal static class Helper
             "System.Collections.Generic.Dictionary<TKey, TValue>" => "Dictionary",
             "System.Collections.Frozen.FrozenDictionary<TKey, TValue>" => "Dictionary",
             "System.Collections.Concurrent.ConcurrentDictionary<TKey, TValue>" => "Dictionary",
-            
+
             // Immutable
             "System.Collections.Immutable.ImmutableArray<T>" => "List",
             "System.Collections.Immutable.ImmutableSortedSet<T>" => "HashSet",
@@ -76,4 +79,19 @@ internal static class Helper
 
         return kind != null;
     }
+
+    internal static IEnumerable<IPropertySymbol> GetAllProperties(INamedTypeSymbol? type)
+    {
+        while (type != null && type.SpecialType != SpecialType.System_Object)
+        {
+            foreach (var member in type.GetMembers().OfType<IPropertySymbol>())
+            {
+                if (!member.IsReadOnly && member.SetMethod != null)
+                    yield return member;
+            }
+
+            type = type.BaseType;
+        }
+    }
+
 }

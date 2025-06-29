@@ -1,3 +1,9 @@
+/// <summary>
+/// Author: Pritom Purkayasta
+//  Copyright (c) Pritom Purkayasta All rights reserved.
+//  FREE TO USE TO CONNECT THE WORLD
+/// </summary>
+
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -64,7 +70,7 @@ public static class ShallowCopyGenerator
         {
             sb.AppendLine($"            var copy = ({typeName})this.MemberwiseClone();");
 
-            foreach (var member in typeSymbol.GetMembers().OfType<IPropertySymbol>())
+            foreach (var member in Helper.GetAllProperties(typeSymbol))
             {
                 if (member.IsReadOnly || member.SetMethod is null)
                     continue;

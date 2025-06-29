@@ -5,18 +5,18 @@
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
     </PropertyGroup>
-    
+
     <PropertyGroup>
         <OutputItemType>Analyzer</OutputItemType>
         <IncludeBuildOutput>true</IncludeBuildOutput>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <NoPackageAnalysis>true</NoPackageAnalysis>
     </PropertyGroup>
-    
+
     <PropertyGroup>
         <Title>Copy</Title>
         <PackageId>UtilityVerse.Copy</PackageId>
-        <Version>0.1.0</Version>
+        <Version>0.1.1</Version>
         <Authors>Pritom Purkayasta</Authors>
         <Description>A Roslyn source generator for generating shallow copy and deep copy for class,
             records and structs
@@ -41,13 +41,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
-      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0"/>
     </ItemGroup>
-    
+
+    <ItemGroup>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs"/>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="lib/netstandard2.0"/>
+    </ItemGroup>
+
     <ItemGroup>
         <None Include="Assets\copy.png">
             <Pack>True</Pack>
