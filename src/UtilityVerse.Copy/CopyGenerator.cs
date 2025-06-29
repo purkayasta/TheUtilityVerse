@@ -59,11 +59,11 @@ public sealed class CopyGenerator : IIncrementalGenerator
         if (symbol is not { DeclaredAccessibility: Accessibility.Public })
             return null;
 
-        var hasDeep = symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "UtilityVerse.Copy.Attributes.DeepCopy") ||
-                       symbol.AllInterfaces.Any(i => i.ToDisplayString() == "UtilityVerse.Copy.Interfaces.IDeepCopy");
+        var hasDeep = symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "UtilityVerse.Copy.DeepCopy") ||
+                       symbol.AllInterfaces.Any(i => i.ToDisplayString() == "UtilityVerse.Copy.IDeepCopy");
 
-        var hasShallow = symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "UtilityVerse.Copy.Attributes.ShallowCopy") ||
-                          symbol.AllInterfaces.Any(i => i.ToDisplayString() == "UtilityVerse.Copy.Interfaces.IShallowCopy");
+        var hasShallow = symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "UtilityVerse.Copy.ShallowCopy") ||
+                          symbol.AllInterfaces.Any(i => i.ToDisplayString() == "UtilityVerse.Copy.IShallowCopy");
 
         if (hasDeep) return (symbol, CopyMode.Deep);
         if (hasShallow) return (symbol, CopyMode.Shallow);

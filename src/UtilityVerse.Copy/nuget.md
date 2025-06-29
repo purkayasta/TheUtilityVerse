@@ -12,10 +12,15 @@
 * ✅ No runtime overhead — it's all generated in the background by Roslyn
 * ✅ Supports both `[Attribute]`-based and `interface`-based opt-in mechanisms
 * ✅ Works great for DTOs, ViewModels, and plain C# objects
-* ✅ Smart support for common collection types, arrays, tuples, and more
+* ✅ Support for common collection types, arrays, tuples, and more
 
 ---
 
+
+## > Give it a star if you like the project. 👏 🌠 🌟
+
+
+---
 
 ## 📦 Installation
 
@@ -51,6 +56,27 @@ This generates a `ShallowCopy()` method at compile-time:
 ```csharp
 public Person ShallowCopy()
 {
+    return (Person)this.MemberWiseClone();
+}
+```
+
+For deep copy:
+
+```csharp
+using UtilityVerse.Copy;
+[DeepCopy]
+public partial class Person
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+}
+```
+
+Generates a deep recursive `DeepCopy()` method that copies nested references and collections.
+
+```csharp
+public Person DeepCopy()
+{
     return new Person
     {
         Name = this.Name,
@@ -59,19 +85,6 @@ public Person ShallowCopy()
 }
 ```
 
-For deep copy:
-
-```csharp
-[DeepCopy]
-public partial class Order
-{
-    public Customer Customer { get; set; }
-    public List<Item> Items { get; set; }
-}
-```
-
-Generates a deep recursive `DeepCopy()` method that copies nested references and collections.
-
 ---
 
 ### ✅ Option 2: Use Marker Interfaces
@@ -79,6 +92,7 @@ Generates a deep recursive `DeepCopy()` method that copies nested references and
 Prefer no attributes? Just implement the marker interfaces:
 
 ```csharp
+using UtilityVerse.Copy;
 public partial class Person : IShallowCopy
 {
     public string Name { get; set; }
@@ -87,10 +101,11 @@ public partial class Person : IShallowCopy
 ```
 
 ```csharp
-public partial class Order : IDeepCopy
+using UtilityVerse.Copy;
+public partial class Person : IDeepCopy
 {
-    public Customer Customer { get; set; }
-    public List<Item> Items { get; set; }
+    public string Name { get; set; }
+    public int Age { get; set; }
 }
 ```
 
@@ -135,5 +150,13 @@ public User DeepCopy()
     };
 }
 ```
+
+---
+
+## 🔒 Safe and Reliable
+
+* 💡 **Partial**: Won’t overwrite your code — generated code lives alongside your class
+* 🧾 **Readable**: Generated files are emitted to the intermediate folder (obj)
+* ⚙️ **Non-Intrusive**: No reflection, no extra dependencies
 
 ---
