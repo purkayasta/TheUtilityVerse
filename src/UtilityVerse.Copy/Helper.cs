@@ -1,3 +1,9 @@
+/// <summary>
+/// Author: Pritom Purkayasta
+//  Copyright (c) Pritom Purkayasta All rights reserved.
+//  FREE TO USE TO CONNECT THE WORLD
+/// </summary>
+
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -57,6 +63,7 @@ internal static class Helper
             "System.Collections.Frozen.FrozenDictionary<TKey, TValue>" => "Dictionary",
             "System.Collections.Concurrent.ConcurrentDictionary<TKey, TValue>" => "Dictionary",
 
+            // Immutable
             "System.Collections.Immutable.ImmutableArray<T>" => "List",
             "System.Collections.Immutable.ImmutableSortedSet<T>" => "HashSet",
             "System.Collections.Immutable.ImmutableHashSet<T>" => "HashSet",
