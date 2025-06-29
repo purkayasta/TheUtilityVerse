@@ -12,13 +12,13 @@
 
 Use whatever suits your project:
 
-1. [**UtilityVerse**](https://www.nuget.org/packages/UtilityVerse/)  
+1. [**UtilityVerse**](https://www.nuget.org/packages/UtilityVerse/) -> ![Nuget](https://img.shields.io/nuget/v/UtilityVerse) ![Nuget](https://img.shields.io/nuget/dt/UtilityVerse?style=plastic)
    🧰 No dependencies — includes core utility methods.
 
-2. [**UtilityVerse.ASPNET**](https://www.nuget.org/packages/UtilityVerse.ASPNET/)  
+2. [**UtilityVerse.ASPNET**](https://www.nuget.org/packages/UtilityVerse.ASPNET/) -> ![Nuget](https://img.shields.io/nuget/v/UtilityVerse.ASPNET) ![Nuget](https://img.shields.io/nuget/dt/UtilityVerse.ASPNET?style=plastic) 
    🌐 ASP.NET Core-specific helpers and extensions.
 
-3. [**UtilityVerse.Copy**](https://www.nuget.org/packages/UtilityVerse.Copy/)  
+3. [**UtilityVerse.Copy**](https://www.nuget.org/packages/UtilityVerse.Copy/) -> ![Nuget](https://img.shields.io/nuget/v/UtilityVerse.Copy) ![Nuget](https://img.shields.io/nuget/dt/UtilityVerse.Copy?style=plastic)
    ✍️ A Roslyn-based source generator that automatically generates `ShallowCopy()` and `DeepCopy()` methods for your models.  
    → See full details here: [`UtilityVerse.Copy/README.md`](./src/UtilityVerse.Copy/README.md)
 
