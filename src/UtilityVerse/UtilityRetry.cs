@@ -4,82 +4,86 @@
 // ---------------------------------------------------------------
 
 
+using System;
+using System.Threading.Tasks;
 using UtilityVerse.Contracts;
+using UtilityVerse.Shared;
 
 namespace UtilityVerse;
 
 public sealed partial class Utility
 {
-	/// <summary>
-	/// The method will retry on exception.
-	/// </summary>
-	/// <typeparam name="T"></typeparam>
-	/// <param name="handler"></param>
-	/// <param name="retryOption"></param>
-	/// <returns></returns>
-	public static T? AddRetry<T>(Func<T>? handler, RetryOption? retryOption = null)
-	{
-		ArgumentNullException.ThrowIfNull(handler, "Function is null");
+    /// <summary>
+    /// The method will retry on exception.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="handler"></param>
+    /// <param name="retryOption"></param>
+    /// <returns></returns>
+    public static T AddRetry<T>(Func<T> handler, RetryOption retryOption = null)
+    {
+        UtilityVerseException.ThrowIfNull(data: handler, paramName: "Function");
 
-		retryOption ??= EvaluateOption(retryOption);
-		T? genericReturn = default;
-		return ExecuteRetryOperation(handler, retryOption, genericReturn)
-			.GetAwaiter().GetResult();
-	}
+        retryOption ??= EvaluateOption(retryOption);
 
-	/// <summary>
-	/// Retry Operation Async Version. 
-	/// This utility method will help you do retry on any method. It will retry on exception.
-	/// </summary>
-	/// <typeparam name="T"></typeparam>
-	/// <param name="handler"></param>
-	/// <param name="retryOption"></param>
-	/// <returns></returns>
-	public static Task<T?> AddRetryAsync<T>(Func<T>? handler, RetryOption? retryOption = null)
-	{
-		ArgumentNullException.ThrowIfNull(handler, "Function is null");
+        T genericReturn = default;
+        return ExecuteRetryOperation(handler, retryOption, genericReturn).GetAwaiter().GetResult();
+    }
 
-		retryOption ??= EvaluateOption(retryOption);
-		T? genericReturn = default;
-		return ExecuteRetryOperation(handler, retryOption, genericReturn);
-	}
+    /// <summary>
+    /// Retry Operation Async Version. 
+    /// This utility method will help you do retry on any method. It will retry on exception.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="handler"></param>
+    /// <param name="retryOption"></param>
+    /// <returns></returns>
+    public static Task<T> AddRetryAsync<T>(Func<T> handler, RetryOption retryOption = null)
+    {
+        UtilityVerseException.ThrowIfNull(handler, "Function");
 
-	#region Helper Private Methods
+        retryOption ??= EvaluateOption(retryOption);
 
-	private static Task<T?> ExecuteRetryOperation<T>(Func<T> handler, RetryOption? retryOption, T? genericReturn)
-	{
-		while (retryOption!.Count > 0)
-		{
-			try
-			{
-				genericReturn = handler();
-			}
-			catch (Exception retryException)
-			{
-				Console.WriteLine($"Exception Occurred: - {retryException.Message}");
+        T genericReturn = default;
+        return ExecuteRetryOperation(handler, retryOption, genericReturn);
+    }
 
-				retryOption.Count--;
+    #region Helper Private Methods
 
-				Console.WriteLine($"Next Execution in: {retryOption.Delay!.Value.TotalSeconds} seconds");
+    private static Task<T> ExecuteRetryOperation<T>(Func<T> handler, RetryOption retryOption, T genericReturn)
+    {
+        while (retryOption!.Count > 0)
+        {
+            try
+            {
+                genericReturn = handler();
+            }
+            catch (Exception retryException)
+            {
+                Console.WriteLine($"Exception Occurred: - {retryException.Message}");
 
-				Task.Delay(retryOption.Delay!.Value);
-			}
-		}
+                retryOption.Count--;
 
-		return Task.FromResult(genericReturn);
-	}
+                Console.WriteLine($"Next Execution in: {retryOption.Delay!.TotalSeconds} seconds");
 
-	private static RetryOption EvaluateOption(RetryOption? retryOption = null)
-	{
-		retryOption ??= new RetryOption();
+                Task.Delay(retryOption.Delay!);
+            }
+        }
 
-		ArgumentNullException.ThrowIfNull(retryOption, nameof(RetryOption));
+        return Task.FromResult(genericReturn);
+    }
 
-		if (retryOption.Count is null || retryOption.Count < 1 || retryOption.Delay is null)
-			throw new ArgumentException($"Invalid {nameof(RetryOption)}");
+    private static RetryOption EvaluateOption(RetryOption retryOption = null)
+    {
+        retryOption ??= new RetryOption();
 
-		return retryOption;
-	}
+        UtilityVerseException.ThrowIfNull(data: retryOption, paramName: nameof(RetryOption));
 
-	#endregion
+        if (retryOption.Count < 1)
+            UtilityVerseException.Throw($"Invalid {nameof(RetryOption)}");
+
+        return retryOption;
+    }
+
+    #endregion
 }
