@@ -39,7 +39,7 @@ public static class CharacterExtension
 
             return new UtilityVerseResult<string>(sb.ToString());
         }
-        catch (System.Exception unknownException)
+        catch (Exception unknownException)
         {
             return new UtilityVerseResult<string>($"Unknown exception: {unknownException}");
         }

@@ -3,13 +3,10 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
-using System;
-using System.Xml.Serialization;
 using UtilityVerse.Helpers;
 using UtilityVerse.Shared;
 
 namespace UtilityVerse.Extensions;
-
 /// <summary>
 /// Byte extensions
 /// </summary>

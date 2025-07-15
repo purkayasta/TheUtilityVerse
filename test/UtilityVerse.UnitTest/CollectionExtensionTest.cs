@@ -3,6 +3,8 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ----
 
+using UtilityVerse.Extensions;
+
 namespace UtilityVerse.UnitTest;
 
 public class CollectionExtensionTest
@@ -24,7 +26,7 @@ public class CollectionExtensionTest
     [Fact]
     public void IsNullOrEmpty_ReturnsTrue_WhenNullEnumerableProvided()
     {
-        IEnumerable<string>? result = default;
+        IEnumerable<string> result = default;
         Assert.True(result.IsNullOrEmpty());
     }
 
