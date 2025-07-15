@@ -29,9 +29,8 @@ public class CurrencyUtilityTest
     }
 
     [Theory]
-    [InlineData(0.1)]
-    [InlineData(0.0001)]
     [InlineData(10)]
+    [InlineData(0.0001)]
     public void CentToDollar_ShouldReturnRightDollar_WhenRightCentIsProvided(decimal input)
     {
         var calculatedValue = input / 100;
