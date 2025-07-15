@@ -23,9 +23,9 @@ public class CurrencyUtilityTest
         var calculatedValue = input * 100;
         var expectedValue = Utility.DollarToCent(input);
 
-        //_output.WriteLine("Dollar {0}$, Calculated Cent {1}c, Expected Cent: {2}c ", input, calculatedValue, expectedValue);
+        _output.WriteLine("Dollar {0}$, Calculated Cent {1}c, Expected Cent: {2}c ", input, calculatedValue, expectedValue);
 
-        Assert.Equal(expectedValue, calculatedValue);
+        Assert.Equal(expectedValue.Result, calculatedValue);
     }
 
     [Theory]
@@ -38,6 +38,6 @@ public class CurrencyUtilityTest
         var expectedValue = Utility.CentToDollar(input);
 
         _output.WriteLine("Cent: {0}, Calculated Dollar: {1}$, Expected Dollar: {2}$", input, calculatedValue, expectedValue);
-        Assert.Equal(expectedValue, calculatedValue);
+        Assert.Equal(expectedValue.Result, calculatedValue);
     }
 }

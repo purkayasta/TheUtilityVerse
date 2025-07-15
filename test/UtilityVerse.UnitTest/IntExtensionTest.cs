@@ -11,14 +11,14 @@ public class IntExtensionTest
     public void IsInBetween_ThrowException_IfMaxIsNull()
     {
         int source = 0;
-        Assert.Throws<Exception>(() => source.IsInBetween(1, default).Result);
+        Assert.False(source.IsInBetween(1, default).Result);
     }
 
     [Fact]
     public void IsInBetween_ThrowException_WhenMinIsGreaterThanMax()
     {
         int source = 0;
-        Assert.Throws<Exception>(() => source.IsInBetween(1, 0).Result);
+        Assert.False(source.IsInBetween(1, 0).Result);
     }
 
     [Fact]

@@ -1,10 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.1; net6.0; net8.0</TargetFrameworks>
+		<TargetFrameworks>netstandard2.1; net6.0; net8.0; net9.0</TargetFrameworks>
 		<LangVersion>Latest</LangVersion>
-		<Nullable>disable</Nullable>
-		<ImplicitUsings>disable</ImplicitUsings>
+		<ImplicitUsings>enable</ImplicitUsings>
 
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<IsPackable>true</IsPackable>

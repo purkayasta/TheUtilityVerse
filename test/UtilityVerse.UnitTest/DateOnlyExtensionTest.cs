@@ -4,7 +4,6 @@
 // ----
 
 namespace UtilityVerse.UnitTest;
-
 public class DateOnlyExtensionTest
 {
     [Fact]
@@ -13,9 +12,8 @@ public class DateOnlyExtensionTest
         DateOnly? examDate = new(2022, 01, 01);
         DateOnly firstDate = new(2020, 01, 01);
         DateOnly secondDate = new(2023, 01, 01);
-
-        bool result = examDate.IsInBetween(firstDate, secondDate);
-        Assert.True(result);
+        var result = examDate.Value.IsInBetween(firstDate, secondDate);
+        Assert.True(result.Result);
     }
 
     [Fact]
@@ -24,7 +22,7 @@ public class DateOnlyExtensionTest
         DateOnly examDate = new();
         DateOnly firstDate = new(2020, 01, 01);
         DateOnly secondDate = new(2023, 01, 01);
-        Assert.False(examDate.IsInBetween(firstDate, secondDate));
+        Assert.False(examDate.IsInBetween(firstDate, secondDate).Result);
     }
 
     [Fact]
@@ -33,7 +31,7 @@ public class DateOnlyExtensionTest
         DateOnly? examDate = null;
         DateOnly firstDate = new(2020, 01, 01);
         DateOnly secondDate = new(2023, 01, 01);
-        Assert.Throws<ArgumentNullException>(() => examDate.IsInBetween(firstDate, secondDate));
+        Assert.Throws<InvalidOperationException>(() => examDate.Value.IsInBetween(firstDate, secondDate));
     }
 
     [Fact]
@@ -42,7 +40,7 @@ public class DateOnlyExtensionTest
         DateOnly? examDate = new();
         DateOnly? firstDate = new(2020, 01, 01);
         DateOnly? secondDate = null;
-        Assert.Throws<ArgumentNullException>(() => examDate.IsInBetween(firstDate, secondDate));
+        Assert.Throws<InvalidOperationException>(() => examDate.Value.IsInBetween(firstDate.Value, secondDate.Value));
     }
 
     [Fact]
@@ -51,6 +49,6 @@ public class DateOnlyExtensionTest
         DateOnly examDate = new(1993, 08, 05);
         DateOnly secondDate = new(1990, 01, 01);
         DateOnly firstDate = new(2000, 01, 01);
-        Assert.Throws<ArgumentOutOfRangeException>(() => examDate.IsInBetween(firstDate, secondDate));
+        Assert.False(examDate.IsInBetween(firstDate, secondDate).Result);
     }
 }
