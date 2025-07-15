@@ -10,7 +10,8 @@
 		<PackageId>UtilityVerse</PackageId>
 		<PackageVersion>1.0</PackageVersion>
 		<PackageTags>utility, utils, C#, dotnet, c# utility, dotnet core</PackageTags>
-		<Description>a curated list of utility methods that will help you, do your work at your best.</Description>
+		<Description>a curated list of utility methods that will help you, do your work at your
+			best.</Description>
 		<Authors>Pritom Purkayasta</Authors>
 		<RepositoryUrl>https://github.com/purkayasta/TheUtilityVerse</RepositoryUrl>
 		<PackageProjectUrl>https://www.nuget.org/packages/UtilityVerse/</PackageProjectUrl>
@@ -27,12 +28,14 @@
 		<IncludeSymbols>True</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	</PropertyGroup>
+	<PropertyGroup>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<IsPackable>true</IsPackable>
 		<PackageId>UtilityVerse</PackageId>
 		<PackageVersion>1.0</PackageVersion>
 		<PackageTags>utility, utils, C#, dotnet, c# utility, dotnet core</PackageTags>
-		<Description>a curated list of utility methods that will help you, do your work at your best.</Description>
+		<Description>a curated list of utility methods that will help you, do your work at your
+			best.</Description>
 		<Authors>Pritom Purkayasta</Authors>
 		<RepositoryUrl>https://github.com/purkayasta/TheUtilityVerse</RepositoryUrl>
 		<PackageProjectUrl>https://www.nuget.org/packages/UtilityVerse/</PackageProjectUrl>
@@ -54,31 +57,12 @@
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
-	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
-	</PropertyGroup>
 
-	<ItemGroup>
-		<None Include="..\..\assets\utility-verse.png">
-			<Pack>True</Pack>
-			<PackagePath>\</PackagePath>
-		</None>
-		<ProjectReference Include="..\UtilityVerse.Shared\UtilityVerse.Shared.csproj" />
-		<None Update="nuget.md">
-			<Pack>True</Pack>
-			<PackagePath>\</PackagePath>
-		</None>
-	</ItemGroup>
 	<ItemGroup>
 		<None Include="..\..\assets\utility-verse.png">
 			<Pack>True</Pack>
