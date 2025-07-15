@@ -10,7 +10,32 @@
 		<PackageId>UtilityVerse</PackageId>
 		<PackageVersion>1.0</PackageVersion>
 		<PackageTags>utility, utils, C#, dotnet, c# utility, dotnet core</PackageTags>
-		<Description>a curated list of utility methods that will help you, do your work at your best.</Description>
+		<Description>a curated list of utility methods that will help you, do your work at your
+			best.</Description>
+		<Authors>Pritom Purkayasta</Authors>
+		<RepositoryUrl>https://github.com/purkayasta/TheUtilityVerse</RepositoryUrl>
+		<PackageProjectUrl>https://www.nuget.org/packages/UtilityVerse/</PackageProjectUrl>
+		<RepositoryType>git</RepositoryType>
+		<Copyright>
+			Pritom Purkayasta
+			Copyright (c) Pritom Purkayasta All rights reserved.
+			FREE TO USE TO CONNECT THE WORLD
+		</Copyright>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Title>TheUtilityVerse</Title>
+		<PackageIcon>utility-verse.png</PackageIcon>
+		<PackageReadmeFile>nuget.md</PackageReadmeFile>
+		<IncludeSymbols>True</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	</PropertyGroup>
+	<PropertyGroup>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<IsPackable>true</IsPackable>
+		<PackageId>UtilityVerse</PackageId>
+		<PackageVersion>1.0</PackageVersion>
+		<PackageTags>utility, utils, C#, dotnet, c# utility, dotnet core</PackageTags>
+		<Description>a curated list of utility methods that will help you, do your work at your
+			best.</Description>
 		<Authors>Pritom Purkayasta</Authors>
 		<RepositoryUrl>https://github.com/purkayasta/TheUtilityVerse</RepositoryUrl>
 		<PackageProjectUrl>https://www.nuget.org/packages/UtilityVerse/</PackageProjectUrl>

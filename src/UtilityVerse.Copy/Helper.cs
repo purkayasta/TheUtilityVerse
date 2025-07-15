@@ -5,7 +5,10 @@
 /// </summary>
 
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace UtilityVerse.Copy;
 
@@ -30,6 +33,7 @@ internal static class Helper
                 SpecialType.System_Single or
                 SpecialType.System_Double or
                 SpecialType.System_Char or
+                SpecialType.System_Enum or
                 SpecialType.System_String => true,
             _ => false
         };
@@ -94,4 +98,22 @@ internal static class Helper
         }
     }
 
+    internal static bool IsPartial(INamedTypeSymbol typeSymbol)
+    {
+        return typeSymbol.DeclaringSyntaxReferences.Any(syntaxRef =>
+            syntaxRef.GetSyntax() is TypeDeclarationSyntax syntax &&
+            syntax.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)));
+    }
+
+    internal static bool HasDeepCopyOptIn(INamedTypeSymbol typeSymbol)
+    {
+        return typeSymbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "UtilityVerse.Copy.DeepCopy") ||
+               typeSymbol.AllInterfaces.Any(i => i.ToDisplayString() == "UtilityVerse.Copy.IDeepCopy");
+    }
+
+    internal static bool HasShallowCopyOptIn(INamedTypeSymbol typeSymbol)
+    {
+        return typeSymbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "UtilityVerse.Copy.ShallowCopy") ||
+               typeSymbol.AllInterfaces.Any(i => i.ToDisplayString() == "UtilityVerse.Copy.IShallowCopy");
+    }
 }

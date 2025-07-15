@@ -7,7 +7,6 @@
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using UtilityVerse.Copy.Generators;
@@ -52,8 +51,8 @@ public sealed class CopyGenerator : IIncrementalGenerator
         if (context.Node is not TypeDeclarationSyntax typeDecl)
             return null;
 
-        if (!typeDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)))
-            return null;
+        // if (!typeDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)))
+        //     return null;
 
         var symbol = ModelExtensions.GetDeclaredSymbol(context.SemanticModel, typeDecl) as INamedTypeSymbol;
         if (symbol is not { DeclaredAccessibility: Accessibility.Public })
@@ -71,7 +70,7 @@ public sealed class CopyGenerator : IIncrementalGenerator
         return null;
     }
 
-    private static string GenerateDeepCopy(INamedTypeSymbol typeSymbol) => DeepCopyGenerator.Generate(typeSymbol);
+    private static string? GenerateDeepCopy(INamedTypeSymbol typeSymbol) => DeepCopyGenerator.Generate(typeSymbol);
 
     private static string? GenerateShallowCopy(INamedTypeSymbol typeSymbol) => ShallowCopyGenerator.Generate(typeSymbol);
 

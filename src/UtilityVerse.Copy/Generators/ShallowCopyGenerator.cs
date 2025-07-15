@@ -10,12 +10,12 @@ using Microsoft.CodeAnalysis;
 
 namespace UtilityVerse.Copy.Generators;
 
-public static class ShallowCopyGenerator
+internal static class ShallowCopyGenerator
 {
-    public static string? Generate(INamedTypeSymbol typeSymbol)
+    internal static string? Generate(INamedTypeSymbol typeSymbol)
     {
-        if (typeSymbol.IsAbstract)
-            return null;
+        if (typeSymbol.IsAbstract) return string.Empty;
+        if (!Helper.IsPartial(typeSymbol)) return string.Empty;
 
         var isGlobalNamespace = typeSymbol.ContainingNamespace.IsGlobalNamespace;
         var namespaceName = isGlobalNamespace ? null : typeSymbol.ContainingNamespace.ToDisplayString();
@@ -87,33 +87,33 @@ public static class ShallowCopyGenerator
                         break;
 
                     case INamedTypeSymbol named when named.IsGenericType:
-                    {
-                        var original = named.OriginalDefinition.ConstructUnboundGenericType().ToDisplayString();
-
-                        if (Helper.IsGenericCollection(original, out var kind))
                         {
-                            var itemType = named.TypeArguments.FirstOrDefault()?.ToDisplayString() ?? "var";
-                            assignment = kind switch
+                            var original = named.OriginalDefinition.ConstructUnboundGenericType().ToDisplayString();
+
+                            if (Helper.IsGenericCollection(original, out var kind))
                             {
-                                "List" or "Enumerable" =>
-                                    $"this.{member.Name}?.ToList()",
+                                var itemType = named.TypeArguments.FirstOrDefault()?.ToDisplayString() ?? "var";
+                                assignment = kind switch
+                                {
+                                    "List" or "Enumerable" =>
+                                        $"this.{member.Name}?.ToList()",
 
-                                "HashSet" =>
-                                    $"this.{member.Name} != null ? new HashSet<{itemType}>(this.{member.Name}) : null",
+                                    "HashSet" =>
+                                        $"this.{member.Name} != null ? new HashSet<{itemType}>(this.{member.Name}) : null",
 
-                                "Dictionary" =>
-                                    $"this.{member.Name}?.ToDictionary(x => x.Key, x => x.Value)",
+                                    "Dictionary" =>
+                                        $"this.{member.Name}?.ToDictionary(x => x.Key, x => x.Value)",
 
-                                _ => null
-                            };
+                                    _ => null
+                                };
+                            }
+                            else if (original.StartsWith("System.Tuple"))
+                            {
+                                assignment = $"this.{member.Name}";
+                            }
+
+                            break;
                         }
-                        else if (original.StartsWith("System.Tuple"))
-                        {
-                            assignment = $"this.{member.Name}";
-                        }
-
-                        break;
-                    }
 
                     case INamedTypeSymbol named when named.ToDisplayString().StartsWith("System.ValueTuple"):
                         assignment = $"this.{member.Name}";
