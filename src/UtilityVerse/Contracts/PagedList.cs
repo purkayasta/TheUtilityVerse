@@ -4,6 +4,9 @@
 // ---------------------------------------------------------------
 
 
+using System.Collections.Generic;
+using System.Linq;
+
 namespace UtilityVerse.Contracts;
 
 /// <summary>
@@ -15,12 +18,12 @@ public class PagedList<T>
     /// <summary>
     /// If the instance has any error or not. If error found then it will true.
     /// </summary>
-    public bool IsValid { get; set; }
+    public bool IsValid => Errors.Length > 0;
 
     /// <summary>
     /// Number of results.
     /// </summary>
-    public int Count { get; set; }
+    public int Count => Results.Count();
 
     /// <summary>
     /// The collection.
@@ -30,5 +33,5 @@ public class PagedList<T>
     /// <summary>
     /// If there is any error, if found any this error object will be populated.
     /// </summary>
-    public string? Errors { get; set; } = string.Empty;
+    public string Errors { get; set; } = string.Empty;
 }

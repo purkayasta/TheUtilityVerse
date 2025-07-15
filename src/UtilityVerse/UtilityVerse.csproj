@@ -1,52 +1,54 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.1; net6.0; net8.0</TargetFrameworks>
+		<LangVersion>Latest</LangVersion>
+		<Nullable>disable</Nullable>
+		<ImplicitUsings>disable</ImplicitUsings>
 
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <IsPackable>true</IsPackable>
-        <PackageId>UtilityVerse</PackageId>
-        <PackageVersion>0.6</PackageVersion>
-        <PackageTags>utility, utils, C#, dotnet, c# utility, dotnet core</PackageTags>
-        <Description>a curated list of utility methods that will help you, do your work at your best.</Description>
-        <Authors>Pritom Purkayasta</Authors>
-        <RepositoryUrl>https://github.com/purkayasta/TheUtilityVerse</RepositoryUrl>
-        <PackageProjectUrl>https://www.nuget.org/packages/UtilityVerse/</PackageProjectUrl>
-        <RepositoryType>git</RepositoryType>
-        <Copyright>
-            Pritom Purkayasta
-            Copyright (c) Pritom Purkayasta All rights reserved.
-            FREE TO USE TO CONNECT THE WORLD
-        </Copyright>
-        <GenerateDocumentationFile>false</GenerateDocumentationFile>
-        <Title>TheUtilityVerse</Title>
-        <PackageIcon>utility-verse.png</PackageIcon>
-        <PackageReadmeFile>nuget.md</PackageReadmeFile>
-        <IncludeSymbols>True</IncludeSymbols>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    </PropertyGroup>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<IsPackable>true</IsPackable>
+		<PackageId>UtilityVerse</PackageId>
+		<PackageVersion>1.0</PackageVersion>
+		<PackageTags>utility, utils, C#, dotnet, c# utility, dotnet core</PackageTags>
+		<Description>a curated list of utility methods that will help you, do your work at your best.</Description>
+		<Authors>Pritom Purkayasta</Authors>
+		<RepositoryUrl>https://github.com/purkayasta/TheUtilityVerse</RepositoryUrl>
+		<PackageProjectUrl>https://www.nuget.org/packages/UtilityVerse/</PackageProjectUrl>
+		<RepositoryType>git</RepositoryType>
+		<Copyright>
+			Pritom Purkayasta
+			Copyright (c) Pritom Purkayasta All rights reserved.
+			FREE TO USE TO CONNECT THE WORLD
+		</Copyright>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Title>TheUtilityVerse</Title>
+		<PackageIcon>utility-verse.png</PackageIcon>
+		<PackageReadmeFile>nuget.md</PackageReadmeFile>
+		<IncludeSymbols>True</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	</PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-        <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-        <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
-    </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
+	</PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-        <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-        <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
-    </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
+	</PropertyGroup>
 
-    <ItemGroup>
-        <None Include="..\..\assets\utility-verse.png">
-            <Pack>True</Pack>
-            <PackagePath>\</PackagePath>
-        </None>
-        <None Update="nuget.md">
-            <Pack>True</Pack>
-            <PackagePath>\</PackagePath>
-        </None>
-    </ItemGroup>
+	<ItemGroup>
+		<None Include="..\..\assets\utility-verse.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<ProjectReference Include="..\UtilityVerse.Shared\UtilityVerse.Shared.csproj" />
+		<None Update="nuget.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
 </Project>

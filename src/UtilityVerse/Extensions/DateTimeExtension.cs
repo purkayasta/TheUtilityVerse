@@ -4,7 +4,10 @@
 // ---------------------------------------------------------------
 
 
+using System;
 using UtilityVerse.Contracts;
+using UtilityVerse.Helpers;
+using UtilityVerse.Shared;
 
 namespace UtilityVerse.Extensions;
 
@@ -13,120 +16,70 @@ namespace UtilityVerse.Extensions;
 /// </summary>
 public static class DateTimeExtension
 {
-	/// <summary>
-	/// This method will help you determine if the target date time is within the given range (start and end)
-	/// </summary>
-	/// <param name="dt"></param>
-	/// <param name="startDateTime"></param>
-	/// <param name="endDateTime"></param>
-	/// <returns></returns>
-	/// <exception cref="ArgumentNullException"></exception>
-	public static bool IsInBetween(this DateTime? dt, DateTime? startDateTime, DateTime? endDateTime)
-	{
-		ArgumentNullException.ThrowIfNull(dt);
-		ArgumentNullException.ThrowIfNull(startDateTime, nameof(startDateTime));
-		ArgumentNullException.ThrowIfNull(endDateTime, nameof(endDateTime));
+    /// <summary>
+    /// This method will help you determine if the target date time is within the given range (start and end)
+    /// </summary>
+    /// <param name="dt"></param>
+    /// <param name="startDateTime"></param>
+    /// <param name="endDateTime"></param>
+    /// <returns>UtilityVerseResult</returns>
+    public static UtilityVerseResult<bool> IsInBetween(this DateTime dt, DateTime startDateTime, DateTime endDateTime)
+    {
+        if (endDateTime < startDateTime)
+            return new($"{nameof(endDateTime)} cannot be smaller than {nameof(startDateTime)}");
 
-		return IsInBetween(dt.Value, startDateTime.Value, endDateTime.Value);
-	}
+        return new(dt >= startDateTime && dt <= endDateTime);
+    }
 
-	/// <summary>
-	/// This method will help you determine if the target date time is within the given range (start and end)
-	/// </summary>
-	/// <param name="dt"></param>
-	/// <param name="startDateTime"></param>
-	/// <param name="endDateTime"></param>
-	/// <returns></returns>
-	/// <exception cref="ArgumentNullException"></exception>
-	public static bool IsInBetween(this DateTime dt, DateTime startDateTime, DateTime endDateTime)
-	{
-		if (endDateTime < startDateTime)
-			throw new ArgumentOutOfRangeException(nameof(endDateTime) + " cannot be smaller than " + nameof(startDateTime));
+    /// <summary>
+    /// This method will convert date time object into UNIX time stamp
+    /// </summary>
+    /// <param name="dt"></param>
+    /// <param name="timeEnum"></param>
+    /// <returns>UtilityVerseResult</returns>
+    public static UtilityVerseResult<long> ToUnixTimeStamp(this DateTime dt, TimeEnum timeEnum)
+    {
+        return timeEnum switch
+        {
+            TimeEnum.MilliSecond => new(new DateTimeOffset(dt).ToUnixTimeMilliseconds()),
+            TimeEnum.Second => new(new DateTimeOffset(dt).ToUnixTimeSeconds()),
+            _ => new(StaticMessages.ContactDeveloperError)
+        };
+    }
 
-		return dt >= startDateTime && dt <= endDateTime;
-	}
+    /// <summary>
+    /// Convert datetime object into custom int format. If this method cannot parse the format it will return -1;
+    /// </summary>
+    /// <param name="dateTime">new DateTime() like [6/10/2023 4:02:06 PM]</param>
+    /// <param name="format">yyyyMMdd</param>
+    /// <returns>UtilityVerseResult</returns>
+    public static UtilityVerseResult<int> ToIntDate(this DateTime dateTime, string format = "yyyyMMdd")
+    {
+        if (format.IsNullOrEmptyOrWhiteSpace()) return new(string.Format(StaticMessages.NullOrEmptyErrorWithParam, format));
+        if (int.TryParse(dateTime.ToString(format), out int result)) return new(result);
+        return new("int parsing failed");
+    }
 
-	/// <summary>
-	/// This method will convert date time object into UNIX time stamp
-	/// </summary>
-	/// <param name="dt"></param>
-	/// <returns></returns>
-	public static long ToUnixTimeStamp(this DateTime? dt, TimeEnum timeEnum)
-	{
-		ArgumentNullException.ThrowIfNull(dt);
-		return ToUnixTimeStamp(dt.Value, timeEnum);
-	}
+    /// <summary>
+    /// This method will extract datetime information from the datetime object.
+    /// </summary>
+    /// <param name="dateTime"></param>
+    /// <returns>(int, int, int, int, int, int, int)</returns>
+    public static (int year, int month, int day, int hour, int minute, int second, int milisecond) DestructFromDateTime(
+        this DateTime dateTime)
+    {
+        return (dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second, dateTime.Millisecond);
+    }
 
-	/// <summary>
-	/// This method will convert date time object into UNIX time stamp
-	/// </summary>
-	/// <param name="dt"></param>
-	/// <param name="timeEnum"></param>
-	/// <returns></returns>
-	public static long ToUnixTimeStamp(this DateTime dt, TimeEnum timeEnum)
-	{
-		var offset = new DateTimeOffset(dt);
-
-		return timeEnum switch
-		{
-			TimeEnum.MilliSecond => offset.ToUnixTimeMilliseconds(),
-			TimeEnum.Second => offset.ToUnixTimeSeconds(),
-			_ => throw new NotImplementedException()
-		};
-	}
-
-	/// <summary>
-	/// Convert datetime object into custom int format. If this method cannot parse the format it will return -1;
-	/// </summary>
-	/// <param name="dateTime">new DateTime() like [6/10/2023 4:02:06 PM]</param>
-	/// <param name="format">yyyyMMdd</param>
-	/// <returns>integer number (20230610)</returns>
-	public static int ToIntDate(this DateTime? dateTime, string format = "yyyyMMdd")
-	{
-		ArgumentNullException.ThrowIfNull(dateTime);
-		return ToIntDate(dateTime.Value, format);
-	}
-
-	/// <summary>
-	/// Convert datetime object into custom int format. If this method cannot parse the format it will return -1;
-	/// </summary>
-	/// <param name="dateTime">new DateTime() like [6/10/2023 4:02:06 PM]</param>
-	/// <param name="format">yyyyMMdd</param>
-	/// <returns>integer number (20230610)</returns>
-	/// <exception cref="InvalidDataException"></exception>
-	public static int ToIntDate(this DateTime dateTime, string format = "yyyyMMdd")
-	{
-		if (string.IsNullOrEmpty(format) || string.IsNullOrWhiteSpace(format))
-			throw new InvalidDataException(nameof(format) + " is null or empty");
-
-		return int.TryParse(dateTime.ToString(format), out var result) ? result : -1;
-	}
-
-	/// <summary>
-	/// This method will extract datetime information from the datetime object.
-	/// </summary>
-	/// <param name="dateTime"></param>
-	/// <returns></returns>
-	/// <exception cref="ArgumentOutOfRangeException"></exception>
-	public static (int year, int month, int day, int hour, int minute, int second, int milisecond) DestructFromDateTime(
-		this DateTime? dateTime)
-	{
-		ArgumentNullException.ThrowIfNull(dateTime);
-		return (dateTime.Value.Year, dateTime.Value.Month, dateTime.Value.Day, dateTime.Value.Hour,
-			dateTime.Value.Minute, dateTime.Value.Second, dateTime.Value.Millisecond);
-	}
-
-	/// <summary>
-	/// this method will convert your current datetime into utc formatted datetime
-	/// </summary>
-	/// <param name="dateTime"></param>
-	/// <param name="includeTime"></param>
-	/// <returns></returns>
-	public static DateTime? ToUtcDateTime(this DateTime dateTime, bool includeTime = false)
-	{
-		if (dateTime == default) return default;
-		if (includeTime)
-			return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second, DateTimeKind.Utc);
-		return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, 0, 0, 0, DateTimeKind.Utc);
-	}
+    /// <summary>
+    /// this method will convert your current datetime into utc formatted datetime
+    /// </summary>
+    /// <param name="dateTime"></param>
+    /// <param name="includeTime"></param>
+    /// <returns>DateTime</returns>
+    public static DateTime ToUtcDateTime(this DateTime dateTime, bool includeTime = false)
+    {
+        if (includeTime) return new DateTime(year: dateTime.Year, month: dateTime.Month, day: dateTime.Day, hour: dateTime.Hour, minute: dateTime.Minute, second: dateTime.Second, kind: DateTimeKind.Utc);
+        return new DateTime(year: dateTime.Year, month: dateTime.Month, day: dateTime.Day, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+    }
 }

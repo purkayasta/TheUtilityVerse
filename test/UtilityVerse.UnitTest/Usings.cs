@@ -1,2 +1,2 @@
-global using Xunit;
 global using UtilityVerse.Extensions;
+global using Xunit;

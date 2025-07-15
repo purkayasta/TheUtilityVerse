@@ -3,8 +3,7 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
-
-using System.Text;
+using UtilityVerse.Shared;
 
 namespace UtilityVerse.Extensions;
 
@@ -13,28 +12,28 @@ namespace UtilityVerse.Extensions;
 /// </summary>
 public static class DecimalExtension
 {
-	/// <summary>
-	/// This extension method will convert any double array into string with separator.
-	/// </summary>
-	/// <param name="decimalArray"></param>
-	/// <param name="separator"></param>
-	/// <returns></returns>
-	public static string ToStr(this decimal[]? decimalArray, string? separator = null)
-	{
-		if (decimalArray is null || decimalArray.Length < 1) return string.Empty;
+    /// <summary>
+    /// This extension method will convert any double array into string with separator.
+    /// </summary>
+    /// <param name="decimalArray"></param>
+    /// <param name="separator"></param>
+    /// <returns>UtilityVerseResult</returns>
+    public static UtilityVerseResult<string> ToStr(this decimal[] decimalArray, string separator = null)
+    {
+        if (decimalArray is null || decimalArray.Length < 1) UtilityVerseException.Throw("Decimal Array is null or empty");
 
-		var sb = new StringBuilder();
+        var sb = new System.Text.StringBuilder();
 
-		bool isSeparatorExist = !string.IsNullOrEmpty(separator);
+        bool isSeparatorExist = !string.IsNullOrEmpty(separator);
 
-		for (int index = 0; index < decimalArray.Length; index++)
-		{
-			sb.Append(decimalArray[index]);
+        for (int index = 0; index < decimalArray.Length; index++)
+        {
+            sb.Append(decimalArray[index]);
 
-			if (isSeparatorExist && index < decimalArray.Length - 1)
-				sb.Append(separator);
-		}
+            if (isSeparatorExist && index < decimalArray.Length - 1)
+                sb.Append(separator);
+        }
 
-		return sb.ToString();
-	}
+        return new UtilityVerseResult<string>(sb.ToString());
+    }
 }
