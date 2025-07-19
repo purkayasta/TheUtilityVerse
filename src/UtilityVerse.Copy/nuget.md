@@ -18,10 +18,5 @@
 ---
 
 
-## > Give it a star if you like the project. 👏 🌠 🌟
-
-
----
-
 
 > Code is fully opensource and more details can be found here at: [Github](https://github.com/purkayasta/TheUtilityVerse/blob/development/src/UtilityVerse.Copy/README.md)
