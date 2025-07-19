@@ -1,4 +1,4 @@
-﻿using UtilityVerse.Copy.Test;
+using UtilityVerse.Copy.Test;
 using UtilityVerse.Copy;
 
 Console.WriteLine("Starting....");
@@ -44,6 +44,15 @@ static void AutomatedTesting()
 
 static void ManualTesting()
 {
+    var h = new Hello()
+    {
+
+    };
+
+    h.DeepCopy();
+
+
+
     var originalObject = new HelloWorld()
     {
         Id = 1,
@@ -51,6 +60,8 @@ static void ManualTesting()
         Addresses = new[] { new Address() { StreetNumber = "12" } }
     };
     var clonedObject = originalObject.Clone();
+
+    var c = originalObject.DeepCopy();
     Console.WriteLine("Before Cloning...");
     Console.WriteLine(
         $"OriginalObject Id: {originalObject.Id} Name: {originalObject.Name} Addresses: {originalObject.Addresses.First().StreetNumber}");
