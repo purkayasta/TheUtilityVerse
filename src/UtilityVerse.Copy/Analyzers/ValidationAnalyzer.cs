@@ -9,125 +9,125 @@ namespace UtilityVerse.Copy.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class ValidationAnalyzer : DiagnosticAnalyzer
 {
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [Rules.MissingPartialRule, Rules.DeepRule, Rules.ShallowRule];
-    
-    public override void Initialize(AnalysisContext context)
-    {
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-        context.EnableConcurrentExecution();
+	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+		[Rules.MissingPartialRule, Rules.DeepRule, Rules.ShallowRule];
 
-        context.RegisterCompilationStartAction(compilationContext =>
-        {
-            compilationContext.RegisterSymbolAction(AnalyzeNamedType, SymbolKind.NamedType);
-        });
-    }
+	public override void Initialize(AnalysisContext context)
+	{
+		context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+		context.EnableConcurrentExecution();
 
-    private static void AnalyzeNamedType(SymbolAnalysisContext context)
-    {
-        if (context.Symbol is not INamedTypeSymbol namedType)
-            return;
+		context.RegisterCompilationStartAction(compilationContext =>
+		{
+			compilationContext.RegisterSymbolAction(AnalyzeNamedType, SymbolKind.NamedType);
+		});
+	}
 
-        if (namedType.TypeKind is not (TypeKind.Class or TypeKind.Struct))
-            return;
+	private static void AnalyzeNamedType(SymbolAnalysisContext context)
+	{
+		if (context.Symbol is not INamedTypeSymbol namedType)
+			return;
 
-        if (namedType.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() is
-                "System.CodeDom.Compiler.GeneratedCodeAttribute" or
-                "System.Runtime.CompilerServices.CompilerGeneratedAttribute"))
-            return;
+		if (namedType.TypeKind is not (TypeKind.Class or TypeKind.Struct))
+			return;
 
-        var syntaxRef = namedType.DeclaringSyntaxReferences.FirstOrDefault();
-        if (syntaxRef?.GetSyntax() is not TypeDeclarationSyntax typeSyntax)
-            return;
+		if (namedType.GetAttributes().Any(attr =>
+			attr.AttributeClass?.ToDisplayString() is
+				"System.CodeDom.Compiler.GeneratedCodeAttribute" or
+				"System.Runtime.CompilerServices.CompilerGeneratedAttribute"))
+			return;
 
-        var hasDeepCopy = Helper.HasDeepCopyOptIn(namedType);
-        var hasShallowCopy = Helper.HasShallowCopyOptIn(namedType);
-        
-        if ((hasDeepCopy || hasShallowCopy) && !Helper.IsPartial(namedType))
-        {
-            var diagnostic = Diagnostic.Create(Rules.MissingPartialRule, typeSyntax.Identifier.GetLocation(), namedType.Name);
-            context.ReportDiagnostic(diagnostic);
-        }
+		var syntaxRef = namedType.DeclaringSyntaxReferences.FirstOrDefault();
+		if (syntaxRef?.GetSyntax() is not TypeDeclarationSyntax typeSyntax)
+			return;
 
-        if (!hasDeepCopy && !hasShallowCopy)
-            return;
+		var hasDeepCopy = Helper.HasDeepCopyOptIn(namedType);
+		var hasShallowCopy = Helper.HasShallowCopyOptIn(namedType);
 
-        foreach (var prop in Helper.GetAllProperties(namedType).Where(p => !p.IsStatic))
-        {
-            AnalyzeTypeRecursive(
-                context,
-                prop.Type,
-                prop.Locations.FirstOrDefault() ?? typeSyntax.Identifier.GetLocation(),
-                prop.Name,
-                namedType,
-                hasDeepCopy,
-                hasShallowCopy
-            );
-        }
-    }
+		if ((hasDeepCopy || hasShallowCopy) && !Helper.IsPartial(namedType))
+		{
+			var diagnostic = Diagnostic.Create(Rules.MissingPartialRule, typeSyntax.Identifier.GetLocation(), namedType.Name);
+			context.ReportDiagnostic(diagnostic);
+		}
 
-    private static void AnalyzeTypeRecursive(
-        SymbolAnalysisContext context,
-        ITypeSymbol type,
-        Location diagnosticLocation,
-        string propertyName,
-        INamedTypeSymbol parentType,
-        bool requireDeepCopy,
-        bool requireShallowCopy)
-    {
-        if (type is not INamedTypeSymbol namedType)
-            return;
+		if (!hasDeepCopy && !hasShallowCopy)
+			return;
 
-        var unwrapped = UnwrapNullable(namedType);
+		foreach (var prop in Helper.GetAllProperties(namedType).Where(p => !p.IsStatic))
+		{
+			AnalyzeTypeRecursive(
+				context,
+				prop.Type,
+				prop.Locations.FirstOrDefault() ?? typeSyntax.Identifier.GetLocation(),
+				prop.Name,
+				namedType,
+				hasDeepCopy,
+				hasShallowCopy
+			);
+		}
+	}
 
-        if (Helper.IsTrulyPrimitive(unwrapped))
-            return;
+	private static void AnalyzeTypeRecursive(
+		SymbolAnalysisContext context,
+		ITypeSymbol type,
+		Location diagnosticLocation,
+		string propertyName,
+		INamedTypeSymbol parentType,
+		bool requireDeepCopy,
+		bool requireShallowCopy)
+	{
+		if (type is not INamedTypeSymbol namedType)
+			return;
 
-        if (Helper.IsGenericCollection(unwrapped.OriginalDefinition.ToDisplayString(), out _))
-        {
-            foreach (var typeArg in unwrapped.TypeArguments.OfType<ITypeSymbol>())
-            {
-                AnalyzeTypeRecursive(context, typeArg, diagnosticLocation, propertyName, parentType, requireDeepCopy, requireShallowCopy);
-            }
-            return;
-        }
+		var unwrapped = Helper.UnwrapNullable(namedType);
 
-        if (requireDeepCopy && !Helper.HasDeepCopyOptIn(unwrapped))
-        {
-            var diag = Diagnostic.Create(Rules.DeepRule, diagnosticLocation,
-                propertyName, parentType.Name, unwrapped.Name);
-            context.ReportDiagnostic(diag);
-        }
+		if (Helper.IsTrulyPrimitive(unwrapped) || Helper.IsBuiltinType(unwrapped))
+			return;
 
-        if (requireShallowCopy && !Helper.HasShallowCopyOptIn(unwrapped))
-        {
-            var diag = Diagnostic.Create(Rules.ShallowRule, diagnosticLocation,
-                propertyName, parentType.Name, unwrapped.Name);
-            context.ReportDiagnostic(diag);
-        }
-    }
+		if (Helper.IsGenericCollection(unwrapped.OriginalDefinition.ToDisplayString(), out _))
+		{
+			foreach (var typeArg in unwrapped.TypeArguments.OfType<ITypeSymbol>())
+			{
+				AnalyzeTypeRecursive(context, typeArg, diagnosticLocation, propertyName, parentType, requireDeepCopy, requireShallowCopy);
+			}
+			return;
+		}
 
-    private static INamedTypeSymbol UnwrapNullable(INamedTypeSymbol type)
-    {
-        return type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
-               type.TypeArguments.FirstOrDefault() is INamedTypeSymbol underlying
-            ? underlying
-            : type;
-    }
+		if (requireDeepCopy && !Helper.HasDeepCopyOptIn(unwrapped))
+		{
+			var diag = Diagnostic.Create(Rules.DeepRule, diagnosticLocation,
+				propertyName, parentType.Name, unwrapped.Name);
+			context.ReportDiagnostic(diag);
+		}
 
-    private static bool IsInsideCopyEnabledPartialParent(INamedTypeSymbol? symbol)
-    {
-        while (symbol is not null)
-        {
-            if (!Helper.IsPartial(symbol))
-                return false;
+		if (requireShallowCopy && !Helper.HasShallowCopyOptIn(unwrapped))
+		{
+			var diag = Diagnostic.Create(Rules.ShallowRule, diagnosticLocation,
+				propertyName, parentType.Name, unwrapped.Name);
+			context.ReportDiagnostic(diag);
+		}
+	}
 
-            if (Helper.HasDeepCopyOptIn(symbol) || Helper.HasShallowCopyOptIn(symbol))
-                return true;
+	//private static INamedTypeSymbol UnwrapNullable(INamedTypeSymbol type)
+	//{
+	//	return type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
+	//		   type.TypeArguments.FirstOrDefault() is INamedTypeSymbol underlying
+	//		? underlying
+	//		: type;
+	//}
 
-            symbol = symbol.ContainingType;
-        }
-        return false;
-    }
+	private static bool IsInsideCopyEnabledPartialParent(INamedTypeSymbol? symbol)
+	{
+		while (symbol is not null)
+		{
+			if (!Helper.IsPartial(symbol))
+				return false;
+
+			if (Helper.HasDeepCopyOptIn(symbol) || Helper.HasShallowCopyOptIn(symbol))
+				return true;
+
+			symbol = symbol.ContainingType;
+		}
+		return false;
+	}
 }
