@@ -108,14 +108,6 @@ public class ValidationAnalyzer : DiagnosticAnalyzer
 		}
 	}
 
-	//private static INamedTypeSymbol UnwrapNullable(INamedTypeSymbol type)
-	//{
-	//	return type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
-	//		   type.TypeArguments.FirstOrDefault() is INamedTypeSymbol underlying
-	//		? underlying
-	//		: type;
-	//}
-
 	private static bool IsInsideCopyEnabledPartialParent(INamedTypeSymbol? symbol)
 	{
 		while (symbol is not null)
