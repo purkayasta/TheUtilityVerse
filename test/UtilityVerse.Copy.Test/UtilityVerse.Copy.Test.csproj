@@ -12,6 +12,10 @@
         <ProjectReference Include="..\..\src\UtilityVerse.Copy\UtilityVerse.Copy.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Dumpper" Version="0.0.7" />
+    </ItemGroup>
+
     <!-- <ItemGroup>
         <PackageReference Include="UtilityVerse.Copy" Version="0.1.0"/>
     </ItemGroup> -->

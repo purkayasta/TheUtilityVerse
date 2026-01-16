@@ -17,6 +17,8 @@ internal static class ShallowCopyGenerator
 		if (typeSymbol.IsAbstract) return string.Empty;
 		if (!Helper.IsPartial(typeSymbol)) return string.Empty;
 
+		var depth = Helper.ExtractDepth(typeSymbol, "ShallowCopy");
+
 		var isGlobalNamespace = typeSymbol.ContainingNamespace.IsGlobalNamespace;
 		var namespaceName = isGlobalNamespace ? null : typeSymbol.ContainingNamespace.ToDisplayString();
 		var typeName = typeSymbol.Name;
@@ -65,6 +67,33 @@ internal static class ShallowCopyGenerator
 		sb.AppendLine("        [System.CodeDom.Compiler.GeneratedCode(\"ShallowCopyGenerator\", \"1.0\")]");
 		sb.AppendLine($"        public {typeName} ShallowCopy()");
 		sb.AppendLine("        {");
+		sb.AppendLine($"            return ShallowCopyInternal(0, {depth});");
+		sb.AppendLine("        }");
+		sb.AppendLine();
+		sb.AppendLine("        [System.CodeDom.Compiler.GeneratedCode(\"ShallowCopyGenerator\", \"1.0\")]");
+		sb.AppendLine($"        internal {typeName} ShallowCopyInternal(int currentDepth, int maxDepth)");
+		sb.AppendLine("        {");
+		sb.AppendLine("            if (currentDepth >= maxDepth)");
+		sb.AppendLine("            {");
+		sb.AppendLine("                // At max depth, create shallow copy of primitives only");
+		sb.AppendLine($"                return new {typeName}");
+		sb.AppendLine("                {");
+
+		foreach (var member in Helper.GetAllProperties(typeSymbol))
+		{
+			if (member.IsReadOnly || member.SetMethod is null)
+				continue;
+
+			var propType = member.Type;
+			if (Helper.IsTrulyPrimitive(propType) || Helper.IsBuiltinType(propType))
+			{
+				sb.AppendLine($"                    {member.Name} = this.{member.Name},");
+			}
+		}
+
+		sb.AppendLine("                };");
+		sb.AppendLine("            }");
+		sb.AppendLine();
 
 		if (typeSymbol.TypeKind == TypeKind.Class || typeSymbol.IsRecord)
 		{
@@ -133,9 +162,6 @@ internal static class ShallowCopyGenerator
 		{
 			sb.AppendLine("            return this;");
 		}
-
-		sb.AppendLine("        }");
-		sb.AppendLine("    }");
 
 		if (!string.IsNullOrEmpty(namespaceName))
 		{

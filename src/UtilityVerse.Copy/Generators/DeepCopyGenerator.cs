@@ -17,6 +17,8 @@ internal static class DeepCopyGenerator
 		if (typeSymbol.IsAbstract) return string.Empty;
 		if (!Helper.IsPartial(typeSymbol)) return string.Empty;
 
+		var depth = Helper.ExtractDepth(typeSymbol, "DeepCopy");
+
 		var isGlobalNamespace = typeSymbol.ContainingNamespace.IsGlobalNamespace;
 		var namespaceName = isGlobalNamespace ? null : typeSymbol.ContainingNamespace.ToDisplayString();
 		var typeName = typeSymbol.Name;
@@ -65,8 +67,39 @@ internal static class DeepCopyGenerator
 		sb.AppendLine("        [System.CodeDom.Compiler.GeneratedCode(\"DeepCopyGenerator\", \"1.0\")]");
 		sb.AppendLine($"        public {typeName} DeepCopy()");
 		sb.AppendLine("        {");
+		sb.AppendLine($"            return DeepCopyInternal(0, {depth});");
+		sb.AppendLine("        }");
+		sb.AppendLine();
+		sb.AppendLine("        [System.CodeDom.Compiler.GeneratedCode(\"DeepCopyGenerator\", \"1.0\")]");
+		sb.AppendLine($"        internal {typeName} DeepCopyInternal(int currentDepth, int maxDepth)");
+		sb.AppendLine("        {");
+		sb.AppendLine("            if (currentDepth >= maxDepth)");
+		sb.AppendLine("            {");
+		sb.AppendLine("                // At max depth, create shallow copy of primitives only");
+		sb.AppendLine($"                return new {typeName}");
+		sb.AppendLine("                {");
 
 		var hasParameterlessCtor = typeSymbol.InstanceConstructors.Any(c => c.Parameters.Length == 0);
+
+		// Add primitive properties when at max depth
+		if (hasParameterlessCtor)
+		{
+			foreach (var member in Helper.GetAllProperties(typeSymbol))
+			{
+				if (member.IsReadOnly || member.SetMethod is null)
+					continue;
+
+				var propType = member.Type;
+				if (Helper.IsTrulyPrimitive(propType) || Helper.IsBuiltinType(propType))
+				{
+					sb.AppendLine($"                    {member.Name} = this.{member.Name},");
+				}
+			}
+		}
+
+		sb.AppendLine("                };");
+		sb.AppendLine("            }");
+		sb.AppendLine();
 
 		if (!hasParameterlessCtor)
 		{
@@ -86,7 +119,7 @@ internal static class DeepCopyGenerator
 
 					return (Helper.IsTrulyPrimitive(prop.Type) || Helper.IsBuiltinType(prop.Type))
 						? $"this.{prop.Name}"
-						: $"this.{prop.Name}?.DeepCopy()";
+						: $"this.{prop.Name}?.DeepCopyInternal(currentDepth + 1, maxDepth)";
 				});
 
 				sb.AppendLine($"            return new {typeName}({string.Join(", ", args)});");
@@ -126,7 +159,7 @@ internal static class DeepCopyGenerator
 								var elementType = arrayType.ElementType;
 								assignment = (Helper.IsTrulyPrimitive(elementType) || Helper.IsBuiltinType(elementType))
 									? $"this.{member.Name}?.ToArray()"
-									: $"this.{member.Name}?.Select(x => x?.DeepCopy()).ToArray()";
+									: $"this.{member.Name}?.Select(x => x?.DeepCopyInternal(currentDepth + 1, maxDepth)).ToArray()";
 								break;
 							}
 						case INamedTypeSymbol { IsGenericType: true } named:
@@ -139,7 +172,7 @@ internal static class DeepCopyGenerator
 									var elementType = typeArgs[0];
 									var cloneExpr = (Helper.IsTrulyPrimitive(elementType) || Helper.IsBuiltinType(elementType))
 										? "x"
-										: "x?.DeepCopy()";
+										: "x?.DeepCopyInternal(currentDepth + 1, maxDepth)";
 
 									if (collectionKind == "HashSet")
 									{
@@ -151,8 +184,8 @@ internal static class DeepCopyGenerator
 										var keyType = typeArgs[0];
 										var valueType = typeArgs[1];
 
-										var keyCopy = (Helper.IsTrulyPrimitive(keyType) || Helper.IsBuiltinType(keyType)) ? "x.Key" : "x.Key?.DeepCopy()";
-										var valueCopy = (Helper.IsTrulyPrimitive(valueType) || Helper.IsBuiltinType(valueType)) ? "x.Value" : "x.Value?.DeepCopy()";
+										var keyCopy = (Helper.IsTrulyPrimitive(keyType) || Helper.IsBuiltinType(keyType)) ? "x.Key" : "x.Key?.DeepCopyInternal(currentDepth + 1, maxDepth)";
+										var valueCopy = (Helper.IsTrulyPrimitive(valueType) || Helper.IsBuiltinType(valueType)) ? "x.Value" : "x.Value?.DeepCopyInternal(currentDepth + 1, maxDepth)";
 
 										assignment = $"this.{member.Name}?.ToDictionary(x => {keyCopy}, x => {valueCopy})";
 									}
@@ -168,25 +201,25 @@ internal static class DeepCopyGenerator
 									var valueType = typeArgs[1];
 
 									assignment = $"this.{member.Name}?.ToDictionary(" +
-												 $"x => {((Helper.IsTrulyPrimitive(keyType) || Helper.IsBuiltinType(keyType)) ? "x.Key" : "x.Key?.DeepCopy()")}, " +
-												 $"x => {((Helper.IsTrulyPrimitive(valueType) || Helper.IsBuiltinType(valueType)) ? "x.Value" : "x.Value?.DeepCopy()")})";
+												 $"x => {((Helper.IsTrulyPrimitive(keyType) || Helper.IsBuiltinType(keyType)) ? "x.Key" : "x.Key?.DeepCopyInternal(currentDepth + 1, maxDepth)")}, " +
+												 $"x => {((Helper.IsTrulyPrimitive(valueType) || Helper.IsBuiltinType(valueType)) ? "x.Value" : "x.Value?.DeepCopyInternal(currentDepth + 1, maxDepth)")})";
 								}
 								else if (original.StartsWith("System.Tuple") || original.StartsWith("System.ValueTuple"))
 								{
 									var tupleArgs = typeArgs.Select((arg, i) =>
-										(Helper.IsTrulyPrimitive(arg) || Helper.IsBuiltinType(arg)) ? $"x.Item{i + 1}" : $"x.Item{i + 1}?.DeepCopy()");
+										(Helper.IsTrulyPrimitive(arg) || Helper.IsBuiltinType(arg)) ? $"x.Item{i + 1}" : $"x.Item{i + 1}?.DeepCopyInternal(currentDepth + 1, maxDepth)");
 
 									assignment = $"this.{member.Name} is {{ }} x ? new {propType.ToDisplayString()}({string.Join(", ", tupleArgs)}) : default";
 								}
 								else
 								{
-									assignment = $"this.{member.Name}?.DeepCopy()";
+									assignment = $"this.{member.Name}?.DeepCopyInternal(currentDepth + 1, maxDepth)";
 								}
 
 								break;
 							}
 						default:
-							assignment = $"this.{member.Name}?.DeepCopy()";
+							assignment = $"this.{member.Name}?.DeepCopyInternal(currentDepth + 1, maxDepth)";
 							break;
 					}
 

@@ -8,6 +8,9 @@ namespace UtilityVerse.Copy;
 
 internal static class Helper
 {
+	internal const int DEFAULT_DEPTH = 5;
+	internal const int MAX_DEPTH = 10;
+
 	internal static bool IsTrulyPrimitive(ITypeSymbol symbol)
 	{
 		return symbol.IsValueType || symbol.TypeKind is TypeKind.Enum || symbol.SpecialType switch
@@ -138,6 +141,7 @@ internal static class Helper
 	{
 		return symbol?.ToDisplayString() == fullyQualifiedMetadataName;
 	}
+	
 	internal static INamedTypeSymbol UnwrapNullable(ITypeSymbol type)
 	{
 		if (type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
@@ -148,5 +152,42 @@ internal static class Helper
 		}
 
 		return type as INamedTypeSymbol ?? throw new System.InvalidOperationException("Expected named type.");
+	}
+
+	internal static int ExtractDepth(INamedTypeSymbol typeSymbol, string attributeName = "DeepCopy")
+	{
+		int extractedDepth = DEFAULT_DEPTH;
+
+		// Check from attribute constructor argument
+		var attribute = typeSymbol.GetAttributes()
+			.FirstOrDefault(a => a.AttributeClass?.Name == attributeName);
+
+		if (attribute?.ConstructorArguments.Length > 0)
+		{
+			if (attribute.ConstructorArguments[0].Value is int attrDepth)
+			{
+				extractedDepth = attrDepth;
+			}
+		}
+
+		// Check for Depth named parameter
+		var depthNamed = attribute?.NamedArguments
+			.FirstOrDefault(na => na.Key == "Depth");
+
+		if (depthNamed?.Value.Value is int namedDepth)
+		{
+			extractedDepth = namedDepth;
+		}
+
+		// Validation: depth cannot exceed MAX_DEPTH
+		if (extractedDepth > MAX_DEPTH)
+		{
+			throw new System.InvalidOperationException(
+				$"Configuration error on type '{typeSymbol.Name}': " +
+				$"Depth ({extractedDepth}) cannot be greater than MaxDepth ({MAX_DEPTH}). " +
+				$"Please update your {attributeName} attribute.");
+		}
+
+		return extractedDepth;
 	}
 }
