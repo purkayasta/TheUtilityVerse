@@ -73,7 +73,7 @@ internal static class DeepCopyGenerator
 		sb.AppendLine("        [System.CodeDom.Compiler.GeneratedCode(\"DeepCopyGenerator\", \"1.0\")]");
 		sb.AppendLine($"        internal {typeName} DeepCopyInternal(int currentDepth, int maxDepth)");
 		sb.AppendLine("        {");
-		sb.AppendLine("            if (currentDepth >= maxDepth)");
+		sb.AppendLine("            if (currentDepth > maxDepth)");
 		sb.AppendLine("            {");
 		sb.AppendLine("                // At max depth, create shallow copy of primitives only");
 		sb.AppendLine($"                return new {typeName}");

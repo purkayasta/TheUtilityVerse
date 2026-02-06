@@ -1,7 +1,3 @@
-using System;
-using Dumpper;
-using Spectre.Console;
-
 namespace UtilityVerse.Copy.Test;
 
 public class InfinityLoop
@@ -9,10 +5,9 @@ public class InfinityLoop
     public static void Run()
     {
         Console.WriteLine("InfinityLoop test executed.");
-        var (parent, child) = CreateParentWithChild();
+        var parent = CreateParentWithChild();
         System.Console.WriteLine("Created Parent with Child.");
 
-        
         System.Console.WriteLine("Established circular references.");
 
         var clonedResult = parent.DeepCopy();
@@ -22,7 +17,7 @@ public class InfinityLoop
         Console.WriteLine($"Depth of references after DeepCopy: {CalculateDepth(clonedResult)}");
     }
 
-    public static (Parent, Child) CreateParentWithChild()
+    public static Parent CreateParentWithChild()
     {
         var parent = new Parent
         {
@@ -30,30 +25,54 @@ public class InfinityLoop
             Name = "Parent"
         };
 
-        var child = new Child
+        var child = new Parent
         {
             Id = Guid.CreateVersion7(),
-            Name = "Child",
-            Parent = parent
+            Name = "Child"
         };
 
         parent.Child = child;
+        child.Child = parent;
 
-        return (parent, child);
+        return parent;
     }
-
     private static int CalculateDepth(Parent parent)
     {
-        int level = 1;
+        int depth = 1;
+        Parent? current = parent;
 
-        Parent? currentParent = parent;
-        
-        while (currentParent is not null && currentParent.Child is not null)
+        while (current?.Child is not null)
         {
-            level++;
-            currentParent = currentParent.Child.Parent;
+            depth++;
+            current = current.Child;
+
+            // Stop if we detect a circular reference (same object being visited again)
+            if (ReferenceEquals(parent, current))
+            {
+                break;
+            }
         }
 
-        return level;
+        System.Console.WriteLine($"Calculated depth: {depth}");
+
+        return depth;
     }
+    // private static int CalculateDepth(Parent parent)
+    // {
+    //     int level = 1;
+
+    //     Parent? currentParent = parent;
+
+    //     while (currentParent?.Child?.Parent != null)
+    //     {
+    //         if (ReferenceEquals(currentParent, currentParent.Child.Parent))
+    //         {
+    //             break;
+    //         }
+    //         level++;
+    //         currentParent = currentParent.Child.Parent;
+    //     }
+
+    //     return level;
+    // }
 }

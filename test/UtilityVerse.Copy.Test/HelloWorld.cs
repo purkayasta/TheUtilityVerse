@@ -6,7 +6,7 @@ public partial class Parent
 	public Guid Id { get; set; }
 	public string? Name { get; set; }
 
-	public Child? Child { get; set; }
+	public Parent? Child { get; set; }
 }
 
 [DeepCopy]
