@@ -17,7 +17,7 @@ public sealed class ShallowCopy : Attribute
     /// <summary>
     /// Gets or sets the depth for shallow copying. Default is 5, maximum is 10.
     /// </summary>
-    internal int Depth { get; set; } = 5;
+    public int Depth { get; set; } = 5;
     
     public ShallowCopy()
     {

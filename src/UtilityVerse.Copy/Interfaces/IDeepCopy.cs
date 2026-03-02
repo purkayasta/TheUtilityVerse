@@ -5,4 +5,5 @@
 /// </summary>
 
 namespace UtilityVerse.Copy;
+
 public interface IDeepCopy;

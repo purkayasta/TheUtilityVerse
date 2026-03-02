@@ -108,18 +108,4 @@ public class ValidationAnalyzer : DiagnosticAnalyzer
 		}
 	}
 
-	private static bool IsInsideCopyEnabledPartialParent(INamedTypeSymbol? symbol)
-	{
-		while (symbol is not null)
-		{
-			if (!Helper.IsPartial(symbol))
-				return false;
-
-			if (Helper.HasDeepCopyOptIn(symbol) || Helper.HasShallowCopyOptIn(symbol))
-				return true;
-
-			symbol = symbol.ContainingType;
-		}
-		return false;
-	}
 }

@@ -1,3 +1,4 @@
 using UtilityVerse.Copy.Test;
 
-InfinityLoop.Run();
+// InfinityLoop.Run();
+DepthTest.Run();

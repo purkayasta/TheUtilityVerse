@@ -14,8 +14,8 @@ internal static class ShallowCopyGenerator
 {
 	internal static string? Generate(INamedTypeSymbol typeSymbol)
 	{
-		if (typeSymbol.IsAbstract) return string.Empty;
-		if (!Helper.IsPartial(typeSymbol)) return string.Empty;
+		if (typeSymbol.IsAbstract) return null;
+		if (!Helper.IsPartial(typeSymbol)) return null;
 
 		var depth = Helper.ExtractDepth(typeSymbol, "ShallowCopy");
 
@@ -67,37 +67,30 @@ internal static class ShallowCopyGenerator
 		sb.AppendLine("        [System.CodeDom.Compiler.GeneratedCode(\"ShallowCopyGenerator\", \"1.0\")]");
 		sb.AppendLine($"        public {typeName} ShallowCopy()");
 		sb.AppendLine("        {");
-		sb.AppendLine($"            return ShallowCopyInternal(0, {depth});");
+		sb.AppendLine($"            var objectMap = new Dictionary<object, object>();");
+		sb.AppendLine($"            return ShallowCopyInternal(1, {depth}, objectMap);");
 		sb.AppendLine("        }");
 		sb.AppendLine();
 		sb.AppendLine("        [System.CodeDom.Compiler.GeneratedCode(\"ShallowCopyGenerator\", \"1.0\")]");
-		sb.AppendLine($"        internal {typeName} ShallowCopyInternal(int currentDepth, int maxDepth)");
+		sb.AppendLine($"        internal {typeName} ShallowCopyInternal(int currentDepth, int maxDepth, Dictionary<object, object> objectMap)");
 		sb.AppendLine("        {");
-		sb.AppendLine("            if (currentDepth >= maxDepth)");
-		sb.AppendLine("            {");
-		sb.AppendLine("                // At max depth, create shallow copy of primitives only");
-		sb.AppendLine($"                return new {typeName}");
-		sb.AppendLine("                {");
-
-		foreach (var member in Helper.GetAllProperties(typeSymbol))
-		{
-			if (member.IsReadOnly || member.SetMethod is null)
-				continue;
-
-			var propType = member.Type;
-			if (Helper.IsTrulyPrimitive(propType) || Helper.IsBuiltinType(propType))
-			{
-				sb.AppendLine($"                    {member.Name} = this.{member.Name},");
-			}
-		}
-
-		sb.AppendLine("                };");
-		sb.AppendLine("            }");
-		sb.AppendLine();
 
 		if (typeSymbol.TypeKind == TypeKind.Class || typeSymbol.IsRecord)
 		{
+			// Check if already copied (handles circular references)
+			sb.AppendLine("            // Check if already copied (handles circular references)");
+			sb.AppendLine("            if (objectMap.TryGetValue(this, out var existing))");
+			sb.AppendLine($"                return ({typeName})existing;");
+			sb.AppendLine();
+
+			// MemberwiseClone gives us all primitives and shared references in one shot.
+			// We then selectively override complex properties based on depth.
 			sb.AppendLine($"            var copy = ({typeName})this.MemberwiseClone();");
+			sb.AppendLine();
+
+			// Register the copy before setting properties (prevents infinite loops)
+			sb.AppendLine("            objectMap[this] = copy;");
+			sb.AppendLine();
 
 			foreach (var member in Helper.GetAllProperties(typeSymbol))
 			{
@@ -106,62 +99,24 @@ internal static class ShallowCopyGenerator
 
 				var propType = member.Type;
 
-				if (Helper.IsTrulyPrimitive(propType) || Helper.IsBuiltinType(propType)) continue;
+				// Primitives and builtins: MemberwiseClone already handled them correctly
+				if (Helper.IsTrulyPrimitive(propType) || Helper.IsBuiltinType(propType))
+					continue;
 
-				string? assignment = null;
-
-				switch (propType)
-				{
-					case IArrayTypeSymbol:
-						assignment = $"this.{member.Name} != null ? ({member.Type.ToDisplayString()})this.{member.Name}.Clone() : null";
-						break;
-
-					case INamedTypeSymbol named when named.IsGenericType:
-						{
-							var original = named.OriginalDefinition.ConstructUnboundGenericType().ToDisplayString();
-
-							if (Helper.IsGenericCollection(original, out var kind))
-							{
-								var itemType = named.TypeArguments.FirstOrDefault()?.ToDisplayString() ?? "var";
-								assignment = kind switch
-								{
-									"List" or "Enumerable" =>
-										$"this.{member.Name}?.ToList()",
-
-									"HashSet" =>
-										$"this.{member.Name} != null ? new HashSet<{itemType}>(this.{member.Name}) : null",
-
-									"Dictionary" =>
-										$"this.{member.Name}?.ToDictionary(x => x.Key, x => x.Value)",
-
-									_ => null
-								};
-							}
-							else if (original.StartsWith("System.Tuple"))
-							{
-								assignment = $"this.{member.Name}";
-							}
-
-							break;
-						}
-
-					case INamedTypeSymbol named when named.ToDisplayString().StartsWith("System.ValueTuple"):
-						assignment = $"this.{member.Name}";
-						break;
-				}
-
-				if (assignment != null)
-				{
-					sb.AppendLine($"            copy.{member.Name} = {assignment};");
-				}
+				var assignment = Helper.GenerateShallowCopyAssignment(propType, member.Name, withObjectMap: true);
+				sb.AppendLine($"            copy.{member.Name} = {assignment};");
 			}
 
 			sb.AppendLine("            return copy;");
 		}
 		else
 		{
+			// Structs: returning by value IS a copy — no recursion needed
 			sb.AppendLine("            return this;");
 		}
+
+		sb.AppendLine("        }");
+		sb.AppendLine("    }");
 
 		if (!string.IsNullOrEmpty(namespaceName))
 		{
