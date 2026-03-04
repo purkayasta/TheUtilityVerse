@@ -85,6 +85,13 @@ internal static class DeepCopyGenerator
 		sb.AppendLine("        }");
 		sb.AppendLine();
 		sb.AppendLine("        [System.CodeDom.Compiler.GeneratedCode(\"DeepCopyGenerator\", \"1.0\")]");
+		sb.AppendLine($"        internal {typeName} DeepCopyInternal(int currentDepth, int maxDepth)");
+		sb.AppendLine("        {");
+		sb.AppendLine($"            var objectMap = new Dictionary<object, object>();");
+		sb.AppendLine($"            return DeepCopyInternal(currentDepth, maxDepth, objectMap);");
+		sb.AppendLine("        }");
+		sb.AppendLine();
+		sb.AppendLine("        [System.CodeDom.Compiler.GeneratedCode(\"DeepCopyGenerator\", \"1.0\")]");
 		sb.AppendLine($"        internal {typeName} DeepCopyInternal(int currentDepth, int maxDepth, Dictionary<object, object> objectMap)");
 		sb.AppendLine("        {");
 
@@ -97,9 +104,13 @@ internal static class DeepCopyGenerator
 			// For non-parameterless ctors, check identity map first (only for class types, not struct)
 			if (typeSymbol.TypeKind == TypeKind.Class || typeSymbol.IsRecord)
 			{
-				sb.AppendLine("            // Check if already copied (handles circular references)");
-				sb.AppendLine("            if (objectMap.TryGetValue(this, out var existing))");
+				sb.AppendLine("            // Check if already copied (handles circular references) - only for properties within depth limit");
+				sb.AppendLine("            if (currentDepth < maxDepth && objectMap.TryGetValue(this, out var existing))");
 				sb.AppendLine($"                return ({typeName})existing;");
+				sb.AppendLine();
+				sb.AppendLine("            // If at or beyond max depth, return null (depth limit reached)");
+				sb.AppendLine("            if (currentDepth >= maxDepth)");
+				sb.AppendLine("                return null!;");
 				sb.AppendLine();
 			}
 
@@ -126,9 +137,13 @@ internal static class DeepCopyGenerator
 			// For parameterless ctors, check identity map first (only for class types)
 			if (typeSymbol.TypeKind == TypeKind.Class || typeSymbol.IsRecord)
 			{
-				sb.AppendLine("            // Check if already copied (handles circular references)");
-				sb.AppendLine("            if (objectMap.TryGetValue(this, out var existing))");
+				sb.AppendLine("            // Check if already copied (handles circular references) - only for properties within depth limit");
+				sb.AppendLine("            if (currentDepth < maxDepth && objectMap.TryGetValue(this, out var existing))");
 				sb.AppendLine($"                return ({typeName})existing;");
+				sb.AppendLine();
+				sb.AppendLine("            // If at or beyond max depth, return null (depth limit reached)");
+				sb.AppendLine("            if (currentDepth >= maxDepth)");
+				sb.AppendLine("                return null!;");
 				sb.AppendLine();
 
 				// Create empty object first, register it, then set properties
