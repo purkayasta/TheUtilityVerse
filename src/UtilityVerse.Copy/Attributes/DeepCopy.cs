@@ -15,7 +15,10 @@ namespace UtilityVerse.Copy;
 public sealed class DeepCopy : Attribute
 {
     /// <summary>
-    /// Gets or sets the depth for deep copying. Default is 5, maximum is 10.
+    /// Gets or sets the maximum recursion depth for deep copying.
+    /// Specifies how many levels deep the copy should recurse into nested objects.
+    /// Default is 5, maximum is 10.
+    /// Example: depth=3 will recurse up to 3 levels deep.
     /// </summary>
     public int Depth { get; set; } = 5;
     

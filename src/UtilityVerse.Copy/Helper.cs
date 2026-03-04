@@ -56,11 +56,6 @@ internal static class Helper
 			_ => false
 		};
 	}
-	internal static bool IsCollectionType(ITypeSymbol symbol)
-	{
-		return symbol.AllInterfaces.Any(i =>
-			i.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>");
-	}
 
 	internal static bool IsGenericCollection(string? originalDef, out string? kind)
 	{
@@ -124,10 +119,8 @@ internal static class Helper
 
 	internal static bool HasDeepCopyOptIn(INamedTypeSymbol typeSymbol)
 	{
-		return typeSymbol.GetAttributes().Any(a =>
-				   SymbolEquals(a.AttributeClass, "UtilityVerse.Copy.DeepCopy")) ||
-			   typeSymbol.AllInterfaces.Any(i =>
-				   SymbolEquals(i, "UtilityVerse.Copy.IDeepCopy"));
+		return typeSymbol.GetAttributes().Any(a => SymbolEquals(a.AttributeClass, "UtilityVerse.Copy.DeepCopy"))
+		|| typeSymbol.AllInterfaces.Any(i => SymbolEquals(i, "UtilityVerse.Copy.IDeepCopy"));
 	}
 
 	internal static bool HasShallowCopyOptIn(INamedTypeSymbol typeSymbol)
@@ -181,6 +174,7 @@ internal static class Helper
 		}
 
 		// Validation: depth cannot exceed MAX_DEPTH
+		// Depth represents maximum recursion levels (0-based: currentDepth < maxDepth)
 		if (extractedDepth > MAX_DEPTH)
 		{
 			throw new System.InvalidOperationException(
@@ -206,8 +200,8 @@ internal static class Helper
 			IArrayTypeSymbol arrayType => GenerateDeepCopyArrayAssignment(arrayType, propertyName, withObjectMap),
 			INamedTypeSymbol { IsGenericType: true } named => GenerateDeepCopyGenericAssignment(named, propertyName, withObjectMap),
 			_ => withObjectMap
-				? $"currentDepth < maxDepth ? this.{propertyName}?.DeepCopyInternal(currentDepth + 1, maxDepth, objectMap) : null"
-				: $"currentDepth < maxDepth ? this.{propertyName}?.DeepCopyInternal(currentDepth + 1, maxDepth) : null"
+				? $"currentDepth + 1 < maxDepth ? this.{propertyName}?.DeepCopyInternal(currentDepth + 1, maxDepth, objectMap) : null"
+				: $"currentDepth + 1 < maxDepth ? this.{propertyName}?.DeepCopyInternal(currentDepth + 1, maxDepth) : null"
 		};
 	}
 
@@ -220,8 +214,8 @@ internal static class Helper
 			return $"this.{propertyName}?.ToArray()";
 
 		return withObjectMap
-			? $"currentDepth < maxDepth ? this.{propertyName}?.Select(x => x?.DeepCopyInternal(currentDepth + 1, maxDepth, objectMap)).ToArray() : null"
-			: $"currentDepth < maxDepth ? this.{propertyName}?.Select(x => x?.DeepCopyInternal(currentDepth + 1, maxDepth)).ToArray() : null";
+			? $"currentDepth + 1 < maxDepth ? this.{propertyName}?.Select(x => x?.DeepCopyInternal(currentDepth + 1, maxDepth, objectMap)).ToArray() : null"
+			: $"currentDepth + 1 < maxDepth ? this.{propertyName}?.Select(x => x?.DeepCopyInternal(currentDepth + 1, maxDepth)).ToArray() : null";
 	}
 
 	private static string GenerateDeepCopyGenericAssignment(INamedTypeSymbol named, string propertyName, bool withObjectMap = false)
@@ -236,8 +230,8 @@ internal static class Helper
 			return GenerateDeepCopyTupleAssignment(typeArgs, propertyName, named, withObjectMap);
 
 		return withObjectMap
-			? $"currentDepth < maxDepth ? this.{propertyName}?.DeepCopyInternal(currentDepth + 1, maxDepth, objectMap) : null"
-			: $"currentDepth < maxDepth ? this.{propertyName}?.DeepCopyInternal(currentDepth + 1, maxDepth) : null";
+			? $"currentDepth + 1 < maxDepth ? this.{propertyName}?.DeepCopyInternal(currentDepth + 1, maxDepth, objectMap) : null"
+			: $"currentDepth + 1 < maxDepth ? this.{propertyName}?.DeepCopyInternal(currentDepth + 1, maxDepth) : null";
 	}
 
 	private static string GenerateDeepCopyCollectionAssignment(string collectionKind, ImmutableArray<ITypeSymbol> typeArgs, string propertyName, bool withObjectMap = false)
@@ -260,7 +254,7 @@ internal static class Helper
 
 		return elementIsPrimitive
 			? $"this.{propertyName} != null ? new HashSet<{elementTypeName}>(this.{propertyName}.Select(x => {cloneExpr}).ToList()) : null"
-			: $"currentDepth < maxDepth && this.{propertyName} != null ? new HashSet<{elementTypeName}>(this.{propertyName}.Select(x => {cloneExpr}).ToList()) : null";
+			: $"currentDepth + 1 < maxDepth && this.{propertyName} != null ? new HashSet<{elementTypeName}>(this.{propertyName}.Select(x => {cloneExpr}).ToList()) : null";
 	}
 
 	private static string GenerateDeepCopyDictionaryAssignment(ImmutableArray<ITypeSymbol> typeArgs, string propertyName, bool withObjectMap = false)
@@ -274,7 +268,7 @@ internal static class Helper
 		var valueCopy = valueIsPrimitive ? "x.Value" : (withObjectMap ? "x.Value?.DeepCopyInternal(currentDepth + 1, maxDepth, objectMap)" : "x.Value?.DeepCopyInternal(currentDepth + 1, maxDepth)");
 
 		return (!keyIsPrimitive || !valueIsPrimitive)
-			? $"currentDepth < maxDepth ? this.{propertyName}?.ToDictionary(x => {keyCopy}, x => {valueCopy}) : null"
+			? $"currentDepth + 1 < maxDepth ? this.{propertyName}?.ToDictionary(x => {keyCopy}, x => {valueCopy}) : null"
 			: $"this.{propertyName}?.ToDictionary(x => {keyCopy}, x => {valueCopy})";
 	}
 
@@ -286,7 +280,7 @@ internal static class Helper
 
 		return elementIsPrimitive
 			? $"this.{propertyName} != null ? new Queue<{elementTypeName}>(this.{propertyName}) : null"
-			: $"currentDepth < maxDepth && this.{propertyName} != null ? new Queue<{elementTypeName}>(this.{propertyName}.Select(x => {cloneExpr})) : null";
+			: $"currentDepth + 1 < maxDepth && this.{propertyName} != null ? new Queue<{elementTypeName}>(this.{propertyName}.Select(x => {cloneExpr})) : null";
 	}
 
 	private static string GenerateDeepCopyStackAssignment(ITypeSymbol elementType, string propertyName, bool withObjectMap = false)
@@ -297,7 +291,7 @@ internal static class Helper
 
 		return elementIsPrimitive
 			? $"this.{propertyName} != null ? new Stack<{elementTypeName}>(this.{propertyName}) : null"
-			: $"currentDepth < maxDepth && this.{propertyName} != null ? new Stack<{elementTypeName}>(this.{propertyName}.Select(x => {cloneExpr})) : null";
+			: $"currentDepth + 1 < maxDepth && this.{propertyName} != null ? new Stack<{elementTypeName}>(this.{propertyName}.Select(x => {cloneExpr})) : null";
 	}
 
 	private static string GenerateDeepCopyListAssignment(ITypeSymbol elementType, string propertyName, bool withObjectMap = false)
@@ -307,7 +301,7 @@ internal static class Helper
 
 		return elementIsPrimitive
 			? $"this.{propertyName}?.Select(x => {cloneExpr}).ToList()"
-			: $"currentDepth < maxDepth ? this.{propertyName}?.Select(x => {cloneExpr}).ToList() : null";
+			: $"currentDepth + 1 < maxDepth ? this.{propertyName}?.Select(x => {cloneExpr}).ToList() : null";
 	}
 
 	private static string GenerateDeepCopyTupleAssignment(ImmutableArray<ITypeSymbol> typeArgs, string propertyName, INamedTypeSymbol tupleType, bool withObjectMap = false)
@@ -319,7 +313,7 @@ internal static class Helper
 				: (withObjectMap ? $"x.Item{i + 1}?.DeepCopyInternal(currentDepth + 1, maxDepth, objectMap)" : $"x.Item{i + 1}?.DeepCopyInternal(currentDepth + 1, maxDepth)"));
 
 		return tupleHasComplex
-			? $"currentDepth < maxDepth && this.{propertyName} is {{ }} x ? new {tupleType.ToDisplayString()}({string.Join(", ", tupleArgs)}) : default"
+			? $"currentDepth + 1 < maxDepth && this.{propertyName} is {{ }} x ? new {tupleType.ToDisplayString()}({string.Join(", ", tupleArgs)}) : default"
 			: $"this.{propertyName} is {{ }} x ? new {tupleType.ToDisplayString()}({string.Join(", ", tupleArgs)}) : default";
 	}
 
@@ -351,8 +345,8 @@ internal static class Helper
 			return $"this.{propertyName} != null ? ({arrayType.ToDisplayString()})this.{propertyName}.Clone() : null";
 
 		return withObjectMap
-			? $"currentDepth < maxDepth ? this.{propertyName}?.Select(x => x?.ShallowCopyInternal(currentDepth + 1, maxDepth, objectMap)).ToArray() : this.{propertyName}?.ToArray()"
-			: $"currentDepth < maxDepth ? this.{propertyName}?.Select(x => x?.ShallowCopyInternal(currentDepth + 1, maxDepth)).ToArray() : this.{propertyName}?.ToArray()";
+			? $"currentDepth + 1 < maxDepth ? this.{propertyName}?.Select(x => x?.ShallowCopyInternal(currentDepth + 1, maxDepth, objectMap)).ToArray() : this.{propertyName}?.ToArray()"
+			: $"currentDepth + 1 < maxDepth ? this.{propertyName}?.Select(x => x?.ShallowCopyInternal(currentDepth + 1, maxDepth)).ToArray() : this.{propertyName}?.ToArray()";
 	}
 
 	private static string GenerateShallowCopyGenericAssignment(INamedTypeSymbol named, string propertyName, bool withObjectMap = false)

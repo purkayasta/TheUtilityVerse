@@ -41,7 +41,7 @@ public partial class LineItem
 
 /// <summary>
 /// Self-referential node for depth-limit tests.
-/// depth=2: levels 1 and 2 are fully copied, level 2's Next = null.
+/// depth=2: levels 0 and 1 are fully copied, level 2's Next = null.
 /// </summary>
 [DeepCopy(2)]
 public partial class ChainNode
@@ -53,9 +53,9 @@ public partial class ChainNode
 // ─── ShallowCopy fixtures ─────────────────────────────────────────────────────
 
 /// <summary>
-/// depth=1: classic shallow copy — BillingAddress and list elements are SHARED references.
+/// depth=0: classic shallow copy — BillingAddress and list elements are SHARED references.
 /// </summary>
-[ShallowCopy(1)]
+[ShallowCopy(0)]
 public partial class Invoice
 {
     public int Id { get; set; }
@@ -65,10 +65,10 @@ public partial class Invoice
 }
 
 /// <summary>
-/// depth=2: BillingAddress is shallow-copied (new instance), its own complex
-/// properties would be shared references at depth 3.
+/// depth=1: BillingAddress is shallow-copied (new instance), its own complex
+/// properties would be shared references at depth 2.
 /// </summary>
-[ShallowCopy(2)]
+[ShallowCopy(1)]
 public partial class Receipt
 {
     public int Id { get; set; }
@@ -167,10 +167,10 @@ public partial class Friend
 
 /// <summary>
 /// Shallow copy fixture for testing circular references.
-/// With depth=1, BestFriend is shared; but cycles should still be preserved
+/// With depth=0, BestFriend is shared; but cycles should still be preserved
 /// where objects reference each other.
 /// </summary>
-[ShallowCopy(1)]
+[ShallowCopy(0)]
 public partial class ShallowFriend
 {
     public int Id { get; set; }

@@ -4,9 +4,10 @@ namespace UtilityVerse.Copy.Test;
 /// A self-referential linked-list node used exclusively for depth-verification tests.
 /// With [DeepCopy(2)] the generator bakes maxDepth=2 into the generated DeepCopyInternal call.
 ///
-/// Traversal behaviour — depth is 1-indexed, guard lives at the call site (not the callee):
+/// Traversal behaviour — depth is 0-indexed, guard lives at the call site (not the callee):
+///   currentDepth 0 → full copy, check (0 < 2) = true  → recurse children at level 1
 ///   currentDepth 1 → full copy, check (1 < 2) = true  → recurse children at level 2
-///   currentDepth 2 → full copy, check (2 < 2) = false → complex properties = null, no recursion
+///   currentDepth 2 → check fails (2 < 2) = false → complex properties = null, no recursion
 ///
 /// So a 5-node chain [1→2→3→4→5] becomes [1→2] after DeepCopy().
 /// Node 2's Next is null. Nodes 3/4/5 are never visited. No partial objects.
@@ -37,8 +38,8 @@ public static class DepthTest
     /// <summary>
     /// Core depth test: a 5-node chain with [DeepCopy(2)] must produce exactly 2 nodes.
     ///
-    /// Guard lives at the call site — the parent checks (currentDepth &lt; maxDepth) before
-    /// recursing. At level 2, the check is (2 &lt; 2) = false, so Next is set to null.
+    /// Guard lives at the call site — the parent checks (currentDepth < maxDepth) before
+    /// recursing. At level 2, the check is (2 < 2) = false, so Next is set to null.
     /// Nodes 3/4/5 are never visited. No partial/hollow objects exist in the clone tree.
     /// </summary>
     private static void TestDepthTruncation()
@@ -52,12 +53,12 @@ public static class DepthTest
 
         var clone = n1.DeepCopy();
 
-        // Level 1: fully copied
-        Verify(clone.Value == 1 && clone.Label == "L1",   "Level 1 (root) fully copied");
+        // Level 0 (root): fully copied
+        Verify(clone.Value == 1 && clone.Label == "L1",   "Level 0 (root) fully copied");
 
-        // Level 2: fully copied, but Next = null — clean cut, no partial object
-        Verify(clone.Next is { Value: 2, Label: "L2" },   "Level 2 fully copied");
-        Verify(clone.Next!.Next is null,                   "Level 2 Next is null — clean cut, nodes 3/4/5 never visited");
+        // Level 1: fully copied, but Next = null — clean cut, no partial object
+        Verify(clone.Next is { Value: 2, Label: "L2" },   "Level 1 fully copied");
+        Verify(clone.Next!.Next is null,                   "Level 1 Next is null — clean cut, nodes 2/3/4 never visited");
 
         Console.WriteLine("  [PASS] Depth truncation — 5-node chain produces exactly 2 nodes (depth=2, no partial objects)");
     }

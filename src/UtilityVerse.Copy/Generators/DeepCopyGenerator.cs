@@ -81,7 +81,7 @@ internal static class DeepCopyGenerator
 		sb.AppendLine($"        public {typeName} DeepCopy()");
 		sb.AppendLine("        {");
 		sb.AppendLine($"            var objectMap = new Dictionary<object, object>();");
-		sb.AppendLine($"            return DeepCopyInternal(1, {depth}, objectMap);");
+		sb.AppendLine($"            return DeepCopyInternal(0, {depth}, objectMap);");
 		sb.AppendLine("        }");
 		sb.AppendLine();
 		sb.AppendLine("        [System.CodeDom.Compiler.GeneratedCode(\"DeepCopyGenerator\", \"1.0\")]");

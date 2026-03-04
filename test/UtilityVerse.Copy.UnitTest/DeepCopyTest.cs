@@ -10,7 +10,7 @@ public class DeepCopyTest
     // ─── Primitive & value-type properties ───────────────────────────────────
 
     [Fact]
-    public void DeepCopy_PrimitiveValues_AreCopiedCorrectly()
+    public void DeepCopy_CopiesCorrectly_WhenGivenPrimitiveValues()
     {
         var original = new Order
         {
@@ -28,10 +28,10 @@ public class DeepCopyTest
         Assert.Equal(original.CreatedAt, clone.CreatedAt);
     }
 
-    // ─── Reference independence ───────────────────────────────────────────────
+    // ─── Reference independence ───────────────────────────────────────────────────
 
     [Fact]
-    public void DeepCopy_Root_IsDifferentInstance()
+    public void DeepCopy_CreatesNewInstance_WhenCopyingRoot()
     {
         var original = new Order { Id = 1 };
 
@@ -41,7 +41,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_NestedObject_IsDifferentInstance()
+    public void DeepCopy_CreatesNewInstance_WhenCopyingNestedObject()
     {
         var original = new Order
         {
@@ -55,7 +55,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_ListContainer_IsDifferentInstance()
+    public void DeepCopy_CreatesNewInstance_WhenCopyingListContainer()
     {
         var original = new Order
         {
@@ -69,7 +69,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_ListElements_AreDifferentInstances()
+    public void DeepCopy_CreatesNewInstances_WhenCopyingListElements()
     {
         var original = new Order
         {
@@ -84,7 +84,7 @@ public class DeepCopyTest
     // ─── Mutation isolation ───────────────────────────────────────────────────
 
     [Fact]
-    public void DeepCopy_MutatingClonePrimitive_DoesNotAffectOriginal()
+    public void DeepCopy_IsolatesMutation_WhenModifyingClonePrimitives()
     {
         var original = new Order { Id = 1, CustomerName = "Alice" };
 
@@ -97,7 +97,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_MutatingCloneNestedObject_DoesNotAffectOriginal()
+    public void DeepCopy_IsolatesMutation_WhenModifyingCloneNestedObject()
     {
         var original = new Order
         {
@@ -113,7 +113,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_MutatingCloneListElement_DoesNotAffectOriginal()
+    public void DeepCopy_IsolatesMutation_WhenModifyingCloneListElement()
     {
         var original = new Order
         {
@@ -131,7 +131,7 @@ public class DeepCopyTest
     // ─── Primitive collection correctness ─────────────────────────────────────
 
     [Fact]
-    public void DeepCopy_PrimitiveList_ContainsCorrectValues()
+    public void DeepCopy_ContainsCorrectValues_WhenCopyingPrimitiveList()
     {
         var original = new Order { Tags = ["urgent", "fragile"] };
 
@@ -144,7 +144,7 @@ public class DeepCopyTest
     // ─── Null safety ──────────────────────────────────────────────────────────
 
     [Fact]
-    public void DeepCopy_NullNestedObject_RemainsNull()
+    public void DeepCopy_RemainsNull_WhenCopyingNullNestedObject()
     {
         var original = new Order { Id = 1, ShippingAddress = null };
 
@@ -154,7 +154,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_NullList_RemainsNull()
+    public void DeepCopy_RemainsNull_WhenCopyingNullList()
     {
         var original = new Order { Id = 1, Items = null };
 
@@ -166,9 +166,9 @@ public class DeepCopyTest
     // ─── Depth enforcement ───────────────────────────────────────────────────
 
     [Fact]
-    public void DeepCopy_Chain_FullyCopiesWithinConfiguredDepth()
+    public void DeepCopy_FullyCopies_WhenChainIsWithinConfiguredDepth()
     {
-        // [DeepCopy(2)]: levels 1 and 2 are fully deep-copied
+        // [DeepCopy(2)]: currentDepth goes 0, 1; at currentDepth=2, check fails, recurse stops
         var n2 = new ChainNode { Value = 2 };
         var n1 = new ChainNode { Value = 1, Next = n2 };
 
@@ -182,9 +182,9 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_Chain_TruncatesAtConfiguredDepth()
+    public void DeepCopy_Truncates_WhenChainExceedsConfiguredDepth()
     {
-        // [DeepCopy(2)]: level 2's Next = null; n3 is never copied
+        // [DeepCopy(2)]: currentDepth 0, 1 are copied; at currentDepth=2, Next=null; n3 never copied
         var n3 = new ChainNode { Value = 3 };
         var n2 = new ChainNode { Value = 2, Next = n3 };
         var n1 = new ChainNode { Value = 1, Next = n2 };
@@ -196,9 +196,9 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_Chain_NoSharedReferences_AtDepthBoundary()
+    public void DeepCopy_CreatesNewInstance_WhenNestedObjectIsWithinDepth()
     {
-        // n2 is within depth and must be a new instance, not the original
+        // n2 is within depth (currentDepth=1) and must be a new instance
         var n2 = new ChainNode { Value = 2 };
         var n1 = new ChainNode { Value = 1, Next = n2 };
 
@@ -211,7 +211,7 @@ public class DeepCopyTest
     // Tests for record types and classes with explicit constructors.
 
     [Fact]
-    public void DeepCopy_RecordType_AllPropertiesAreCopied()
+    public void DeepCopy_CopiesAllProperties_WhenCopyingRecordType()
     {
         var category = new ProductCategory { CategoryId = 10, CategoryName = "Electronics" };
         var tags = new List<string> { "sale", "featured" };
@@ -243,7 +243,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_RecordType_MutatingClone_DoesNotAffectOriginal()
+    public void DeepCopy_IsolatesMutation_WhenModifyingCloneRecordType()
     {
         var category = new ProductCategory { CategoryId = 10, CategoryName = "Electronics" };
         var original = new ProductRecord(1, "Laptop", 999.99m, category, null);
@@ -255,7 +255,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_ConstructorInitializedClass_AllPropertiesAreCopied()
+    public void DeepCopy_CopiesAllProperties_WhenCopyingConstructorInitializedClass()
     {
         var details = new OrderDetails { OrderDate = DateTime.UtcNow, ShippingMethod = "Express" };
         var items = new List<OrderItem>
@@ -285,7 +285,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_ConstructorInitializedClass_NullNestedProperties_RemainNull()
+    public void DeepCopy_PreservesNull_WhenConstructorInitializedClassHasNullNestedProperties()
     {
         var original = new ConstructorInitializedOrder(42, "Jane Doe", details: null, items: null);
 
@@ -298,7 +298,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_ConstructorInitializedClass_MutatingNestedClone_DoesNotAffectOriginal()
+    public void DeepCopy_IsolatesMutation_WhenModifyingCloneConstructorInitializedNestedObject()
     {
         var details = new OrderDetails { OrderDate = DateTime.UtcNow, ShippingMethod = "Standard" };
         var original = new ConstructorInitializedOrder(42, "Bob", details, null);
@@ -313,7 +313,7 @@ public class DeepCopyTest
     // Tests for handling cyclic/circular object references.
 
     [Fact]
-    public void DeepCopy_CircularReference_DoesNotCauseStackOverflow()
+    public void DeepCopy_DoesNotCauseStackOverflow_WhenHandlingCircularReference()
     {
         // Create a circular reference: A → B → A
         var alice = new Friend { Id = 1, Name = "Alice" };
@@ -330,7 +330,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_CircularReference_PreservesReferentialIntegrity()
+    public void DeepCopy_PreservesReferentialIntegrity_WhenHandlingCircularReference()
     {
         // Create a circular reference: A → B → A
         var alice = new Friend { Id = 1, Name = "Alice" };
@@ -351,7 +351,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_MutualCircularReference_AllCopiesAreDistinct()
+    public void DeepCopy_CreatesDistinctCopies_WhenHandlingMutualCircularReference()
     {
         // Mutual reference: A ↔ B (at same level)
         var alice = new Friend { Id = 1, Name = "Alice" };
@@ -368,7 +368,7 @@ public class DeepCopyTest
     }
 
     [Fact]
-    public void DeepCopy_SelfReference_HandlesSelfPointingObject()
+    public void DeepCopy_PreservesSelfReference_WhenHandlingSelfPointingObject()
     {
         // Self-reference: A → A
         var alice = new Friend { Id = 1, Name = "Alice" };

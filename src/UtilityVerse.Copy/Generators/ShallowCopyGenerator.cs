@@ -68,7 +68,7 @@ internal static class ShallowCopyGenerator
 		sb.AppendLine($"        public {typeName} ShallowCopy()");
 		sb.AppendLine("        {");
 		sb.AppendLine($"            var objectMap = new Dictionary<object, object>();");
-		sb.AppendLine($"            return ShallowCopyInternal(1, {depth}, objectMap);");
+		sb.AppendLine($"            return ShallowCopyInternal(0, {depth}, objectMap);");
 		sb.AppendLine("        }");
 		sb.AppendLine();
 		sb.AppendLine("        [System.CodeDom.Compiler.GeneratedCode(\"ShallowCopyGenerator\", \"1.0\")]");
