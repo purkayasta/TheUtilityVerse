@@ -56,16 +56,6 @@ public static class DepthTest
         if (e == null) return;
         System.Console.WriteLine($"Employee: {e.Name}");
         PrintUntilNullFound(e.Company, level + 1);
-
-    }
-    private static void PrintUntilNullFound(List<Employee> employees)
-    {
-        if (employees == null) return;
-        foreach (var e in employees)
-        {
-            System.Console.WriteLine($"Employee: {e.Name}");
-            PrintUntilNullFound(e.Company);
-        }
     }
 
 }
@@ -77,8 +67,6 @@ public partial class Company
     public string? Name { get; set; }
 
     public Employee? Single { get; set; }
-
-    public List<Employee> Employees { get; set; }
 }
 
 [DeepCopy(2)]

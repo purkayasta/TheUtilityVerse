@@ -207,6 +207,42 @@ public class DeepCopyTest
         Assert.False(ReferenceEquals(n2, clone.Next));
     }
 
+    // ─── Depth edge cases ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public void DeepCopy_ReturnsNull_WhenDepthIsZero()
+    {
+        // [DeepCopy(0)]: DeepCopyInternal(0, 0, map) → 0 >= 0 → return null
+        // No exception should be thrown; caller receives null.
+        var original = new ZeroDepthItem { Id = 1, Name = "test" };
+
+        ZeroDepthItem? clone = original.DeepCopy();
+
+        Assert.Null(clone);
+    }
+
+    [Fact]
+    public void DeepCopy_WorksCorrectly_WhenDepthExceedsPreviousMaximum()
+    {
+        // [DeepCopy(15)] previously exceeded MAX_DEPTH=10 and would have thrown.
+        // Now it must compile and copy correctly for chains shorter than 15.
+        var n3 = new HighDepthNode { Value = 3 };
+        var n2 = new HighDepthNode { Value = 2, Next = n3 };
+        var n1 = new HighDepthNode { Value = 1, Next = n2 };
+
+        var clone = n1.DeepCopy();
+
+        Assert.NotNull(clone);
+        Assert.Equal(1, clone.Value);
+        Assert.NotNull(clone.Next);
+        Assert.Equal(2, clone.Next!.Value);
+        Assert.NotNull(clone.Next.Next);
+        Assert.Equal(3, clone.Next.Next!.Value);
+        Assert.False(ReferenceEquals(n1, clone));
+        Assert.False(ReferenceEquals(n2, clone.Next));
+        Assert.False(ReferenceEquals(n3, clone.Next.Next));
+    }
+
     // ─── Constructor-based initialization ────────────────────────────────────────
     // Tests for record types and classes with explicit constructors.
 
@@ -382,5 +418,151 @@ public class DeepCopyTest
 
         // With identity map, cloneAlice.BestFriend should be cloneAlice (self-reference preserved)
         Assert.True(ReferenceEquals(cloneAlice, cloneAlice.BestFriend)); // ✓ Self-reference preserved
+    }
+
+    // ─── Struct Tests ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void DeepCopy_CopiesCorrectly_WhenGivenStructWithPrimitiveValues()
+    {
+        var original = new Money { Amount = 100, Currency = "USD" };
+
+        var clone = original.DeepCopy();
+
+        Assert.Equal(100, clone.Amount);
+        Assert.Equal("USD", clone.Currency);
+    }
+
+    [Fact]
+    public void DeepCopy_ProducesIndependentCopy_WhenCopyingStruct()
+    {
+        // Structs are value types; the copy is always independent by nature.
+        // Verify that DeepCopy() produces a logically distinct copy (not the same boxed reference).
+        var original = new Money { Amount = 50, Currency = "EUR" };
+
+        var clone = original.DeepCopy();
+        clone.Amount = 999;
+        clone.Currency = "XXX";
+
+        Assert.Equal(50, original.Amount);
+        Assert.Equal("EUR", original.Currency);
+    }
+
+    [Fact]
+    public void DeepCopy_CopiesNestedClassReference_WhenStructHasReferenceProperty()
+    {
+        // PackageDimensions has depth=1: the nested Address gets deep-copied as a new instance.
+        var original = new PackageDimensions
+        {
+            Weight = 2.5,
+            ReturnAddress = new Address { Street = "10 Elm St", City = "Springfield" }
+        };
+
+        var clone = original.DeepCopy();
+
+        Assert.NotNull(clone.ReturnAddress);
+        Assert.False(ReferenceEquals(original.ReturnAddress, clone.ReturnAddress));
+        Assert.Equal("10 Elm St", clone.ReturnAddress!.Street);
+        Assert.Equal("Springfield", clone.ReturnAddress.City);
+    }
+
+    [Fact]
+    public void DeepCopy_IsolatesNestedMutation_WhenStructHasReferenceProperty()
+    {
+        var original = new PackageDimensions
+        {
+            Weight = 1.0,
+            ReturnAddress = new Address { Street = "10 Elm St" }
+        };
+
+        var clone = original.DeepCopy();
+        clone.ReturnAddress!.Street = "Mutated";
+
+        Assert.Equal("10 Elm St", original.ReturnAddress!.Street);
+    }
+
+    // ─── Record Struct Tests ──────────────────────────────────────────────────────
+
+    [Fact]
+    public void DeepCopy_CopiesCorrectly_WhenGivenRecordStruct()
+    {
+        var original = new Point(X: 3, Y: 7);
+
+        var clone = original.DeepCopy();
+
+        Assert.Equal(3, clone.X);
+        Assert.Equal(7, clone.Y);
+    }
+
+    [Fact]
+    public void DeepCopy_CopiesAllValues_WhenRecordStructHasStringProperty()
+    {
+        var original = new LabeledPoint(X: 1, Y: 2, Label: "Origin");
+
+        var clone = original.DeepCopy();
+
+        Assert.Equal(1, clone.X);
+        Assert.Equal(2, clone.Y);
+        Assert.Equal("Origin", clone.Label);
+    }
+
+    [Fact]
+    public void DeepCopy_ProducesIndependentCopy_WhenCopyingRecordStruct()
+    {
+        // Record structs are value types; mutations to the clone do not affect the original.
+        var original = new LabeledPoint(X: 5, Y: 10, Label: "A");
+
+        var clone = original.DeepCopy();
+        clone = clone with { Label = "Mutated" };
+
+        Assert.Equal("A", original.Label);
+    }
+
+    // ─── Additional Record Class Tests ───────────────────────────────────────────
+
+    [Fact]
+    public void DeepCopy_CopiesAllProperties_WhenCopyingRecordClassWithNullNested()
+    {
+        var original = new CustomerRecord(Id: 1, FullName: "Alice", HomeAddress: null, Emails: null);
+
+        var clone = original.DeepCopy();
+
+        Assert.Equal(1, clone.Id);
+        Assert.Equal("Alice", clone.FullName);
+        Assert.Null(clone.HomeAddress);
+        Assert.Null(clone.Emails);
+    }
+
+    [Fact]
+    public void DeepCopy_CreatesNewInstance_WhenCopyingRecordClassWithNestedReference()
+    {
+        var original = new CustomerRecord(
+            Id: 2,
+            FullName: "Bob",
+            HomeAddress: new Address { Street = "5 Main St", City = "Shelbyville" },
+            Emails: ["bob@example.com"]);
+
+        var clone = original.DeepCopy();
+
+        Assert.False(ReferenceEquals(original, clone));
+        Assert.False(ReferenceEquals(original.HomeAddress, clone.HomeAddress));
+        Assert.False(ReferenceEquals(original.Emails, clone.Emails));
+        Assert.Equal("5 Main St", clone.HomeAddress!.Street);
+        Assert.Equal("bob@example.com", clone.Emails![0]);
+    }
+
+    [Fact]
+    public void DeepCopy_IsolatesMutation_WhenModifyingCloneRecordClassNestedObject()
+    {
+        var original = new CustomerRecord(
+            Id: 3,
+            FullName: "Carol",
+            HomeAddress: new Address { Street = "7 Oak Ave" },
+            Emails: null);
+
+        var clone = original.DeepCopy();
+        clone.HomeAddress!.Street = "Mutated";
+
+        Assert.Equal("7 Oak Ave", original.HomeAddress!.Street);
     }
 }

@@ -97,7 +97,7 @@ public class ShallowCopyTest
     [Fact]
     public void ShallowCopy_SharesReference_WhenListElementsAreAtDepthBoundary()
     {
-        // depth=1: list elements are at the boundary → same object references
+        // depth=0: the list gets a new container (ToList()), but elements are the original shared references
         var item = new ShallowLineItem { Quantity = 5, ProductName = "Pen" };
         var original = new Invoice { Lines = [item] };
 
@@ -201,6 +201,91 @@ public class ShallowCopyTest
         Assert.Null(clone.Lines);
     }
 
+    // ─── HashSet / Queue / Stack (non-primitive elements) ─────────────────────────
+
+    [Fact]
+    public void ShallowCopy_CreatesNewContainerAndNewElements_WhenHashSetIsWithinDepth()
+    {
+        // [ShallowCopy(1)]: elements at depth 1 → each gets a new ShallowCopy'd instance
+        var item = new CollectionItem { Id = 1, Name = "A" };
+        var original = new ShallowCollectionHolder { ItemSet = [item] };
+
+        var clone = original.ShallowCopy();
+
+        Assert.NotNull(clone.ItemSet);
+        Assert.False(ReferenceEquals(original.ItemSet, clone.ItemSet));
+        Assert.False(ReferenceEquals(item, clone.ItemSet!.Single()));
+        Assert.Equal(1, clone.ItemSet.Single().Id);
+    }
+
+    [Fact]
+    public void ShallowCopy_CreatesNewContainerWithSharedElements_WhenHashSetIsAtDepthBoundary()
+    {
+        // [ShallowCopy(0)]: 0 < 0 → false → new HashSet<T>(this.ItemSet)
+        // Same pattern as List: a new container is always created, but elements are shared references.
+        var item = new CollectionItem { Id = 1, Name = "A" };
+        var original = new ShallowCollectionBoundary { ItemSet = [item] };
+
+        var clone = original.ShallowCopy();
+
+        Assert.False(ReferenceEquals(original.ItemSet, clone.ItemSet)); // new container
+        Assert.True(ReferenceEquals(item, clone.ItemSet!.Single()));     // shared elements
+    }
+
+    [Fact]
+    public void ShallowCopy_CreatesNewContainerAndNewElements_WhenQueueIsWithinDepth()
+    {
+        var item = new CollectionItem { Id = 2, Name = "B" };
+        var original = new ShallowCollectionHolder { ItemQueue = new Queue<CollectionItem>([item]) };
+
+        var clone = original.ShallowCopy();
+
+        Assert.NotNull(clone.ItemQueue);
+        Assert.False(ReferenceEquals(original.ItemQueue, clone.ItemQueue));
+        Assert.False(ReferenceEquals(item, clone.ItemQueue!.Peek()));
+        Assert.Equal(2, clone.ItemQueue.Peek().Id);
+    }
+
+    [Fact]
+    public void ShallowCopy_CreatesNewContainerWithSharedElements_WhenQueueIsAtDepthBoundary()
+    {
+        // [ShallowCopy(0)]: 0 < 0 → false → new Queue<T>(this.ItemQueue) — new container, shared elements
+        var item = new CollectionItem { Id = 2, Name = "B" };
+        var original = new ShallowCollectionBoundary { ItemQueue = new Queue<CollectionItem>([item]) };
+
+        var clone = original.ShallowCopy();
+
+        Assert.False(ReferenceEquals(original.ItemQueue, clone.ItemQueue)); // new container
+        Assert.True(ReferenceEquals(item, clone.ItemQueue!.Peek()));         // shared elements
+    }
+
+    [Fact]
+    public void ShallowCopy_CreatesNewContainerAndNewElements_WhenStackIsWithinDepth()
+    {
+        var item = new CollectionItem { Id = 3, Name = "C" };
+        var original = new ShallowCollectionHolder { ItemStack = new Stack<CollectionItem>([item]) };
+
+        var clone = original.ShallowCopy();
+
+        Assert.NotNull(clone.ItemStack);
+        Assert.False(ReferenceEquals(original.ItemStack, clone.ItemStack));
+        Assert.False(ReferenceEquals(item, clone.ItemStack!.Peek()));
+        Assert.Equal(3, clone.ItemStack.Peek().Id);
+    }
+
+    [Fact]
+    public void ShallowCopy_CreatesNewContainerWithSharedElements_WhenStackIsAtDepthBoundary()
+    {
+        // [ShallowCopy(0)]: 0 < 0 → false → new Stack<T>(this.ItemStack) — new container, shared elements
+        var item = new CollectionItem { Id = 3, Name = "C" };
+        var original = new ShallowCollectionBoundary { ItemStack = new Stack<CollectionItem>([item]) };
+
+        var clone = original.ShallowCopy();
+
+        Assert.False(ReferenceEquals(original.ItemStack, clone.ItemStack)); // new container
+        Assert.True(ReferenceEquals(item, clone.ItemStack!.Peek()));         // shared elements
+    }
+
     // ─── Circular Reference Tests ─────────────────────────────────────────────────
     // Tests for handling cyclic/circular object references in shallow copy.
 
@@ -268,5 +353,88 @@ public class ShallowCopyTest
 
         // And bob's BestFriend is the shared original alice (unchanged)
         Assert.True(ReferenceEquals(alice, bob.BestFriend));
+    }
+
+    // ─── Struct Tests ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void ShallowCopy_CopiesCorrectly_WhenGivenStructWithPrimitiveValues()
+    {
+        var original = new Money { Amount = 75, Currency = "GBP" };
+
+        var clone = original.ShallowCopy();
+
+        Assert.Equal(75, clone.Amount);
+        Assert.Equal("GBP", clone.Currency);
+    }
+
+    [Fact]
+    public void ShallowCopy_ProducesIndependentValueCopy_WhenCopyingStruct()
+    {
+        // Struct is a value type; ShallowCopy returns a copy — mutations are isolated by design.
+        var original = new Money { Amount = 200, Currency = "JPY" };
+
+        var clone = original.ShallowCopy();
+        clone.Amount = 0;
+        clone.Currency = "XXX";
+
+        Assert.Equal(200, original.Amount);
+        Assert.Equal("JPY", original.Currency);
+    }
+
+    [Fact]
+    public void ShallowCopy_SharesNestedReference_WhenStructHasReferenceProperty()
+    {
+        // Struct ShallowCopy returns `this` (value-type copy). Reference-type fields are always shared,
+        // regardless of depth — this IS the correct shallow copy semantic for value types.
+        var address = new ShallowAddress { Street = "3 Pine Rd", City = "Gotham" };
+        var original = new ShallowPackageDimensions { Weight = 3.0, ReturnAddress = address };
+
+        var clone = original.ShallowCopy();
+
+        // struct is copied by value: Weight is an independent copy
+        Assert.Equal(3.0, clone.Weight);
+
+        // reference-type field is the SAME reference (shallow semantics for struct)
+        Assert.NotNull(clone.ReturnAddress);
+        Assert.True(ReferenceEquals(original.ReturnAddress, clone.ReturnAddress));
+        Assert.Equal("3 Pine Rd", clone.ReturnAddress!.Street);
+    }
+
+    // ─── Record Struct Tests ──────────────────────────────────────────────────────
+
+    [Fact]
+    public void ShallowCopy_CopiesCorrectly_WhenGivenRecordStruct()
+    {
+        var original = new Point(X: 4, Y: 8);
+
+        var clone = original.ShallowCopy();
+
+        Assert.Equal(4, clone.X);
+        Assert.Equal(8, clone.Y);
+    }
+
+    [Fact]
+    public void ShallowCopy_CopiesAllValues_WhenRecordStructHasStringProperty()
+    {
+        var original = new LabeledPoint(X: 0, Y: 0, Label: "Zero");
+
+        var clone = original.ShallowCopy();
+
+        Assert.Equal(0, clone.X);
+        Assert.Equal(0, clone.Y);
+        Assert.Equal("Zero", clone.Label);
+    }
+
+    [Fact]
+    public void ShallowCopy_ProducesIndependentCopy_WhenCopyingRecordStruct()
+    {
+        var original = new LabeledPoint(X: 1, Y: 1, Label: "One");
+
+        var clone = original.ShallowCopy();
+        clone = clone with { Label = "Mutated" };
+
+        // original is unaffected — record struct is a value type
+        Assert.Equal("One", original.Label);
     }
 }

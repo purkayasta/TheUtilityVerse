@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -10,7 +10,8 @@ namespace UtilityVerse.Copy.Analyzers;
 public class ValidationAnalyzer : DiagnosticAnalyzer
 {
 	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-		[Rules.MissingPartialRule, Rules.DeepRule, Rules.ShallowRule];
+		[Rules.MissingPartialRule, Rules.DeepRule, Rules.ShallowRule, Rules.NegativeDepthRule,
+		 Rules.NonPublicTypeRule, Rules.AbstractTypeRule];
 
 	public override void Initialize(AnalysisContext context)
 	{
@@ -44,15 +45,55 @@ public class ValidationAnalyzer : DiagnosticAnalyzer
 		var hasDeepCopy = Helper.HasDeepCopyOptIn(namedType);
 		var hasShallowCopy = Helper.HasShallowCopyOptIn(namedType);
 
-		if ((hasDeepCopy || hasShallowCopy) && !Helper.IsPartial(namedType))
-		{
-			var diagnostic = Diagnostic.Create(Rules.MissingPartialRule, typeSyntax.Identifier.GetLocation(), namedType.Name);
-			context.ReportDiagnostic(diagnostic);
-		}
-
 		if (!hasDeepCopy && !hasShallowCopy)
 			return;
 
+		// UV001: must be partial
+		if (!Helper.IsPartial(namedType))
+		{
+			context.ReportDiagnostic(Diagnostic.Create(Rules.MissingPartialRule, typeSyntax.Identifier.GetLocation(), namedType.Name));
+		}
+
+		// UV006: non-public type is silently ignored by the generator
+		if (namedType.DeclaredAccessibility != Accessibility.Public)
+		{
+			context.ReportDiagnostic(Diagnostic.Create(Rules.NonPublicTypeRule, typeSyntax.Identifier.GetLocation(), namedType.Name));
+		}
+
+		// UV008: abstract type cannot be instantiated
+		if (namedType.IsAbstract)
+		{
+			context.ReportDiagnostic(Diagnostic.Create(Rules.AbstractTypeRule, typeSyntax.Identifier.GetLocation(), namedType.Name));
+		}
+
+		// UV004: negative depth
+		if (hasDeepCopy)
+		{
+			var deepAttr = namedType.GetAttributes()
+				.FirstOrDefault(a => a.AttributeClass?.Name == "DeepCopy");
+			if (deepAttr != null && ExtractDepthFromAttribute(deepAttr) is int deepDepth && deepDepth < 0)
+			{
+				context.ReportDiagnostic(Diagnostic.Create(
+					Rules.NegativeDepthRule,
+					typeSyntax.Identifier.GetLocation(),
+					namedType.Name, deepDepth));
+			}
+		}
+
+		if (hasShallowCopy)
+		{
+			var shallowAttr = namedType.GetAttributes()
+				.FirstOrDefault(a => a.AttributeClass?.Name == "ShallowCopy");
+			if (shallowAttr != null && ExtractDepthFromAttribute(shallowAttr) is int shallowDepth && shallowDepth < 0)
+			{
+				context.ReportDiagnostic(Diagnostic.Create(
+					Rules.NegativeDepthRule,
+					typeSyntax.Identifier.GetLocation(),
+					namedType.Name, shallowDepth));
+			}
+		}
+
+		// UV002/UV003: nested types missing copy attribute
 		foreach (var prop in Helper.GetAllProperties(namedType).Where(p => !p.IsStatic))
 		{
 			AnalyzeTypeRecursive(
@@ -67,6 +108,24 @@ public class ValidationAnalyzer : DiagnosticAnalyzer
 		}
 	}
 
+	/// <summary>
+	/// Returns the effective depth from a copy attribute, checking both positional and named arguments.
+	/// Returns null if no depth argument is present.
+	/// </summary>
+	private static int? ExtractDepthFromAttribute(AttributeData attr)
+	{
+		// Named argument takes priority (e.g. [DeepCopy(Depth = -1)])
+		var named = attr.NamedArguments.FirstOrDefault(na => na.Key == "Depth");
+		if (named.Value.Value is int namedDepth)
+			return namedDepth;
+
+		// Positional argument (e.g. [DeepCopy(-1)])
+		if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is int positionalDepth)
+			return positionalDepth;
+
+		return null;
+	}
+
 	private static void AnalyzeTypeRecursive(
 		SymbolAnalysisContext context,
 		ITypeSymbol type,
@@ -76,6 +135,13 @@ public class ValidationAnalyzer : DiagnosticAnalyzer
 		bool requireDeepCopy,
 		bool requireShallowCopy)
 	{
+		// Handle arrays: check element type
+		if (type is IArrayTypeSymbol arrayType)
+		{
+			AnalyzeTypeRecursive(context, arrayType.ElementType, diagnosticLocation, propertyName, parentType, requireDeepCopy, requireShallowCopy);
+			return;
+		}
+
 		if (type is not INamedTypeSymbol namedType)
 			return;
 

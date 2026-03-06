@@ -174,6 +174,123 @@ var userClone = existingUser.DeepCopy();
 ---
 
 
+## 🔢 Depth Control
+
+Both `[DeepCopy]` and `[ShallowCopy]` accept an optional `maxDepth` parameter that controls how many levels of nested objects are copied.
+
+```csharp
+[DeepCopy(2)]      // copy up to 2 levels deep
+[ShallowCopy(1)]   // shallow-copy one level of nesting
+public partial class Order { ... }
+```
+
+The default depth when no argument is provided is **5**.
+
+---
+
+### How depth is counted
+
+Depth starts at **0** for the root object. Each nested object call increments the depth by 1.
+
+```
+Order          ← depth 0  (always copied)
+  Address      ← depth 1
+    City       ← depth 2  (copied only if maxDepth >= 2)
+```
+
+With `[DeepCopy(2)]` on `Order`, both `Address` and `City` are copied. A fourth level would be `null`.
+
+---
+
+### DeepCopy depth semantics
+
+| Situation | Result |
+|---|---|
+| Property is within depth | Recursively deep-copied as a new instance |
+| Property exceeds depth | `null` (reference types) or `default` (value types) |
+| Circular reference within depth | Preserved via identity map (same copied instance reused) |
+| Circular reference at depth boundary | Stopped — returns `null` instead of looping |
+
+```csharp
+[DeepCopy(2)]
+public partial class ChainNode
+{
+    public int Value { get; set; }
+    public ChainNode? Next { get; set; }
+}
+
+var n3 = new ChainNode { Value = 3 };
+var n2 = new ChainNode { Value = 2, Next = n3 };
+var n1 = new ChainNode { Value = 1, Next = n2 };
+
+var clone = n1.DeepCopy();
+// clone.Value       == 1   ✓
+// clone.Next.Value  == 2   ✓  (depth 1, within limit)
+// clone.Next.Next   == null    (depth 2 reached, truncated)
+```
+
+---
+
+### ShallowCopy depth semantics
+
+ShallowCopy uses `MemberwiseClone` at the root and then selectively overrides complex properties based on depth.
+
+| Situation | Result |
+|---|---|
+| Property is within depth | A new shallow-copied instance (new object, shared sub-references) |
+| Property exceeds depth | Original reference shared as-is (not copied) |
+
+```csharp
+[ShallowCopy(0)]  // classic shallow copy — all nested references shared
+public partial class Invoice { ... }
+
+[ShallowCopy(1)]  // BillingAddress is a new instance; its own properties are shared
+public partial class Receipt { ... }
+```
+
+---
+
+### Circular reference handling
+
+Both generators track already-copied objects via an internal identity map (`Dictionary<object, object>`). If the same object is encountered again during traversal, the previously created copy is reused — preserving referential integrity in the clone.
+
+```csharp
+var alice = new Friend { Name = "Alice" };
+var bob   = new Friend { Name = "Bob" };
+alice.BestFriend = bob;
+bob.BestFriend   = alice;   // circular reference
+
+var clone = alice.DeepCopy();
+// clone.BestFriend.BestFriend == clone  ✓  (cycle preserved, no stack overflow)
+```
+
+---
+
+### What is NOT supported
+
+| Limitation | Reason |
+|---|---|
+| Depth cannot be negative | Compile-time analyzer (UV004) reports an error |
+| Cannot use `private` for the internal copy method | The generated `DeepCopyInternal`/`ShallowCopyInternal` must be `internal` because the recursive calls cross type boundaries (e.g. `Order` calling into `Address.DeepCopyInternal`) |
+| Abstract types are not generated | A compile-time warning (UV008) is reported; abstract types cannot be instantiated |
+| Non-public types produce a warning | Analyzer UV006 warns that the generated `public` method on a non-public type is likely unreachable |
+| Structs do not track circular refs | Structs are value types and cannot be keys in the identity map; they are always copied by initialiser |
+| `IDeepCopy`/`IShallowCopy` marker interfaces do not accept depth | Depth can only be specified via the attribute constructor: `[DeepCopy(n)]` |
+
+---
+
+## 🗒 Release Notes
+
+### v2.x — Depth & Circular Reference Support
+
+- **Configurable copy depth** — `[DeepCopy(n)]` and `[ShallowCopy(n)]` now accept an optional `maxDepth` argument. Default is `5`.
+- **Circular reference safety** — deep and shallow copies use an identity map (`Dictionary<object, object>`) to detect already-copied objects, preventing stack overflows and preserving referential integrity in the clone.
+- **Struct objectMap propagation** — structs now share the same identity map as their parent copy call, ensuring consistent behaviour when a struct holds reference-type properties that appear elsewhere in the object graph.
+- **Single internal entry point** — `DeepCopyInternal`/`ShallowCopyInternal` are now single-overload methods that always receive the `objectMap`; the previous two-parameter bridge overload (which created an isolated map) has been removed.
+- **Compile-time depth validation** — negative depth values are rejected at compile time (analyzer UV004).
+
+---
+
 ## 📣 Like It? Star It! ⭐
 
 If you find UtilityVerse.Copy useful, give the repository a ⭐ and help others discover it!

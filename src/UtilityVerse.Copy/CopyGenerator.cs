@@ -4,6 +4,7 @@
 //  FREE TO USE TO CONNECT THE WORLD
 /// </summary>
 
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -21,9 +22,9 @@ public sealed class CopyGenerator : IIncrementalGenerator
         var typeDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: (s, _) => s is TypeDeclarationSyntax,
-                transform: (ctx, _) => GetSemanticTarget(ctx))
-            .Where(static m => m is not null)
-            .Select(static (m, _) => m!.Value)
+                transform: (ctx, _) => GetSemanticTargets(ctx))
+            .Where(static m => m.Length > 0)
+            .SelectMany(static (m, _) => m)
             .Collect();
 
         context.RegisterSourceOutput(typeDeclarations, (spc, types) =>
@@ -46,28 +47,22 @@ public sealed class CopyGenerator : IIncrementalGenerator
         });
     }
 
-    private static (INamedTypeSymbol Symbol, CopyMode Mode)? GetSemanticTarget(GeneratorSyntaxContext context)
+    private static ImmutableArray<(INamedTypeSymbol Symbol, CopyMode Mode)> GetSemanticTargets(GeneratorSyntaxContext context)
     {
         if (context.Node is not TypeDeclarationSyntax typeDecl)
-            return null;
-
-        // if (!typeDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)))
-        //     return null;
+            return ImmutableArray<(INamedTypeSymbol, CopyMode)>.Empty;
 
         var symbol = ModelExtensions.GetDeclaredSymbol(context.SemanticModel, typeDecl) as INamedTypeSymbol;
         if (symbol is not { DeclaredAccessibility: Accessibility.Public })
-            return null;
+            return ImmutableArray<(INamedTypeSymbol, CopyMode)>.Empty;
 
-        var hasDeep = symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "UtilityVerse.Copy.DeepCopy") ||
-                       symbol.AllInterfaces.Any(i => i.ToDisplayString() == "UtilityVerse.Copy.IDeepCopy");
+        var hasDeep = Helper.HasDeepCopyOptIn(symbol);
+        var hasShallow = Helper.HasShallowCopyOptIn(symbol);
 
-        var hasShallow = symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "UtilityVerse.Copy.ShallowCopy") ||
-                          symbol.AllInterfaces.Any(i => i.ToDisplayString() == "UtilityVerse.Copy.IShallowCopy");
-
-        if (hasDeep) return (symbol, CopyMode.Deep);
-        if (hasShallow) return (symbol, CopyMode.Shallow);
-
-        return null;
+        var builder = ImmutableArray.CreateBuilder<(INamedTypeSymbol, CopyMode)>(2);
+        if (hasDeep) builder.Add((symbol, CopyMode.Deep));
+        if (hasShallow) builder.Add((symbol, CopyMode.Shallow));
+        return builder.ToImmutable();
     }
 
     private static string? GenerateDeepCopy(INamedTypeSymbol typeSymbol) => DeepCopyGenerator.Generate(typeSymbol);

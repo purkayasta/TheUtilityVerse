@@ -27,4 +27,28 @@ internal static class Rules
         category: "UtilityVerse.Copy",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    internal static readonly DiagnosticDescriptor NegativeDepthRule = new(
+        id: "UV004",
+        title: "Depth must be zero or greater",
+        messageFormat: "Type '{0}' has an invalid depth value ({1}). Depth must be 0 or greater. Use 0 to skip copying entirely.",
+        category: "UtilityVerse.Copy",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    internal static readonly DiagnosticDescriptor NonPublicTypeRule = new(
+        id: "UV006",
+        title: "Non-public type decorated with copy attribute",
+        messageFormat: "Type '{0}' is not public. DeepCopy/ShallowCopy generation requires a public type; the attribute will be ignored.",
+        category: "UtilityVerse.Copy",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    internal static readonly DiagnosticDescriptor AbstractTypeRule = new(
+        id: "UV008",
+        title: "Abstract type decorated with copy attribute",
+        messageFormat: "Type '{0}' is abstract and cannot be instantiated. DeepCopy/ShallowCopy generation for abstract types is not supported.",
+        category: "UtilityVerse.Copy",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
 }

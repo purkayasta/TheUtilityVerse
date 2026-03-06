@@ -150,6 +150,65 @@ public partial class OrderItem
     public int Quantity { get; set; }
 }
 
+// ─── DeepCopy(0) fixture — verifies no exception and returns null ─────────────
+
+/// <summary>
+/// depth=0: DeepCopyInternal is called with currentDepth=0, maxDepth=0.
+/// Guard fires immediately (0 >= 0) and returns null. No exception thrown.
+/// </summary>
+[DeepCopy(0)]
+public partial class ZeroDepthItem
+{
+    public int Id { get; set; }
+    public string? Name { get; set; }
+}
+
+// ─── High-depth fixture — verifies no upper-bound limit ───────────────────────
+
+/// <summary>
+/// depth=15 (previously capped at 10). Verifies the generator accepts any
+/// non-negative depth and the copy works correctly within the chain length.
+/// </summary>
+[DeepCopy(15)]
+public partial class HighDepthNode
+{
+    public int Value { get; set; }
+    public HighDepthNode? Next { get; set; }
+}
+
+// ─── ShallowCopy collection fixtures ─────────────────────────────────────────
+
+[ShallowCopy]
+public partial class CollectionItem
+{
+    public int Id { get; set; }
+    public string? Name { get; set; }
+}
+
+/// <summary>
+/// depth=1: HashSet/Queue/Stack elements are within depth and get shallow-copied
+/// (new element instances). The containers themselves are also new.
+/// </summary>
+[ShallowCopy(1)]
+public partial class ShallowCollectionHolder
+{
+    public HashSet<CollectionItem>? ItemSet { get; set; }
+    public Queue<CollectionItem>? ItemQueue { get; set; }
+    public Stack<CollectionItem>? ItemStack { get; set; }
+}
+
+/// <summary>
+/// depth=0: HashSet/Queue/Stack are at the boundary — the original collection
+/// references are returned as-is (shared references).
+/// </summary>
+[ShallowCopy(0)]
+public partial class ShallowCollectionBoundary
+{
+    public HashSet<CollectionItem>? ItemSet { get; set; }
+    public Queue<CollectionItem>? ItemQueue { get; set; }
+    public Stack<CollectionItem>? ItemStack { get; set; }
+}
+
 // ─── Circular Reference Test Fixtures ────────────────────────────────────────
 
 /// <summary>
@@ -177,3 +236,65 @@ public partial class ShallowFriend
     public string? Name { get; set; }
     public ShallowFriend? BestFriend { get; set; }
 }
+
+// ─── Struct fixtures ──────────────────────────────────────────────────────────
+
+/// <summary>
+/// Simple value-type struct with primitives only.
+/// Both DeepCopy and ShallowCopy apply: verifies the generator works for structs.
+/// </summary>
+[DeepCopy]
+[ShallowCopy]
+public partial struct Money
+{
+    public int Amount { get; set; }
+    public string? Currency { get; set; }
+}
+
+/// <summary>
+/// Struct that holds a reference-type property.
+/// depth=2: level 0 = the struct itself (always copied), level 1 = Address (within depth, copied).
+/// </summary>
+[DeepCopy(2)]
+public partial struct PackageDimensions
+{
+    public double Weight { get; set; }
+    public Address? ReturnAddress { get; set; }
+}
+
+/// <summary>
+/// Struct that holds a shallow-copyable reference-type property.
+/// depth=1: the nested ShallowAddress is shallow-copied.
+/// </summary>
+[ShallowCopy(1)]
+public partial struct ShallowPackageDimensions
+{
+    public double Weight { get; set; }
+    public ShallowAddress? ReturnAddress { get; set; }
+}
+
+// ─── Record struct fixtures ───────────────────────────────────────────────────
+
+/// <summary>
+/// Positional record struct with primitive properties only.
+/// Verifies the generator correctly handles the struct path (not the class/record path).
+/// </summary>
+[DeepCopy]
+[ShallowCopy]
+public partial record struct Point(int X, int Y);
+
+/// <summary>
+/// Record struct with a string tag — verifies strings are treated as primitive.
+/// </summary>
+[DeepCopy]
+[ShallowCopy]
+public partial record struct LabeledPoint(int X, int Y, string? Label);
+
+// ─── Additional record class fixtures ────────────────────────────────────────
+
+/// <summary>
+/// Record class with mutable init properties and a nested reference.
+/// depth=2: both the record and its nested object are copied.
+/// </summary>
+[DeepCopy(2)]
+public partial record CustomerRecord(int Id, string? FullName, Address? HomeAddress, List<string>? Emails);
