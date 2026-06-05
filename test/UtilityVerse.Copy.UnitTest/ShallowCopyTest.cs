@@ -286,6 +286,22 @@ public class ShallowCopyTest
         Assert.True(ReferenceEquals(item, clone.ItemStack!.Peek()));         // shared elements
     }
 
+    [Fact]
+    public void ShallowCopy_PreservesStackOrder_WhenStackHasMultipleElements()
+    {
+        var a = new CollectionItem { Id = 1, Name = "A" };
+        var b = new CollectionItem { Id = 2, Name = "B" };
+        var original = new ShallowCollectionBoundary { ItemStack = new Stack<CollectionItem>([a, b]) };
+
+        var clone = original.ShallowCopy();
+
+        // Original top-to-bottom is B, A; the copy must preserve that order (not reverse it).
+        Assert.Equal(
+            original.ItemStack!.Select(i => i.Id),
+            clone.ItemStack!.Select(i => i.Id));
+        Assert.Equal(2, clone.ItemStack!.Peek().Id);
+    }
+
     // ─── Circular Reference Tests ─────────────────────────────────────────────────
     // Tests for handling cyclic/circular object references in shallow copy.
 
@@ -436,5 +452,38 @@ public class ShallowCopyTest
 
         // original is unaffected — record struct is a value type
         Assert.Equal("One", original.Label);
+    }
+
+    // ─── Marker-interface opt-in (no attribute) ──────────────────────────────────
+
+    [Fact]
+    public void ShallowCopy_WorksViaMarkerInterface()
+    {
+        var original = new InterfaceShallow { Id = 9, Addr = new ShallowAddress { Street = "Iface Ave" } };
+
+        var clone = original.ShallowCopy();
+
+        Assert.False(ReferenceEquals(original, clone));
+        Assert.Equal(9, clone.Id);
+        // default depth = 5, so the nested address is shallow-copied to a new instance
+        Assert.NotNull(clone.Addr);
+        Assert.False(ReferenceEquals(original.Addr, clone.Addr));
+        Assert.Equal("Iface Ave", clone.Addr!.Street);
+    }
+
+    // ─── Nested types ────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void ShallowCopy_WorksForNestedType()
+    {
+        // OuterHost.NestedShallowItem is [ShallowCopy(1)] — the root is cloned, Addr is within depth.
+        var original = new OuterHost.NestedShallowItem { Id = 4, Addr = new ShallowAddress { Street = "Nested" } };
+
+        var clone = original.ShallowCopy();
+
+        Assert.False(ReferenceEquals(original, clone));
+        Assert.Equal(4, clone.Id);
+        Assert.NotNull(clone.Addr);
+        Assert.Equal("Nested", clone.Addr!.Street);
     }
 }

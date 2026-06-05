@@ -11,28 +11,14 @@ namespace UtilityVerse.Copy;
 
 internal static class Helper
 {
+	// Must stay in sync with the default on the DeepCopy/ShallowCopy attributes (Depth = 5).
 	private const int DefaultDepth = 5;
 
 	internal static bool IsTrulyPrimitive(ITypeSymbol symbol)
 	{
-		return symbol.IsValueType || symbol.TypeKind is TypeKind.Enum || symbol.SpecialType switch
-		{
-			SpecialType.System_Boolean or
-			SpecialType.System_Byte or
-			SpecialType.System_SByte or
-			SpecialType.System_Int16 or
-			SpecialType.System_UInt16 or
-			SpecialType.System_Int32 or
-			SpecialType.System_UInt32 or
-			SpecialType.System_Int64 or
-			SpecialType.System_UInt64 or
-			SpecialType.System_Single or
-			SpecialType.System_Double or
-			SpecialType.System_Char or
-			SpecialType.System_Enum or
-			SpecialType.System_String => true,
-			_ => false
-		};
+		// Every value type (numerics, bool, char, enums, decimal, user-defined structs) is copied
+		// by value; string is the only reference type treated as primitive (it is immutable).
+		return symbol.IsValueType || symbol.SpecialType == SpecialType.System_String;
 	}
 
 	internal static bool IsBuiltinType(ITypeSymbol symbol)
@@ -113,6 +99,27 @@ internal static class Helper
 		}
 	}
 
+	/// <summary>
+	/// All readable instance properties (including get-only), walked up the inheritance chain.
+	/// Used to match constructor parameters by name — unlike <see cref="GetAllProperties"/> this
+	/// includes get-only properties, which are readable even though they cannot be assigned.
+	/// </summary>
+	internal static IEnumerable<IPropertySymbol> GetReadableProperties(INamedTypeSymbol? type)
+	{
+		var seen = new HashSet<string>(StringComparer.Ordinal);
+		while (type != null && type.SpecialType != SpecialType.System_Object)
+		{
+			foreach (var member in type.GetMembers().OfType<IPropertySymbol>())
+			{
+				if (member.IsStatic) continue;
+				if (member.GetMethod != null && seen.Add(member.Name))
+					yield return member;
+			}
+
+			type = type.BaseType;
+		}
+	}
+
 	internal static bool IsPartial(INamedTypeSymbol typeSymbol)
 	{
 		return typeSymbol.DeclaringSyntaxReferences.Any(syntaxRef =>
@@ -175,6 +182,41 @@ internal static class Helper
 
 	// ── Code scaffolding helpers ─────────────────────────────────────────────────
 
+	/// <summary>
+	/// The simple type name including any type parameters (e.g. "Box&lt;T&gt;"), as it must appear
+	/// in the generated partial declaration and in <c>new</c>/cast expressions.
+	/// </summary>
+	internal static string GetTypeNameWithTypeParameters(INamedTypeSymbol typeSymbol)
+	{
+		if (typeSymbol.TypeParameters.Length == 0)
+			return typeSymbol.Name;
+
+		return $"{typeSymbol.Name}<{string.Join(", ", typeSymbol.TypeParameters.Select(tp => tp.Name))}>";
+	}
+
+	/// <summary>
+	/// The chain of enclosing types from outermost to the immediate parent. Empty for a top-level type.
+	/// </summary>
+	internal static List<INamedTypeSymbol> GetContainingTypeChain(INamedTypeSymbol type)
+	{
+		var chain = new List<INamedTypeSymbol>();
+		for (var enclosing = type.ContainingType; enclosing != null; enclosing = enclosing.ContainingType)
+			chain.Add(enclosing);
+		chain.Reverse();
+		return chain;
+	}
+
+	/// <summary>
+	/// A nested type can be generated only if every enclosing type is <c>partial</c> and has a supported
+	/// type kind (so the generated partial can be nested in the same context). Always true for top-level
+	/// types. <paramref name="chain"/> is the outermost-first enclosing chain.
+	/// </summary>
+	internal static bool EnclosingTypesAreGeneratable(INamedTypeSymbol type, out List<INamedTypeSymbol> chain)
+	{
+		chain = GetContainingTypeChain(type);
+		return chain.All(enclosing => IsPartial(enclosing) && GetTypeKind(enclosing) != null);
+	}
+
 	internal static string? GetTypeKind(INamedTypeSymbol typeSymbol) => typeSymbol switch
 	{
 		{ TypeKind: TypeKind.Class, IsRecord: true } => "record",
@@ -231,16 +273,37 @@ internal static class Helper
 	}
 
 	/// <summary>
+	/// Opens a <c>partial</c> declaration for each enclosing type (outermost first) so a nested type's
+	/// generated members land in the correct nesting context. The access modifier is intentionally
+	/// omitted — partial declarations need not repeat it, and omitting avoids accessibility mismatches.
+	/// </summary>
+	internal static void AppendEnclosingTypesOpen(StringBuilder sb, List<INamedTypeSymbol> chain)
+	{
+		foreach (var enclosing in chain)
+		{
+			sb.AppendLine($"    partial {GetTypeKind(enclosing)} {GetTypeNameWithTypeParameters(enclosing)}");
+			sb.AppendLine("    {");
+		}
+	}
+
+	internal static void AppendEnclosingTypesClose(StringBuilder sb, List<INamedTypeSymbol> chain)
+	{
+		for (var i = 0; i < chain.Count; i++)
+			sb.AppendLine("    }");
+	}
+
+	/// <summary>
 	/// Emits the circular-reference identity check and depth guard for class types.
 	/// Must only be called for class (reference) types, not structs.
 	/// </summary>
 	internal static void AppendDeepCopyDepthGuard(StringBuilder sb, string typeName)
 	{
-		sb.AppendLine("            // Check if already copied (handles circular references)");
-		sb.AppendLine("            if (currentDepth < maxDepth && objectMap.TryGetValue(this, out var existing))");
+		sb.AppendLine("            // Identity check first: if this object was already copied, return the same");
+		sb.AppendLine("            // instance regardless of depth — this preserves circular references.");
+		sb.AppendLine("            if (objectMap.TryGetValue(this, out var existing))");
 		sb.AppendLine($"                return ({typeName})existing;");
 		sb.AppendLine();
-		sb.AppendLine("            // If at or beyond max depth, return null (depth limit reached)");
+		sb.AppendLine("            // Otherwise, if at or beyond max depth, stop recursing (depth limit reached)");
 		sb.AppendLine("            if (currentDepth >= maxDepth)");
 		sb.AppendLine("                return null!;");
 		sb.AppendLine();
@@ -251,6 +314,11 @@ internal static class Helper
 	internal static string GenerateDeepCopyAssignment(ITypeSymbol propType, string propertyName)
 	{
 		if (IsTrulyPrimitive(propType) || IsBuiltinType(propType))
+			return $"this.{propertyName}";
+
+		// Open type parameters are opaque at generation time — we cannot know whether T has a
+		// DeepCopy method, so we copy the value as-is (shared reference / value).
+		if (propType is ITypeParameterSymbol)
 			return $"this.{propertyName}";
 
 		return propType switch
@@ -338,9 +406,11 @@ internal static class Helper
 		bool elementIsPrimitive = IsTrulyPrimitive(elementType) || IsBuiltinType(elementType);
 		var elementTypeName = elementType.ToDisplayString();
 
+		// new Stack<T>(IEnumerable) pushes in enumeration order, which reverses a stack; Reverse() first
+		// so the copy preserves the original top-to-bottom order.
 		return elementIsPrimitive
-			? $"this.{propertyName} != null ? new Stack<{elementTypeName}>(this.{propertyName}) : null"
-			: $"currentDepth + 1 <= maxDepth && this.{propertyName} != null ? new Stack<{elementTypeName}>(this.{propertyName}.Select(x => x?.DeepCopyInternal(currentDepth + 1, maxDepth, objectMap))) : null";
+			? $"this.{propertyName} != null ? new Stack<{elementTypeName}>(this.{propertyName}.Reverse()) : null"
+			: $"currentDepth + 1 <= maxDepth && this.{propertyName} != null ? new Stack<{elementTypeName}>(this.{propertyName}.Select(x => x?.DeepCopyInternal(currentDepth + 1, maxDepth, objectMap)).Reverse()) : null";
 	}
 
 	private static string GenerateDeepCopyListAssignment(ITypeSymbol elementType, string propertyName)
@@ -370,6 +440,10 @@ internal static class Helper
 	internal static string GenerateShallowCopyAssignment(ITypeSymbol propType, string propertyName)
 	{
 		if (IsTrulyPrimitive(propType) || IsBuiltinType(propType))
+			return $"this.{propertyName}";
+
+		// Open type parameters are opaque at generation time — copy the value as-is.
+		if (propType is ITypeParameterSymbol)
 			return $"this.{propertyName}";
 
 		return propType switch
@@ -460,9 +534,10 @@ internal static class Helper
 		var elementTypeName = elementType.ToDisplayString();
 		var cloneExpr = "x?.ShallowCopyInternal(currentDepth + 1, maxDepth, objectMap)";
 
+		// new Stack<T>(IEnumerable) reverses order; Reverse() first so the copy preserves the original order.
 		return elementIsPrimitive
-			? $"this.{propertyName} != null ? new Stack<{elementTypeName}>(this.{propertyName}) : null"
-			: $"this.{propertyName} != null ? new Stack<{elementTypeName}>(currentDepth < maxDepth ? this.{propertyName}.Select(x => {cloneExpr}) : this.{propertyName}) : null";
+			? $"this.{propertyName} != null ? new Stack<{elementTypeName}>(this.{propertyName}.Reverse()) : null"
+			: $"this.{propertyName} != null ? new Stack<{elementTypeName}>((currentDepth < maxDepth ? this.{propertyName}.Select(x => {cloneExpr}) : (IEnumerable<{elementTypeName}>)this.{propertyName}).Reverse()) : null";
 	}
 
 	private static string GenerateShallowCopyListAssignment(ITypeSymbol elementType, string propertyName)

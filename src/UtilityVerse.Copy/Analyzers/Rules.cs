@@ -44,6 +44,14 @@ internal static class Rules
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    internal static readonly DiagnosticDescriptor EnclosingTypeNotPartialRule = new(
+        id: "UV009",
+        title: "Enclosing type must be partial",
+        messageFormat: "Type '{0}' is nested inside non-partial type '{1}', which must be declared 'partial' for DeepCopy/ShallowCopy generation",
+        category: "UtilityVerse.Copy",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     internal static readonly DiagnosticDescriptor AbstractTypeRule = new(
         id: "UV008",
         title: "Abstract type decorated with copy attribute",

@@ -565,4 +565,297 @@ public class DeepCopyTest
 
         Assert.Equal("7 Oak Ave", original.HomeAddress!.Street);
     }
+
+    // ─── Regression: identity map keys on reference, not value equality ───────────
+
+    [Fact]
+    public void DeepCopy_DoesNotMergeValueEqualRecords_WhenTheyAreDistinctInstances()
+    {
+        // t1 and t2 are distinct instances but equal by value (records use value equality).
+        // The identity map must NOT treat them as the same object.
+        var t1 = new Tag("same");
+        var t2 = new Tag("same");
+        var original = new Article { First = t1, Second = t2 };
+
+        var clone = original.DeepCopy();
+
+        Assert.NotNull(clone.First);
+        Assert.NotNull(clone.Second);
+        Assert.False(ReferenceEquals(clone.First, clone.Second));
+    }
+
+    [Fact]
+    public void DeepCopy_PreservesSharing_WhenSameInstanceReferencedTwice()
+    {
+        // The same instance referenced from two properties must be copied once and shared.
+        var shared = new Tag("shared");
+        var original = new Article { First = shared, Second = shared };
+
+        var clone = original.DeepCopy();
+
+        Assert.True(ReferenceEquals(clone.First, clone.Second));
+    }
+
+    // ─── Regression: get-only / init-only / extra settable properties ─────────────
+
+    [Fact]
+    public void DeepCopy_CopiesGetOnlyProperties_WhenSuppliedThroughConstructor()
+    {
+        var original = new ImmutablePoint(7, "origin");
+
+        var clone = original.DeepCopy();
+
+        Assert.Equal(7, clone.X);
+        Assert.Equal("origin", clone.Label);
+        Assert.False(ReferenceEquals(original, clone));
+    }
+
+    [Fact]
+    public void DeepCopy_CopiesInitOnlyProperties_OnParameterlessType()
+    {
+        var original = new InitPerson { Name = "Ada", Home = new Address { Street = "1 Lovelace Way" } };
+
+        var clone = original.DeepCopy();
+
+        Assert.Equal("Ada", clone.Name);
+        Assert.NotNull(clone.Home);
+        Assert.False(ReferenceEquals(original.Home, clone.Home));
+        Assert.Equal("1 Lovelace Way", clone.Home!.Street);
+    }
+
+    [Fact]
+    public void DeepCopy_CopiesSettableProperty_WhenNotSuppliedByConstructor()
+    {
+        var original = new OrderWithExtra(5) { Note = "handle with care" };
+
+        var clone = original.DeepCopy();
+
+        Assert.Equal(5, clone.Id);
+        Assert.Equal("handle with care", clone.Note);
+    }
+
+    [Fact]
+    public void DeepCopy_PreservesCycle_WhenCtorTypeHasSettableBackReference()
+    {
+        // Cycle flows through the settable Buddy property (assigned after identity-map registration).
+        var alice = new CtorFriend("Alice");
+        var bob = new CtorFriend("Bob");
+        alice.Buddy = bob;
+        bob.Buddy = alice;
+
+        var cloneAlice = alice.DeepCopy();
+
+        Assert.False(ReferenceEquals(alice, cloneAlice));
+        Assert.NotNull(cloneAlice.Buddy);
+        Assert.Equal("Bob", cloneAlice.Buddy!.Name);
+        // The cycle is preserved: clone.Buddy.Buddy is the clone root itself.
+        Assert.True(ReferenceEquals(cloneAlice, cloneAlice.Buddy.Buddy));
+    }
+
+    // ─── Regression: open generic types ──────────────────────────────────────────
+
+    [Fact]
+    public void DeepCopy_SupportsGenericType_AndTreatsTypeParameterAsOpaque()
+    {
+        var inner = new Address { Street = "Generic St" };
+        var original = new Box<Address> { Value = inner, Label = "boxed" };
+
+        var clone = original.DeepCopy();
+
+        Assert.Equal("boxed", clone.Label);
+        // T is opaque: the value is copied as-is (shared reference).
+        Assert.True(ReferenceEquals(inner, clone.Value));
+    }
+
+    // ─── Marker-interface opt-in (no attribute) ──────────────────────────────────
+
+    [Fact]
+    public void DeepCopy_WorksViaMarkerInterface()
+    {
+        var original = new InterfaceDeep { Id = 7, Addr = new Address { Street = "Iface St" } };
+
+        var clone = original.DeepCopy();
+
+        Assert.Equal(7, clone.Id);
+        Assert.NotNull(clone.Addr);
+        Assert.False(ReferenceEquals(original.Addr, clone.Addr));
+        Assert.Equal("Iface St", clone.Addr!.Street);
+    }
+
+    // ─── Nested types ────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void DeepCopy_WorksForNestedType()
+    {
+        var original = new OuterHost.NestedItem { Id = 3, Addr = new Address { Street = "Nested" } };
+
+        var clone = original.DeepCopy();
+
+        Assert.False(ReferenceEquals(original, clone));
+        Assert.Equal(3, clone.Id);
+        Assert.NotNull(clone.Addr);
+        Assert.False(ReferenceEquals(original.Addr, clone.Addr));
+        Assert.Equal("Nested", clone.Addr!.Street);
+    }
+
+    [Fact]
+    public void DeepCopy_WorksForDoublyNestedType()
+    {
+        var original = new Level1.Level2.DeeplyNested
+        {
+            Name = "deep",
+            Addr = new Address { Street = "Two levels down" }
+        };
+
+        var clone = original.DeepCopy();
+
+        Assert.False(ReferenceEquals(original, clone));
+        Assert.Equal("deep", clone.Name);
+        Assert.False(ReferenceEquals(original.Addr, clone.Addr));
+        Assert.Equal("Two levels down", clone.Addr!.Street);
+    }
+
+    [Fact]
+    public void DeepCopy_WorksForTypeNestedInGenericHost()
+    {
+        var original = new GenericHost<int>.NestedInGeneric { Value = 5, Tag = "g" };
+
+        var clone = original.DeepCopy();
+
+        Assert.False(ReferenceEquals(original, clone));
+        Assert.Equal(5, clone.Value);
+        Assert.Equal("g", clone.Tag);
+    }
+
+    // ─── Arrays ──────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void DeepCopy_CopiesPrimitiveArray_AsIndependentInstance()
+    {
+        var original = new CollectionBag { Numbers = [1, 2, 3] };
+
+        var clone = original.DeepCopy();
+
+        Assert.Equal(new[] { 1, 2, 3 }, clone.Numbers);
+        Assert.False(ReferenceEquals(original.Numbers, clone.Numbers));
+    }
+
+    [Fact]
+    public void DeepCopy_CopiesComplexArray_WithNewElements()
+    {
+        var original = new CollectionBag { ItemArray = [new LineItem { ProductName = "Widget", Quantity = 2 }] };
+
+        var clone = original.DeepCopy();
+
+        Assert.NotNull(clone.ItemArray);
+        Assert.False(ReferenceEquals(original.ItemArray, clone.ItemArray));
+        Assert.False(ReferenceEquals(original.ItemArray![0], clone.ItemArray![0]));
+        Assert.Equal("Widget", clone.ItemArray[0]!.ProductName);
+    }
+
+    // ─── HashSet / Queue / Stack (deep) ──────────────────────────────────────────
+
+    [Fact]
+    public void DeepCopy_CopiesPrimitiveHashSet_AsIndependentInstance()
+    {
+        var original = new CollectionBag { IntSet = [1, 2, 3] };
+
+        var clone = original.DeepCopy();
+
+        Assert.False(ReferenceEquals(original.IntSet, clone.IntSet));
+        Assert.Equal(new HashSet<int> { 1, 2, 3 }, clone.IntSet);
+    }
+
+    [Fact]
+    public void DeepCopy_CopiesComplexHashSet_WithNewElements()
+    {
+        var item = new LineItem { ProductName = "Pen", Quantity = 1 };
+        var original = new CollectionBag { ItemSet = [item] };
+
+        var clone = original.DeepCopy();
+
+        Assert.NotNull(clone.ItemSet);
+        Assert.False(ReferenceEquals(original.ItemSet, clone.ItemSet));
+        Assert.False(ReferenceEquals(item, clone.ItemSet!.Single()));
+        Assert.Equal("Pen", clone.ItemSet.Single()!.ProductName);
+    }
+
+    [Fact]
+    public void DeepCopy_CopiesQueueAndStack_AsIndependentInstances()
+    {
+        var original = new CollectionBag
+        {
+            IntQueue = new Queue<int>([1, 2]),
+            IntStack = new Stack<int>([3, 4])
+        };
+
+        var clone = original.DeepCopy();
+
+        Assert.False(ReferenceEquals(original.IntQueue, clone.IntQueue));
+        Assert.Equal(new[] { 1, 2 }, clone.IntQueue!.ToArray());
+        Assert.False(ReferenceEquals(original.IntStack, clone.IntStack));
+        Assert.Equal(new[] { 4, 3 }, clone.IntStack!.ToArray());
+    }
+
+    // ─── Dictionary ──────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void DeepCopy_CopiesPrimitiveValuedDictionary_AsIndependentInstance()
+    {
+        var original = new CollectionBag { PrimitiveMap = new() { ["a"] = 1, ["b"] = 2 } };
+
+        var clone = original.DeepCopy();
+
+        Assert.False(ReferenceEquals(original.PrimitiveMap, clone.PrimitiveMap));
+        Assert.Equal(1, clone.PrimitiveMap!["a"]);
+        Assert.Equal(2, clone.PrimitiveMap["b"]);
+    }
+
+    [Fact]
+    public void DeepCopy_CopiesComplexValuedDictionary_WithNewValues()
+    {
+        var item = new LineItem { ProductName = "Boxed", Quantity = 7 };
+        var original = new CollectionBag { ComplexMap = new() { ["k"] = item } };
+
+        var clone = original.DeepCopy();
+
+        Assert.NotNull(clone.ComplexMap);
+        Assert.False(ReferenceEquals(original.ComplexMap, clone.ComplexMap));
+        Assert.False(ReferenceEquals(item, clone.ComplexMap!["k"]));
+        Assert.Equal("Boxed", clone.ComplexMap["k"]!.ProductName);
+    }
+
+    // ─── Value tuple ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void DeepCopy_CopiesValueTupleProperty()
+    {
+        var original = new CollectionBag { Pair = (42, "answer") };
+
+        var clone = original.DeepCopy();
+
+        Assert.Equal(42, clone.Pair.Number);
+        Assert.Equal("answer", clone.Pair.Text);
+    }
+
+    // ─── Inheritance ──────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void DeepCopy_CopiesInheritedProperties()
+    {
+        var original = new DerivedEntity
+        {
+            BaseId = 11,
+            BaseAddr = new Address { Street = "Base St" },
+            Extra = "derived"
+        };
+
+        var clone = original.DeepCopy();
+
+        Assert.Equal(11, clone.BaseId);
+        Assert.Equal("derived", clone.Extra);
+        Assert.NotNull(clone.BaseAddr);
+        Assert.False(ReferenceEquals(original.BaseAddr, clone.BaseAddr));
+        Assert.Equal("Base St", clone.BaseAddr!.Street);
+    }
 }

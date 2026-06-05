@@ -298,3 +298,198 @@ public partial record struct LabeledPoint(int X, int Y, string? Label);
 /// </summary>
 [DeepCopy(2)]
 public partial record CustomerRecord(int Id, string? FullName, Address? HomeAddress, List<string>? Emails);
+
+// ─── Regression fixtures for the depth/identity-map fixes ─────────────────────
+
+/// <summary>
+/// Open generic type — verifies the generator emits the type-parameter list and treats
+/// the type-parameter property as opaque (copied as-is, shared reference / value).
+/// </summary>
+[DeepCopy]
+public partial class Box<T>
+{
+    public T? Value { get; set; }
+    public string? Label { get; set; }
+}
+
+/// <summary>
+/// Value-equal record — two distinct instances compare equal by value. Used to verify the
+/// identity map keys on reference identity, not value equality.
+/// </summary>
+[DeepCopy(3)]
+public partial record Tag(string Name);
+
+[DeepCopy(3)]
+public partial class Article
+{
+    public Tag? First { get; set; }
+    public Tag? Second { get; set; }
+}
+
+/// <summary>
+/// Immutable class with get-only properties fed exclusively through the constructor.
+/// Verifies constructor arguments match get-only properties (no data loss).
+/// </summary>
+[DeepCopy(2)]
+public partial class ImmutablePoint
+{
+    public int X { get; }
+    public string? Label { get; }
+
+    public ImmutablePoint(int x, string? label)
+    {
+        X = x;
+        Label = label;
+    }
+}
+
+/// <summary>
+/// Parameterless type with init-only properties — must be initialised via an object initializer.
+/// </summary>
+[DeepCopy(2)]
+public partial class InitPerson
+{
+    public string? Name { get; init; }
+    public Address? Home { get; init; }
+}
+
+/// <summary>
+/// Constructor-initialised class with a settable property NOT supplied by the constructor.
+/// The settable property must still be copied.
+/// </summary>
+[DeepCopy(2)]
+public partial class OrderWithExtra
+{
+    public int Id { get; }
+    public string? Note { get; set; }
+
+    public OrderWithExtra(int id)
+    {
+        Id = id;
+    }
+}
+
+/// <summary>
+/// Constructor-initialised class with a settable self-referential property.
+/// The cycle flows through the settable back-reference, which is assigned after the
+/// instance is registered in the identity map — so the cycle is preserved.
+/// </summary>
+[DeepCopy(3)]
+public partial class CtorFriend
+{
+    public string? Name { get; }
+    public CtorFriend? Buddy { get; set; }
+
+    public CtorFriend(string? name)
+    {
+        Name = name;
+    }
+}
+
+/// <summary>
+/// Opt-in via the marker interface instead of an attribute (default depth = 5).
+/// </summary>
+public partial class InterfaceDeep : IDeepCopy
+{
+    public int Id { get; set; }
+    public Address? Addr { get; set; }
+}
+
+public partial class InterfaceShallow : IShallowCopy
+{
+    public int Id { get; set; }
+    public ShallowAddress? Addr { get; set; }
+}
+
+// ─── Nested type fixtures ─────────────────────────────────────────────────────
+
+/// <summary>
+/// Copyable types nested one level inside a partial host.
+/// </summary>
+public partial class OuterHost
+{
+    [DeepCopy(2)]
+    public partial class NestedItem
+    {
+        public int Id { get; set; }
+        public Address? Addr { get; set; }
+    }
+
+    [ShallowCopy(1)]
+    public partial class NestedShallowItem
+    {
+        public int Id { get; set; }
+        public ShallowAddress? Addr { get; set; }
+    }
+}
+
+/// <summary>
+/// A copyable type nested two levels deep — both enclosing types are partial.
+/// </summary>
+public partial class Level1
+{
+    public partial class Level2
+    {
+        [DeepCopy(2)]
+        public partial class DeeplyNested
+        {
+            public string? Name { get; set; }
+            public Address? Addr { get; set; }
+        }
+    }
+}
+
+/// <summary>
+/// A copyable type nested inside a generic host — the generated partial must reproduce the
+/// host's type parameter list (<c>GenericHost&lt;THost&gt;</c>).
+/// </summary>
+public partial class GenericHost<THost>
+{
+    [DeepCopy]
+    public partial class NestedInGeneric
+    {
+        public int Value { get; set; }
+        public string? Tag { get; set; }
+    }
+}
+
+// ─── Collection / array / dictionary / tuple coverage (deep copy) ─────────────
+
+/// <summary>
+/// Exercises the array, HashSet, Queue, Stack, Dictionary and tuple deep-copy code paths,
+/// for both primitive and complex element types.
+/// </summary>
+[DeepCopy(3)]
+public partial class CollectionBag
+{
+    public int[]? Numbers { get; set; }
+    public LineItem[]? ItemArray { get; set; }
+
+    public HashSet<int>? IntSet { get; set; }
+    public HashSet<LineItem>? ItemSet { get; set; }
+
+    public Queue<int>? IntQueue { get; set; }
+    public Stack<int>? IntStack { get; set; }
+
+    public Dictionary<string, int>? PrimitiveMap { get; set; }
+    public Dictionary<string, LineItem>? ComplexMap { get; set; }
+
+    public (int Number, string Text) Pair { get; set; }
+}
+
+// ─── Inheritance coverage ─────────────────────────────────────────────────────
+
+public class BaseEntity
+{
+    public int BaseId { get; set; }
+    public Address? BaseAddr { get; set; }
+}
+
+/// <summary>
+/// Verifies that inherited public settable properties (walked up the base chain) are copied.
+/// </summary>
+[DeepCopy(2)]
+public partial class DerivedEntity : BaseEntity
+{
+    public string? Extra { get; set; }
+}

@@ -33,34 +33,46 @@ public static class DepthTest
         var cefaloCopied = cefalo.DeepCopy();
         var cefaloCopiedFromJson = JsonSerializer.Deserialize<Company>(cefaloJson);
 
-        PrintUntilNullFound(cefaloCopied);
+        // The copy is a faithful deep copy: a brand-new graph...
+        Console.WriteLine($"Root is a new instance: {!ReferenceEquals(cefalo, cefaloCopied)}");
+
+        // ...but the circular reference is preserved via the identity map:
+        // copiedCompany.Single.Company should point back to copiedCompany.
+        var cyclePreserved = cefaloCopied is not null
+            && ReferenceEquals(cefaloCopied, cefaloCopied.Single?.Company);
+        Console.WriteLine($"Cycle preserved (Single.Company == root): {cyclePreserved}");
+
+        PrintGraph(cefaloCopied);
 
         System.Console.WriteLine("Now Json");
-        PrintUntilNullFound(cefaloCopiedFromJson);
+        PrintGraph(cefaloCopiedFromJson);
 
         Console.WriteLine("\n[OK] All depth tests passed!\n");
     }
 
-    private static void PrintUntilNullFound(Company? c, int level = 0)
+    // Cycle-aware printer: stops when it revisits an already-seen instance so a
+    // (correctly) circular copy does not cause infinite recursion.
+    private static void PrintGraph(Company? c)
     {
-        System.Console.WriteLine($"Level: {level}");
-        if (c is not null)
+        var seen = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        var level = 0;
+        while (c is not null && seen.Add(c))
         {
-            System.Console.WriteLine($"Company: {c.Id}, Name: {c.Name}");
-            PrintUntilNullFound(c.Single, level + 1);
+            System.Console.WriteLine($"Level {level}: Company {c.Id}, Name: {c.Name}");
+            var e = c.Single;
+            if (e is null || !seen.Add(e)) break;
+            System.Console.WriteLine($"Level {level + 1}: Employee {e.Name}");
+            c = e.Company;
+            level += 2;
         }
-    }
-    private static void PrintUntilNullFound(Employee? e, int level = 0)
-    {
-        System.Console.WriteLine($"Level : {level}");
-        if (e == null) return;
-        System.Console.WriteLine($"Employee: {e.Name}");
-        PrintUntilNullFound(e.Company, level + 1);
+
+        if (c is not null)
+            System.Console.WriteLine($"[cycle] reached an already-copied instance — stopping.");
     }
 
 }
 
-[DeepCopy(2)]
+[DeepCopy(3)]
 public partial class Company
 {
     public int Id { get; set; }
@@ -69,7 +81,7 @@ public partial class Company
     public Employee? Single { get; set; }
 }
 
-[DeepCopy(2)]
+[DeepCopy(3)]
 public partial class Employee
 {
     public string? Name { get; set; }

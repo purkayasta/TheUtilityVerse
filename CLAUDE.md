@@ -91,11 +91,13 @@ dotnet clean UtilityVerse-Soln.sln
 
 The **UtilityVerse.Copy** project is a Roslyn-based source generator that automatically creates `DeepCopy()` and `ShallowCopy()` methods at compile-time. Understanding this architecture is critical for most development tasks.
 
+It targets **netstandard2.0** — required for Roslyn analyzers/source generators (do not bump this). The test projects that consume it target net10.0.
+
 ### Entry Points
 
 - **CopyGenerator.cs** — Main entry point (`IIncrementalGenerator` implementation). Orchestrates the scanning of types, validation, and delegation to specific generators.
-- **DeepCopyGenerator.cs** — Generates recursive deep copy methods with circular reference handling and optional depth limiting.
-- **ShallowCopyGenerator.cs** — Generates shallow copy methods.
+- **Generators/DeepCopyGenerator.cs** — Generates recursive deep copy methods with circular reference handling and optional depth limiting.
+- **Generators/ShallowCopyGenerator.cs** — Generates shallow copy methods.
 
 ### Support Classes
 
@@ -105,11 +107,12 @@ The **UtilityVerse.Copy** project is a Roslyn-based source generator that automa
   - Generating property copy assignments with depth checks
   - Type classification (primitive, collection, custom type, etc.)
 
-- **ValidationAnalyzer.cs** — Validates decorated types at compile-time:
+- **Analyzers/ValidationAnalyzer.cs** — Validates decorated types at compile-time:
   - Ensures types are `partial`
   - Warns if abstract types are decorated
   - Validates attribute usage
 
+- **Analyzers/Rules.cs** — Diagnostic descriptors (IDs, messages, severities) reported by the analyzer
 - **Attributes/** — Simple marker attributes (`[DeepCopy]`, `[ShallowCopy]`) with optional depth parameter
 - **Interfaces/** — Marker interfaces (`IDeepCopy`, `IShallowCopy`) as alternative to attributes
 
@@ -129,8 +132,8 @@ The **UtilityVerse.Copy** project is a Roslyn-based source generator that automa
 
 ### Key Files for Reference
 
-- **DeepCopyGenerator.cs:16-20** — Depth extraction and type validation
-- **Helper.cs** — Property assignment generation with depth checks
+- **Generators/DeepCopyGenerator.cs** — Depth extraction and type validation
+- **Helper.cs** — Property assignment generation, type classification, and depth checks (`DefaultDepth = 5`)
 - **Test files** (`test/UtilityVerse.Copy.Test/` and `test/UtilityVerse.Copy.UnitTest/`) — Examples of how depth and circular references are tested
 
 ---
@@ -157,7 +160,7 @@ You can inspect them during development to verify correctness.
 
 ### Testing Source Generators
 
-- Test projects target the same framework as the main package (e.g., net10.0)
+- The `UtilityVerse.Copy.Test` and `UtilityVerse.Copy.UnitTest` projects target net10.0 (the generator itself is netstandard2.0)
 - Tests exercise the generated code by instantiating classes with copy methods
 - Use `DepthTest.cs` as a reference for testing depth-limiting behavior with circular references
 
@@ -169,9 +172,10 @@ The deep copy generator uses an internal `Dictionary<object, object> objectMap` 
 
 ## Branch Strategy & Contribution Workflow
 
-- **main branch** → production releases
+- **master branch** → production releases (the repo's default branch)
 - **development branch** → integration branch for features
 - **Feature branches** → created from `development`, prefixed meaningfully (e.g., `add-depth`, `fix-circular-refs`)
+- Never push directly to `master` or `development`; open a PR targeting `development`
 
 Per CONTRIBUTING.md:
 1. Create an issue first to discuss your contribution
@@ -201,7 +205,7 @@ Each project is multi-targeted (supports multiple .NET versions). Check `.csproj
 
 ## Code Style
 
-- The repository uses implicit `using` statements and nullable reference types (`<Nullable>enable</Nullable>`)
+- All projects enable implicit `using` statements; nullable reference types (`<Nullable>enable</Nullable>`) are on everywhere **except** the core `UtilityVerse` project
 - C# latest language features are enabled (`<LangVersion>latest</LangVersion>`)
 - Follow the existing code structure (e.g., how `Helper.cs` is organized, how generators delegate)
 

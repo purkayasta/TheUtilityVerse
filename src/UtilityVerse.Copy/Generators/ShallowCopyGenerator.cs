@@ -4,6 +4,7 @@
 //  FREE TO USE TO CONNECT THE WORLD
 /// </summary>
 
+using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
@@ -15,6 +16,8 @@ internal static class ShallowCopyGenerator
 	{
 		if (typeSymbol.IsAbstract) return null;
 		if (!Helper.IsPartial(typeSymbol)) return null;
+		// Nested types are supported only when every enclosing type is partial (reported as UV009).
+		if (!Helper.EnclosingTypesAreGeneratable(typeSymbol, out var enclosingChain)) return null;
 
 		var depth = Helper.ExtractDepth(typeSymbol, "ShallowCopy");
 		var typeKind = Helper.GetTypeKind(typeSymbol);
@@ -23,19 +26,20 @@ internal static class ShallowCopyGenerator
 		var namespaceName = typeSymbol.ContainingNamespace.IsGlobalNamespace
 			? null
 			: typeSymbol.ContainingNamespace.ToDisplayString();
-		var typeName = typeSymbol.Name;
+		var typeName = Helper.GetTypeNameWithTypeParameters(typeSymbol);
 
 		var sb = new StringBuilder();
 
 		Helper.AppendFileHeader(sb, "Shallow");
 		Helper.AppendNamespaceOpen(sb, namespaceName);
+		Helper.AppendEnclosingTypesOpen(sb, enclosingChain);
 		Helper.AppendTypeDeclarationOpen(sb, typeKind, typeName);
 
 		// Public entry point
 		sb.AppendLine("        [System.CodeDom.Compiler.GeneratedCode(\"ShallowCopyGenerator\", \"1.0\")]");
 		sb.AppendLine($"        public {typeName} ShallowCopy()");
 		sb.AppendLine("        {");
-		sb.AppendLine($"            var objectMap = new Dictionary<object, object>();");
+		sb.AppendLine($"            var objectMap = new Dictionary<object, object>(System.Collections.Generic.ReferenceEqualityComparer.Instance);");
 		sb.AppendLine($"            return ShallowCopyInternal(0, {depth}, objectMap);");
 		sb.AppendLine("        }");
 		sb.AppendLine();
@@ -66,6 +70,11 @@ internal static class ShallowCopyGenerator
 				if (Helper.IsTrulyPrimitive(propType) || Helper.IsBuiltinType(propType))
 					continue;
 
+				// init-only properties cannot be reassigned after MemberwiseClone; the clone already
+				// holds the (shared) reference, which is valid shallow-copy semantics.
+				if (member.SetMethod is { IsInitOnly: true })
+					continue;
+
 				var assignment = Helper.GenerateShallowCopyAssignment(propType, member.Name);
 				sb.AppendLine($"            copy.{member.Name} = {assignment};");
 			}
@@ -80,6 +89,7 @@ internal static class ShallowCopyGenerator
 
 		sb.AppendLine("        }");
 		Helper.AppendTypeDeclarationClose(sb);
+		Helper.AppendEnclosingTypesClose(sb, enclosingChain);
 		Helper.AppendNamespaceClose(sb, namespaceName);
 
 		return sb.ToString();

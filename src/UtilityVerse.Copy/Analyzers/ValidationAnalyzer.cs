@@ -11,7 +11,7 @@ public class ValidationAnalyzer : DiagnosticAnalyzer
 {
 	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
 		[Rules.MissingPartialRule, Rules.DeepRule, Rules.ShallowRule, Rules.NegativeDepthRule,
-		 Rules.NonPublicTypeRule, Rules.AbstractTypeRule];
+		 Rules.NonPublicTypeRule, Rules.AbstractTypeRule, Rules.EnclosingTypeNotPartialRule];
 
 	public override void Initialize(AnalysisContext context)
 	{
@@ -64,6 +64,17 @@ public class ValidationAnalyzer : DiagnosticAnalyzer
 		if (namedType.IsAbstract)
 		{
 			context.ReportDiagnostic(Diagnostic.Create(Rules.AbstractTypeRule, typeSyntax.Identifier.GetLocation(), namedType.Name));
+		}
+
+		// UV009: every enclosing type of a nested copyable type must be partial
+		for (var enclosing = namedType.ContainingType; enclosing != null; enclosing = enclosing.ContainingType)
+		{
+			if (!Helper.IsPartial(enclosing))
+			{
+				context.ReportDiagnostic(Diagnostic.Create(
+					Rules.EnclosingTypeNotPartialRule, typeSyntax.Identifier.GetLocation(), namedType.Name, enclosing.Name));
+				break;
+			}
 		}
 
 		// UV004: negative depth
