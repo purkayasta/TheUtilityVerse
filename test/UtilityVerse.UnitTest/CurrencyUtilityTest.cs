@@ -3,8 +3,6 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
-using Xunit.Abstractions;
-
 namespace UtilityVerse.UnitTest;
 
 public class CurrencyUtilityTest
