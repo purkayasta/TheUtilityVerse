@@ -4,32 +4,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-TheUtilityVerse is a set of independently published NuGet packages of C# helpers, built from one solution (`UtilityVerse-Soln.slnx`):
+TheUtilityVerse is a set of independently published NuGet packages of C# helpers, built from one solution (`UtilityVerse.slnx`):
 
 | Project | Package | Targets | Notes |
 |---|---|---|---|
 | `src/UtilityVerse` | `UtilityVerse` | netstandard2.1; net6.0; net8.0; net9.0; net10.0 | Core helpers, no external dependencies |
-| `src/UtilityVerse.ASPNET` | `UtilityVerse.ASPNET` | same multi-target | ASP.NET Core helpers (`Microsoft.AspNetCore.Http*` 2.3.0) |
+| `src/UtilityVerse.ASPNET` | `UtilityVerse.ASPNET` | same multi-target | ASP.NET Core helpers (`Microsoft.AspNetCore.Http*` 2.3.x) |
 | `src/UtilityVerse.Shared` | (not packed separately) | netstandard2.1 | `UtilityVerseResult<T>`, `UtilityVerseException`; referenced by `UtilityVerse` |
 | `src/UtilityVerse.Copy` | `UtilityVerse.Copy` | netstandard2.0 | Roslyn incremental source generator + analyzer — has its own [`CLAUDE.md`](src/UtilityVerse.Copy/CLAUDE.md) |
-| `test/UtilityVerse.UnitTest` | — | net10.0 | xUnit tests for `UtilityVerse` |
-| `test/UtilityVerse.Copy.UnitTest` | — | net10.0 | xUnit tests for the Copy generator + analyzer (in-memory generator runs) |
-| `test/UtilityVerse.Copy.Test` | — | net10.0 | Sample console app consuming the Copy generator as a real analyzer reference |
+| `tests/UtilityVerse.UnitTest` | — | net10.0 | xUnit tests for `UtilityVerse` |
+| `tests/UtilityVerse.Copy.UnitTest` | — | net10.0 | xUnit tests for the Copy generator + analyzer (in-memory generator runs) |
+| `tests/UtilityVerse.Copy.Test` | — | net10.0 | Sample console app consuming the Copy generator as a real analyzer reference |
 
 ## Commands
 
 CI (`.github/workflows/dotnet.yml`) uses .NET 10 and runs restore → build → test on push to `development` and PRs to `master`. `global.json` opts `dotnet test` on .NET 10+ SDKs into Microsoft.Testing.Platform mode, which xunit.v3 4.x requires. That runner creates a gitignored `TestResults/` folder (reports, TRX, coverage, dumps) in the working directory; an empty one at the repo root is a leftover and safe to delete, or use `--results-directory <path>` to redirect it.
 
 ```bash
-dotnet build UtilityVerse-Soln.slnx
-dotnet test UtilityVerse-Soln.slnx
-dotnet test test/UtilityVerse.UnitTest --filter "FullyQualifiedName~IntExtensionTest"          # one class
-dotnet test test/UtilityVerse.UnitTest --filter "FullyQualifiedName~IntExtensionTest.IsInBetween_ReturnFalse_WhenWrongDataIsProvided"  # one test
-dotnet run --project test/UtilityVerse.Copy.Test   # Copy generator harness; see src/UtilityVerse.Copy/CLAUDE.md
+./scripts/build.sh            # or scripts/build.ps1 on Windows: deletes bin/obj, then restore, build, test
+dotnet build UtilityVerse.slnx
+dotnet test UtilityVerse.slnx
+dotnet test tests/UtilityVerse.UnitTest --filter "FullyQualifiedName~IntExtensionTest"          # one class
+dotnet test tests/UtilityVerse.UnitTest --filter "FullyQualifiedName~IntExtensionTest.IsInBetween_ReturnFalse_WhenWrongDataIsProvided"  # one test
+dotnet run --project tests/UtilityVerse.Copy.Test   # Copy generator harness; see src/UtilityVerse.Copy/CLAUDE.md
 dotnet pack src/<Project> -c Release
 ```
 
-`UtilityVerse` and `UtilityVerse.ASPNET` set `TreatWarningsAsErrors` and `CheckForOverflowUnderflow` in both Debug and Release, and `UtilityVerse` generates XML docs — so every public member needs a `<summary>` doc comment or the build fails. Because of multi-targeting down to netstandard2.1, avoid APIs not available on all targets (or guard with `#if`).
+Every project under `src/` gets `TreatWarningsAsErrors` and `CheckForOverflowUnderflow` from `src/Directory.Build.props`, and `UtilityVerse` generates XML docs — so every public member needs a `<summary>` doc comment or the build fails. Because of multi-targeting down to netstandard2.1, avoid APIs not available on all targets (or guard with `#if`).
+
+NuGet package versions are managed centrally in `Directory.Packages.props`; `PackageReference` entries in project files carry no `Version`.
+
+Shared build settings are centralized in layered `Directory.Build.props` files; keep project files limited to what is unique to them:
+- Root: `LangVersion`, `Nullable`, `ImplicitUsings`, `LatestTargetFramework` (bump this for a new .NET version), and common package metadata (authors, copyright, license, repository).
+- `src/`: `LibraryTargetFrameworks` (multi-target list used by `UtilityVerse` and `UtilityVerse.ASPNET`), `TreatWarningsAsErrors`, `CheckForOverflowUnderflow`.
+- `tests/`: `TargetFramework` (= `LatestTargetFramework`) and `IsPackable=false`.
+
+`UtilityVerse`, `UtilityVerse.Shared` and `UtilityVerse.UnitTest` set `Nullable` to `disable` on purpose — enabling it breaks the build and changes the public API annotations.
 
 Before every commit that touches C# files, run `dotnet format` scoped to the changed files (`--include <paths>`) and include the results in that commit. Don't format the whole solution or untouched files.
 
@@ -42,7 +52,7 @@ Before every commit that touches C# files, run `dotnet format` scoped to the cha
 - Source files start with the copyright header block used throughout the repo.
 
 ### Copy source generator (`UtilityVerse.Copy`)
-`UtilityVerse.Copy` is a Roslyn source generator + analyzer with its own constraints (netstandard2.0, no `UtilityVerseResult<T>` convention, its own test project `test/UtilityVerse.Copy.UnitTest`). Everything about it — generator pipeline, emitted code per property type, analyzer rules UV001–UV003, known limitations, release steps and how to verify changes — is documented in **[`src/UtilityVerse.Copy/CLAUDE.md`](src/UtilityVerse.Copy/CLAUDE.md)**. Read that file before changing or reviewing anything in `src/UtilityVerse.Copy`, `test/UtilityVerse.Copy.UnitTest` or `test/UtilityVerse.Copy.Test`; the conventions in this file's "Core library" section do not apply there.
+`UtilityVerse.Copy` is a Roslyn source generator + analyzer with its own constraints (netstandard2.0, no `UtilityVerseResult<T>` convention, its own test project `tests/UtilityVerse.Copy.UnitTest`). Everything about it — generator pipeline, emitted code per property type, analyzer rules UV001–UV003, known limitations, release steps and how to verify changes — is documented in **[`src/UtilityVerse.Copy/CLAUDE.md`](src/UtilityVerse.Copy/CLAUDE.md)**. Read that file before changing or reviewing anything in `src/UtilityVerse.Copy`, `tests/UtilityVerse.Copy.UnitTest` or `tests/UtilityVerse.Copy.Test`; the conventions in this file's "Core library" section do not apply there.
 
 ## Branching
 

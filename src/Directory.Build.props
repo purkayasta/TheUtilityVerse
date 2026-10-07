@@ -1,0 +1,11 @@
+<Project>
+
+	<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+	<PropertyGroup>
+		<LibraryTargetFrameworks>netstandard2.1;net6.0;net8.0;net9.0;$(LatestTargetFramework)</LibraryTargetFrameworks>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+	</PropertyGroup>
+
+</Project>

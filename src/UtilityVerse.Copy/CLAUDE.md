@@ -1,16 +1,16 @@
 # CLAUDE.md — UtilityVerse.Copy
 
-Guidance for working on the `UtilityVerse.Copy` package (`src/UtilityVerse.Copy`) and its manual test harness (`test/UtilityVerse.Copy.Test`). This project is a Roslyn source generator + analyzer and follows different rules from the rest of the repo (see the root `CLAUDE.md` for repo-wide conventions).
+Guidance for working on the `UtilityVerse.Copy` package (`src/UtilityVerse.Copy`) and its manual test harness (`tests/UtilityVerse.Copy.Test`). This project is a Roslyn source generator + analyzer and follows different rules from the rest of the repo (see the root `CLAUDE.md` for repo-wide conventions).
 ## What it is
 
 A compile-time code generator. A consumer marks a `public partial` class/record/struct with an opt-in, and the generator emits a `DeepCopy()` or `ShallowCopy()` method into a partial of that type. An analyzer in the same assembly reports errors when the opt-in can't be honored. There is no runtime component: the attributes and marker interfaces are the only public API besides the generator/analyzer.
 
 ## Project constraints
 
-- **Must target `netstandard2.0`** (Roslyn host requirement). Do not multi-target or raise it. `LangVersion` is `latest`, so modern syntax is fine, but only netstandard2.0 BCL APIs are available.
+- **Must target `netstandard2.0`** (Roslyn host requirement). Do not multi-target or raise it. `LangVersion` is `latest` (from the root props), so modern syntax is fine, but only netstandard2.0 BCL APIs are available.
 - Depends on `Microsoft.CodeAnalysis.CSharp` 4.11.0 and `Microsoft.CodeAnalysis.Analyzers` 5.9.0 (build-time rule checks only; independent of the Roslyn version consumers need), both `PrivateAssets="all"` so the package declares no NuGet dependencies. A consumer's compiler must be at least Roslyn 4.11 (older compilers report CS9057 and skip the generator). Raise the version only when the code needs a newer Roslyn API. The unit test project pins Roslyn 4.11.0 too (`Basic.Reference.Assemblies.Net100` requires `Microsoft.CodeAnalysis.Common` 4.11 or newer, so tests cannot run on 4.10).
 - `EnforceExtendedAnalyzerRules` is on: no file I/O, no banned APIs in generator/analyzer code.
-- Unlike `UtilityVerse`, this project does **not** set `TreatWarningsAsErrors` or generate XML docs.
+- Inherits `TreatWarningsAsErrors`, `CheckForOverflowUnderflow`, `Nullable`, `ImplicitUsings` and `LangVersion` from the `Directory.Build.props` files; it does not generate XML docs.
 - Packaging: the built DLL is packed under `analyzers/dotnet/cs`; `nuget.md` is the package readme (separate from `README.md`) and `Assets/copy.png` is the icon. Version lives in `UtilityVerse.Copy.csproj` (`<Version>`).
 - Source files start with the repo's copyright header block.
 
@@ -124,11 +124,11 @@ Analyzer behavior to be aware of:
 
 ## Verifying changes
 
-Primary verification is the xUnit project `test/UtilityVerse.Copy.UnitTest`. It runs `CopyGenerator` and `ValidationAnalyzer` in memory (net10 reference assemblies from `Basic.Reference.Assemblies.Net100`, no network needed), so no consumer project has to be rebuilt.
+Primary verification is the xUnit project `tests/UtilityVerse.Copy.UnitTest`. It runs `CopyGenerator` and `ValidationAnalyzer` in memory (net10 reference assemblies from `Basic.Reference.Assemblies.Net100`, no network needed), so no consumer project has to be rebuilt.
 
 ```bash
-dotnet test test/UtilityVerse.Copy.UnitTest
-dotnet test test/UtilityVerse.Copy.UnitTest --filter "KnownIssue=shallow-collections-not-rewrapped"   # one known issue
+dotnet test tests/UtilityVerse.Copy.UnitTest
+dotnet test tests/UtilityVerse.Copy.UnitTest --filter "KnownIssue=shallow-collections-not-rewrapped"   # one known issue
 ```
 
 | Path | Role |
@@ -151,16 +151,16 @@ Test kinds:
 
 Checklist for any generator/analyzer change:
 1. Add or update a generated-text test for new emitted shapes and a compile-and-run test when behavior (independence/sharing) matters; add analyzer tests (positive + must-not-fire) for diagnostic changes.
-2. Run `dotnet test test/UtilityVerse.Copy.UnitTest`; update the expected lines of any generated-text test whose output changed intentionally; flip any KnownIssue test the change fixes.
+2. Run `dotnet test tests/UtilityVerse.Copy.UnitTest`; update the expected lines of any generated-text test whose output changed intentionally; flip any KnownIssue test the change fixes.
 3. Confirm the emitted expression is assignable to the property's declared type — runtime tests assert `CompilationErrors` is empty.
 
-Secondary: `test/UtilityVerse.Copy.Test` is a small sample consumer (console app) that references the generator twice — as a normal reference (for the attributes/interfaces) and with `OutputItemType="Analyzer" ReferenceOutputAssembly="false"` (to run the generator). `Program.cs` calls the generated `DeepCopy()` and prints that mutating the original doesn't affect the copy. Use it to check real-build integration or inspect emitted files:
+Secondary: `tests/UtilityVerse.Copy.Test` is a small sample consumer (console app) that references the generator twice — as a normal reference (for the attributes/interfaces) and with `OutputItemType="Analyzer" ReferenceOutputAssembly="false"` (to run the generator). `Program.cs` calls the generated `DeepCopy()` and prints that mutating the original doesn't affect the copy. Use it to check real-build integration or inspect emitted files:
 
 ```bash
-dotnet build test/UtilityVerse.Copy.Test -p:EmitCompilerGeneratedFiles=true
+dotnet build tests/UtilityVerse.Copy.Test -p:EmitCompilerGeneratedFiles=true
 # inspect output:
-#   test/UtilityVerse.Copy.Test/obj/Debug/net9.0/generated/UtilityVerse.Copy/UtilityVerse.Copy.CopyGenerator/*.g.cs
-dotnet run --project test/UtilityVerse.Copy.Test
+#   tests/UtilityVerse.Copy.Test/obj/Debug/net10.0/generated/UtilityVerse.Copy/UtilityVerse.Copy.CopyGenerator/*.g.cs
+dotnet run --project tests/UtilityVerse.Copy.Test
 ```
 
 If the IDE shows stale generated code, rebuild from the CLI; Visual Studio caches loaded generator assemblies until restart.

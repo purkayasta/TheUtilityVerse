@@ -1,6 +1,3 @@
-
----
-
 # 📦 UtilityVerse.Copy — Source Generator for DeepCopy and ShallowCopy in C\#
 
 ![Nuget](https://img.shields.io/nuget/v/UtilityVerse.Copy) ![Nuget](https://img.shields.io/nuget/dt/UtilityVerse.Copy?style=plastic)
@@ -46,10 +43,12 @@
 
 ### 1️⃣ Attributes
 
-Decorate your classes/structs using:
+Decorate your classes/records using:
 
 * `[DeepCopy]` — to generate a recursive deep copy method.
 * `[ShallowCopy]` — to generate a simple shallow copy.
+
+The attributes target classes only; structs and record structs opt in through the marker interfaces below.
 
 Example:
 
@@ -88,7 +87,9 @@ public partial class Product : IDeepCopy
 ---
 
 > **Important:**
-> Your class or struct **must be marked `partial`** for the source generator to work.
+> Your class or struct **must be `public` and marked `partial`** for the source generator to work. The analyzer reports `UV001` if `partial` is missing.
+>
+> Requires a compiler with Roslyn 4.11 or newer (Visual Studio 2022 17.11+ or .NET SDK 8.0.400+).
 
 ---
 
@@ -167,7 +168,7 @@ var userClone = existingUser.DeepCopy();
 * ✅ Primitives (`int`, `string`, `bool`, etc.)
 * ✅ Arrays
 * ✅ Tuples & ValueTuples
-* ✅ Generic collections (`List<T>`, `Dictionary<K,V>`, etc.)
+* ✅ Generic collections (declare properties as `List<T>`, `HashSet<T>`, `Dictionary<K,V>` or an interface such as `IEnumerable<T>`/`IList<T>`)
 * ✅ Records, classes, structs (`partial` required)
 * ✅ Deep recursive copying of nested properties
 
@@ -178,6 +179,3 @@ var userClone = existingUser.DeepCopy();
 
 If you find UtilityVerse.Copy useful, give the repository a ⭐ and help others discover it!
 
----
-
-Let me know if you'd like this structured as a template file or want me to generate sample output code files directly.

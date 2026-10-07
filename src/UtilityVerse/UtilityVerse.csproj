@@ -1,66 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.1; net6.0; net8.0; net9.0; net10.0</TargetFrameworks>
-		<LangVersion>Latest</LangVersion>
-		<ImplicitUsings>enable</ImplicitUsings>
-
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+		<Nullable>disable</Nullable>
 		<IsPackable>true</IsPackable>
 		<PackageId>UtilityVerse</PackageId>
 		<PackageVersion>1.1</PackageVersion>
 		<PackageTags>utility, utils, C#, dotnet, c# utility, dotnet core</PackageTags>
 		<Description>a curated list of utility methods that will help you, do your work at your
 			best.</Description>
-		<Authors>Pritom Purkayasta</Authors>
-		<RepositoryUrl>https://github.com/purkayasta/TheUtilityVerse</RepositoryUrl>
 		<PackageProjectUrl>https://www.nuget.org/packages/UtilityVerse/</PackageProjectUrl>
-		<RepositoryType>git</RepositoryType>
-		<Copyright>
-			Pritom Purkayasta
-			Copyright (c) Pritom Purkayasta All rights reserved.
-			FREE TO USE TO CONNECT THE WORLD
-		</Copyright>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Title>TheUtilityVerse</Title>
 		<PackageIcon>utility-verse.png</PackageIcon>
 		<PackageReadmeFile>nuget.md</PackageReadmeFile>
 		<IncludeSymbols>True</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	</PropertyGroup>
-	<PropertyGroup>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<IsPackable>true</IsPackable>
-		<PackageId>UtilityVerse</PackageId>
-		<PackageVersion>1.1</PackageVersion>
-		<PackageTags>utility, utils, C#, dotnet, c# utility, dotnet core</PackageTags>
-		<Description>a curated list of utility methods that will help you, do your work at your
-			best.</Description>
-		<Authors>Pritom Purkayasta</Authors>
-		<RepositoryUrl>https://github.com/purkayasta/TheUtilityVerse</RepositoryUrl>
-		<PackageProjectUrl>https://www.nuget.org/packages/UtilityVerse/</PackageProjectUrl>
-		<RepositoryType>git</RepositoryType>
-		<Copyright>
-			Pritom Purkayasta
-			Copyright (c) Pritom Purkayasta All rights reserved.
-			FREE TO USE TO CONNECT THE WORLD
-		</Copyright>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<Title>TheUtilityVerse</Title>
-		<PackageIcon>utility-verse.png</PackageIcon>
-		<PackageReadmeFile>nuget.md</PackageReadmeFile>
-		<IncludeSymbols>True</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
 	</PropertyGroup>
 
 	<ItemGroup>
