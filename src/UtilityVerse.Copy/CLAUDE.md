@@ -8,7 +8,7 @@ A compile-time code generator. A consumer marks a `public partial` class/record/
 ## Project constraints
 
 - **Must target `netstandard2.0`** (Roslyn host requirement). Do not multi-target or raise it. `LangVersion` is `latest`, so modern syntax is fine, but only netstandard2.0 BCL APIs are available.
-- Depends on `Microsoft.CodeAnalysis.CSharp` / `Microsoft.CodeAnalysis.Analyzers` 5.9.0. A consumer's compiler must be at least that Roslyn version.
+- Depends on `Microsoft.CodeAnalysis.CSharp` 4.11.0 and `Microsoft.CodeAnalysis.Analyzers` 5.9.0 (build-time rule checks only; independent of the Roslyn version consumers need), both `PrivateAssets="all"` so the package declares no NuGet dependencies. A consumer's compiler must be at least Roslyn 4.11 (older compilers report CS9057 and skip the generator). Raise the version only when the code needs a newer Roslyn API. The unit test project pins Roslyn 4.11.0 too (`Basic.Reference.Assemblies.Net100` requires `Microsoft.CodeAnalysis.Common` 4.11 or newer, so tests cannot run on 4.10).
 - `EnforceExtendedAnalyzerRules` is on: no file I/O, no banned APIs in generator/analyzer code.
 - Unlike `UtilityVerse`, this project does **not** set `TreatWarningsAsErrors` or generate XML docs.
 - Packaging: the built DLL is packed under `analyzers/dotnet/cs`; `nuget.md` is the package readme (separate from `README.md`) and `Assets/copy.png` is the icon. Version lives in `UtilityVerse.Copy.csproj` (`<Version>`).
