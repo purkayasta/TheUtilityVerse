@@ -4,25 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-TheUtilityVerse is a set of independently published NuGet packages of C# helpers, built from one solution (`UtilityVerse-Soln.sln`):
+TheUtilityVerse is a set of independently published NuGet packages of C# helpers, built from one solution (`UtilityVerse-Soln.slnx`):
 
 | Project | Package | Targets | Notes |
 |---|---|---|---|
-| `src/UtilityVerse` | `UtilityVerse` | netstandard2.1; net6.0; net8.0; net9.0 | Core helpers, no external dependencies |
+| `src/UtilityVerse` | `UtilityVerse` | netstandard2.1; net6.0; net8.0; net9.0; net10.0 | Core helpers, no external dependencies |
 | `src/UtilityVerse.ASPNET` | `UtilityVerse.ASPNET` | same multi-target | ASP.NET Core helpers (`Microsoft.AspNetCore.Http*` 2.3.0) |
 | `src/UtilityVerse.Shared` | (not packed separately) | netstandard2.1 | `UtilityVerseResult<T>`, `UtilityVerseException`; referenced by `UtilityVerse` |
 | `src/UtilityVerse.Copy` | `UtilityVerse.Copy` | netstandard2.0 | Roslyn incremental source generator + analyzer — has its own [`CLAUDE.md`](src/UtilityVerse.Copy/CLAUDE.md) |
-| `test/UtilityVerse.UnitTest` | — | net9.0 | xUnit tests for `UtilityVerse` |
-| `test/UtilityVerse.Copy.UnitTest` | — | net9.0 | xUnit tests for the Copy generator + analyzer (in-memory generator runs) |
-| `test/UtilityVerse.Copy.Test` | — | net9.0 | Sample console app consuming the Copy generator as a real analyzer reference |
+| `test/UtilityVerse.UnitTest` | — | net10.0 | xUnit tests for `UtilityVerse` |
+| `test/UtilityVerse.Copy.UnitTest` | — | net10.0 | xUnit tests for the Copy generator + analyzer (in-memory generator runs) |
+| `test/UtilityVerse.Copy.Test` | — | net10.0 | Sample console app consuming the Copy generator as a real analyzer reference |
 
 ## Commands
 
-CI (`.github/workflows/dotnet.yml`) uses .NET 9 and runs restore → build → test on push to `development` and PRs to `master`. `global.json` opts `dotnet test` on .NET 10+ SDKs into Microsoft.Testing.Platform mode, which xunit.v3 4.x requires (on the .NET 9 SDK it is ignored and VSTest + `xunit.runner.visualstudio` is used).
+CI (`.github/workflows/dotnet.yml`) uses .NET 10 and runs restore → build → test on push to `development` and PRs to `master`. `global.json` opts `dotnet test` on .NET 10+ SDKs into Microsoft.Testing.Platform mode, which xunit.v3 4.x requires.
 
 ```bash
-dotnet build UtilityVerse-Soln.sln
-dotnet test UtilityVerse-Soln.sln
+dotnet build UtilityVerse-Soln.slnx
+dotnet test UtilityVerse-Soln.slnx
 dotnet test test/UtilityVerse.UnitTest --filter "FullyQualifiedName~IntExtensionTest"          # one class
 dotnet test test/UtilityVerse.UnitTest --filter "FullyQualifiedName~IntExtensionTest.IsInBetween_ReturnFalse_WhenWrongDataIsProvided"  # one test
 dotnet run --project test/UtilityVerse.Copy.Test   # Copy generator harness; see src/UtilityVerse.Copy/CLAUDE.md

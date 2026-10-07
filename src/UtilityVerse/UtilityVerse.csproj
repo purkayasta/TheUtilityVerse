@@ -1,14 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.1; net6.0; net8.0; net9.0</TargetFrameworks>
+		<TargetFrameworks>netstandard2.1; net6.0; net8.0; net9.0; net10.0</TargetFrameworks>
 		<LangVersion>Latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<IsPackable>true</IsPackable>
 		<PackageId>UtilityVerse</PackageId>
-		<PackageVersion>1.0</PackageVersion>
+		<PackageVersion>1.1</PackageVersion>
 		<PackageTags>utility, utils, C#, dotnet, c# utility, dotnet core</PackageTags>
 		<Description>a curated list of utility methods that will help you, do your work at your
 			best.</Description>
@@ -32,7 +32,7 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<IsPackable>true</IsPackable>
 		<PackageId>UtilityVerse</PackageId>
-		<PackageVersion>1.0</PackageVersion>
+		<PackageVersion>1.1</PackageVersion>
 		<PackageTags>utility, utils, C#, dotnet, c# utility, dotnet core</PackageTags>
 		<Description>a curated list of utility methods that will help you, do your work at your
 			best.</Description>

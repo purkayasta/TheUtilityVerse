@@ -8,7 +8,7 @@ A compile-time code generator. A consumer marks a `public partial` class/record/
 ## Project constraints
 
 - **Must target `netstandard2.0`** (Roslyn host requirement). Do not multi-target or raise it. `LangVersion` is `latest`, so modern syntax is fine, but only netstandard2.0 BCL APIs are available.
-- Depends on `Microsoft.CodeAnalysis.CSharp` / `Microsoft.CodeAnalysis.Analyzers` 4.14.0. A consumer's compiler must be at least that Roslyn version.
+- Depends on `Microsoft.CodeAnalysis.CSharp` / `Microsoft.CodeAnalysis.Analyzers` 5.9.0. A consumer's compiler must be at least that Roslyn version.
 - `EnforceExtendedAnalyzerRules` is on: no file I/O, no banned APIs in generator/analyzer code.
 - Unlike `UtilityVerse`, this project does **not** set `TreatWarningsAsErrors` or generate XML docs.
 - Packaging: the built DLL is packed under `analyzers/dotnet/cs`; `nuget.md` is the package readme (separate from `README.md`) and `Assets/copy.png` is the icon. Version lives in `UtilityVerse.Copy.csproj` (`<Version>`).
@@ -124,7 +124,7 @@ Analyzer behavior to be aware of:
 
 ## Verifying changes
 
-Primary verification is the xUnit project `test/UtilityVerse.Copy.UnitTest`. It runs `CopyGenerator` and `ValidationAnalyzer` in memory (net9 reference assemblies from `Basic.Reference.Assemblies.Net90`, no network needed), so no consumer project has to be rebuilt.
+Primary verification is the xUnit project `test/UtilityVerse.Copy.UnitTest`. It runs `CopyGenerator` and `ValidationAnalyzer` in memory (net10 reference assemblies from `Basic.Reference.Assemblies.Net100`, no network needed), so no consumer project has to be rebuilt.
 
 ```bash
 dotnet test test/UtilityVerse.Copy.UnitTest
@@ -133,7 +133,7 @@ dotnet test test/UtilityVerse.Copy.UnitTest --filter "KnownIssue=shallow-collect
 
 | Path | Role |
 |---|---|
-| `Infrastructure/GeneratorHarness.cs` | `Run(source)` builds a nullable-enabled `CSharpCompilation` (net9 refs + the Copy assembly, global usings for `System`, `System.Collections.Generic`, `System.Linq`, `UtilityVerse.Copy`), runs the generator and returns a `GeneratorRun` (driver, output compilation, generated sources, `GeneratedText`, `HintNames`, `GeneratedFile(hintName)`, `CompilationErrorIds`). `Load(run)` emits it and loads it into a collectible `AssemblyLoadContext` (`LoadedAssembly`, use `dynamic` to call `DeepCopy()`/`ShallowCopy()`) |
+| `Infrastructure/GeneratorHarness.cs` | `Run(source)` builds a nullable-enabled `CSharpCompilation` (net10 refs + the Copy assembly, global usings for `System`, `System.Collections.Generic`, `System.Linq`, `UtilityVerse.Copy`), runs the generator and returns a `GeneratorRun` (driver, output compilation, generated sources, `GeneratedText`, `HintNames`, `GeneratedFile(hintName)`, `CompilationErrorIds`). `Load(run)` emits it and loads it into a collectible `AssemblyLoadContext` (`LoadedAssembly`, use `dynamic` to call `DeepCopy()`/`ShallowCopy()`) |
 | `Infrastructure/AnalyzerVerifier.cs` | Wraps `CSharpAnalyzerTest<ValidationAnalyzer, DefaultVerifier>`; markup `{\|UV002:Name\|}` marks the expected diagnostic span |
 | `DeepCopyGenerationTests.cs`, `ShallowCopyGenerationTests.cs` | Generated-text assertions: fetch one emitted file with `run.GeneratedFile("<HintName>.g.cs")` (or `run.GeneratedText` / `run.HintNames` across all files) and `Assert.Contains`/`DoesNotContain` the exact lines that matter (per-property assignment, method signature, `partial` declaration, `MemberwiseClone`, namespace). One test per area (primitives, arrays, each collection kind, tuples, records, structs, ctor path, global namespace, deep+shallow, interface opt-in) |
 | `SkippedTypeTests.cs` | Abstract / non-partial / non-public / not-opted-in types emit nothing |

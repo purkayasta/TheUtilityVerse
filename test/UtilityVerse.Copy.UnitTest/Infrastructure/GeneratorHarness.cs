@@ -22,7 +22,7 @@ internal static class GeneratorHarness
 
     public static IReadOnlyList<MetadataReference> References { get; } =
     [
-        .. Net90.References.All,
+        .. Net100.References.All,
         MetadataReference.CreateFromFile(typeof(DeepCopy).Assembly.Location),
     ];
 

@@ -19,14 +19,14 @@ internal static class AnalyzerVerifier
 
         """;
 
-    private static readonly ReferenceAssemblies OfflineNet90 = new("net9.0");
+    private static readonly ReferenceAssemblies OfflineNet100 = new("net10.0");
 
     public static Task VerifyAsync(string markupSource)
     {
         var test = new CSharpAnalyzerTest<ValidationAnalyzer, DefaultVerifier>
         {
             TestCode = Usings + markupSource,
-            ReferenceAssemblies = OfflineNet90,
+            ReferenceAssemblies = OfflineNet100,
         };
         test.TestState.AdditionalReferences.AddRange(GeneratorHarness.References);
 

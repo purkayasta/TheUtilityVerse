@@ -14,6 +14,7 @@
 * ✅ Supports both `[Attribute]`-based and `interface`-based opt-in mechanisms
 * ✅ Works great for DTOs, ViewModels, and plain C# objects
 * ✅ Support for common collection types, arrays, tuples, and more
+* ⚠️ Requires a compiler with Roslyn 5.9 or newer (recent .NET 10 SDK or matching Visual Studio); the consuming project can still target any framework
 
 ---
 
