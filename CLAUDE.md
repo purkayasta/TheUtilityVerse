@@ -21,7 +21,7 @@ TheUtilityVerse is a set of independently published NuGet packages of C# helpers
 CI (`.github/workflows/dotnet.yml`) uses .NET 10 and runs restore → build → test on push to `development` and PRs to `master`. `global.json` opts `dotnet test` on .NET 10+ SDKs into Microsoft.Testing.Platform mode, which xunit.v3 4.x requires. That runner creates a gitignored `TestResults/` folder (reports, TRX, coverage, dumps) in the working directory; an empty one at the repo root is a leftover and safe to delete, or use `--results-directory <path>` to redirect it.
 
 ```bash
-./scripts/build.sh            # or scripts/build.ps1 on Windows: deletes bin/obj, then restore, build, test
+./scripts/build.sh            # or scripts/build.ps1 on Windows: deletes bin/obj, formats changed .cs files, then restore, build, test
 dotnet build UtilityVerse.slnx
 dotnet test UtilityVerse.slnx
 dotnet test tests/UtilityVerse.UnitTest --filter "FullyQualifiedName~IntExtensionTest"          # one class
@@ -41,7 +41,7 @@ Shared build settings are centralized in layered `Directory.Build.props` files; 
 
 `UtilityVerse`, `UtilityVerse.Shared` and `UtilityVerse.UnitTest` set `Nullable` to `disable` on purpose — enabling it breaks the build and changes the public API annotations.
 
-Before every commit that touches C# files, run `dotnet format` scoped to the changed files (`--include <paths>`) and include the results in that commit. Don't format the whole solution or untouched files.
+For a full build, always run `scripts/build.sh` (Linux/macOS) or `scripts/build.ps1` (Windows) rather than the individual commands: it deletes all `bin`/`obj` folders, runs `dotnet format` scoped to the changed `.cs` files (modified and untracked), then restores, builds and tests. Run it before every commit that touches C# files and include any formatting changes in that commit. Don't format the whole solution or untouched files.
 
 ## Architecture
 
