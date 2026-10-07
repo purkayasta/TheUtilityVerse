@@ -18,7 +18,7 @@ TheUtilityVerse is a set of independently published NuGet packages of C# helpers
 
 ## Commands
 
-CI (`.github/workflows/dotnet.yml`) uses .NET 10 and runs restore → build → test on push to `development` and PRs to `master`. `global.json` opts `dotnet test` on .NET 10+ SDKs into Microsoft.Testing.Platform mode, which xunit.v3 4.x requires.
+CI (`.github/workflows/dotnet.yml`) uses .NET 10 and runs restore → build → test on push to `development` and PRs to `master`. `global.json` opts `dotnet test` on .NET 10+ SDKs into Microsoft.Testing.Platform mode, which xunit.v3 4.x requires. That runner creates a gitignored `TestResults/` folder (reports, TRX, coverage, dumps) in the working directory; an empty one at the repo root is a leftover and safe to delete, or use `--results-directory <path>` to redirect it.
 
 ```bash
 dotnet build UtilityVerse-Soln.slnx
@@ -30,6 +30,8 @@ dotnet pack src/<Project> -c Release
 ```
 
 `UtilityVerse` and `UtilityVerse.ASPNET` set `TreatWarningsAsErrors` and `CheckForOverflowUnderflow` in both Debug and Release, and `UtilityVerse` generates XML docs — so every public member needs a `<summary>` doc comment or the build fails. Because of multi-targeting down to netstandard2.1, avoid APIs not available on all targets (or guard with `#if`).
+
+Before every commit that touches C# files, run `dotnet format` scoped to the changed files (`--include <paths>`) and include the results in that commit. Don't format the whole solution or untouched files.
 
 ## Architecture
 
