@@ -31,7 +31,12 @@ public sealed class CopyGenerator : IIncrementalGenerator
             foreach (var group in types.GroupBy(x => (x.Symbol, x.Mode)))
             {
                 var (symbol, mode) = group.Key;
-                if (Validation.HasUnsupportedShape(symbol, mode == CopyMode.Deep, out _)) continue;
+
+                if (Validation.HasUnsupportedShape(symbol, mode == CopyMode.Deep, out _))
+                {
+                    continue;
+                }
+
                 var source = mode switch
                 {
                     CopyMode.Deep => GenerateDeepCopy(symbol),
@@ -39,10 +44,18 @@ public sealed class CopyGenerator : IIncrementalGenerator
                     _ => null
                 };
 
-                if (string.IsNullOrWhiteSpace(source)) continue;
+                if (string.IsNullOrWhiteSpace(source))
+                {
+                    continue;
+                }
 
                 var fullName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace("global::", "");
-                var safeName = string.Concat(fullName.Select(c => char.IsLetterOrDigit(c) ? c.ToString() : c == '.' ? "_" : "_" + ((int)c).ToString("X4")));
+                var safeName = string.Concat(fullName.Select(character => character switch
+                {
+                    '.' => "_",
+                    _ when char.IsLetterOrDigit(character) => character.ToString(),
+                    _ => "_" + ((int)character).ToString("X4")
+                }));
                 var hintName = $"{safeName}_{mode}Copy.g.cs";
                 spc.AddSource(hintName, SourceText.From(source!, Encoding.UTF8));
             }
@@ -52,21 +65,30 @@ public sealed class CopyGenerator : IIncrementalGenerator
     private static (INamedTypeSymbol Symbol, CopyMode Mode)? GetSemanticTarget(GeneratorSyntaxContext context)
     {
         if (context.Node is not TypeDeclarationSyntax typeDecl)
+        {
             return null;
-
-        // if (!typeDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)))
-        //     return null;
+        }
 
         var symbol = ModelExtensions.GetDeclaredSymbol(context.SemanticModel, typeDecl) as INamedTypeSymbol;
+
         if (symbol is null)
+        {
             return null;
+        }
 
         var hasDeep = Helper.HasDeepCopyOptIn(symbol);
 
         var hasShallow = Helper.HasShallowCopyOptIn(symbol);
 
-        if (hasDeep) return (symbol, CopyMode.Deep);
-        if (hasShallow) return (symbol, CopyMode.Shallow);
+        if (hasDeep)
+        {
+            return (symbol, CopyMode.Deep);
+        }
+
+        if (hasShallow)
+        {
+            return (symbol, CopyMode.Shallow);
+        }
 
         return null;
     }

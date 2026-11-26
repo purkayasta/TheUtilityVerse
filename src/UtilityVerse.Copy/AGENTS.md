@@ -1,6 +1,17 @@
-# UtilityVerse.Copy architecture
+# UtilityVerse.Copy instructions
 
-Read the root CLAUDE.md for repository-wide build and branching instructions.
+Read the [root AGENTS.md](../../AGENTS.md) for repository-wide instructions,
+project maps, build configuration, coding standards, testing, and branching.
+These project-specific instructions cover `src/UtilityVerse.Copy/`,
+`tests/UtilityVerse.Copy.UnitTest/`, and `tests/UtilityVerse.Copy.Test/`, including
+code reviews. Paths below are relative to the repository root unless explicitly
+linked relative to this file.
+
+The root AGENTS.md readability and performance rules are mandatory
+here too. Give generator implementations, emitted C#, and embedded test models
+the same readable spacing and block layout. Prefer typed, allocation-conscious
+runtime operations; use value types only where they preserve copying and graph
+identity semantics. Formatting changes must preserve behavior.
 
 ## Constraints
 
@@ -20,17 +31,24 @@ generic names. Validation.HasUnsupportedShape is shared by generator and analyze
 unsupported shapes are diagnosed with UV004 and skipped by code generation.
 
 Helper emits matching namespace/containing-type/generic partial wrappers, classifies
-immutable state, finds stored instance fields and auto-properties, and selects
-constructors with state-name matches. Static, computed, and indexer properties are
-not independently stored state. Explicit backing fields are copied directly.
+immutable state, finds stored instance fields and auto-properties, and matches
+safe primary-constructor arguments to stored state. Static, computed, and indexer
+properties are not independently stored state. Explicit backing fields are copied
+directly.
 
 DeepCopyGenerator emits a typed copy constructor, a public parameterless DeepCopy(),
 an explicit IDeepCopyable implementation, and a virtual helper for class hierarchies.
 The original implicit default constructor is preserved when adding generated ones.
-The copy constructor runs a usable original constructor (or the record copy
-constructor), registers the destination, and hydrates stored state. Generated base
-copy constructors preserve inherited private/readonly state. Init-only/get-only
-properties and readonly fields can be assigned in these constructors.
+The copy constructor bypasses ordinary class constructors, chains to the generated
+base copy constructor or an accessible parameterless base constructor, registers
+the destination, and hydrates stored state. Primary constructors can only
+receive matching stored immutable values without mutable references; primary
+constructors with generated deep bases are rejected. Reference records use only
+synthesized record copy constructors; user-defined copy constructors are rejected.
+Structs without primary constructors use this() initialization. Field initializers
+and non-opted-in base constructors can still run. Generated base copy constructors
+preserve inherited private/readonly state. Init-only/get-only properties and
+readonly fields can be assigned in these constructors.
 
 CopyContext uses reference equality to preserve aliases and mutable cycles.
 CopyArray, CopySequence, CopyMap, and CopyImmutable implement container registration
@@ -44,8 +62,8 @@ need shallow opt-ins; UV003 remains tracked but no longer fires for them.
 
 ## Supported boundary
 
-README.md documents the complete consumer contract and explicit unsupported shapes.
-Do not silently skip inaccessible state, classify every struct as immutable, drop
+[README.md](README.md) documents the complete consumer contract and explicit
+unsupported shapes. Do not silently skip inaccessible state, classify every struct as immutable, drop
 constructor arguments, slice runtime derived types, or produce incompatible
 collection assignments. New support must update classification, emission, validation,
 consumer documentation, and tests together.
@@ -55,6 +73,8 @@ consumer documentation, and tests together.
 - DeepCopyGenerationTests compiles original model scenarios and checks analyzer
   results, generated presence, and assembly emission.
 - DeepCopyRuntimeTests and ShallowCopyRuntimeTests assert copying behavior.
+- ConstructorIsolationTests covers source isolation, constructor execution, readonly
+  state, cycles, primary constructors, and unsupported construction paths.
 - CopyRegressionTests replaces the old bug-pinning KnownIssuesTests with compilation,
   analyzer, and runtime regressions for fixed issues, plus unsupported-shape checks.
 - ValidationAnalyzerTests covers positive and negative diagnostics.
@@ -68,3 +88,10 @@ to Rules, SupportedDiagnostics, and AnalyzerReleases.Unshipped.md; never reuse a
 shipped diagnostic ID. Change source generator inputs rather than generated outputs.
 Do not bump package versions or move unshipped rules into shipped releases unless
 preparing an explicitly requested release.
+
+## Review backlog
+
+Track the numbered correctness findings and remaining support/optimization work in
+[review-backlog.md](review-backlog.md). Keep its original finding numbers stable
+across follow-up work. Update the relevant finding and validation evidence as work
+is completed; do not treat one completed finding as completion of the whole goal.

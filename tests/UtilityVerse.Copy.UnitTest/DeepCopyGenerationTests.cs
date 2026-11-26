@@ -296,7 +296,7 @@ public class DeepCopyGenerationTests
     }
 
     [Fact]
-    public void DeepCopy_UsesMatchingConstructorAndHydratesRemainingState_WhenConstructorsDiffer()
+    public void DeepCopy_BypassesExistingConstructorsAndHydratesState_WhenConstructorsDiffer()
     {
         var run = GeneratorHarness.Run($$"""
             namespace Sample;

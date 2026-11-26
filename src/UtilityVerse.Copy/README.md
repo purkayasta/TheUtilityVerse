@@ -33,9 +33,20 @@ one type, deep copy takes precedence, as in earlier versions.
 Generated constructors copy stored instance fields and auto-properties, including
 private fields, readonly fields, init-only properties, and stored getter-only
 properties. Computed properties are derived from that copied state. Static state
-is ignored. Existing constructors may run before the stored state is hydrated;
-constructor parameters must match readable properties or fields by name and a supported assignment-compatible type. No
-unmatched argument is silently replaced by a default value.
+is ignored. Ordinary classes bypass their own existing constructors: the generated
+copy constructor registers the destination and hydrates its stored state directly.
+Constructor parameter names do not need to match state members. Field initializers
+and parameterless constructors on non-opted-in base classes can still run; copying
+does not suppress arbitrary side effects in that code.
+
+A primary constructor must run under C# constructor-chaining rules. Its
+arguments must match stored fields or auto-properties and contain only immutable
+values with no mutable references, including references nested in structs. A primary
+constructor cannot be combined with a generated base copy constructor. Reference
+records use the compiler-synthesized copy constructor; custom record copy constructors
+are rejected because they can mutate the source. Structs without primary constructors
+initialize through `this()` before hydrating state; an explicitly declared
+parameterless struct constructor can run.
 
 One `CopyContext` tracks reference identity across the operation. Cycles through
 opted-in classes and mutable collections are supported, and repeated references
@@ -88,8 +99,10 @@ nested opt-ins. `UV004` reports shapes that cannot safely be generated:
 
 - Non-partial containing types, static/ref-like types, and reserved method or
   constructor collisions.
-- Constructors with no usable state-name match, captured primary-constructor state,
-  and event subscriptions.
+- Primary constructors with unmatched or potentially mutable arguments,
+  primary constructors requiring generated base copying, custom record copy
+  constructors, captured primary-constructor state, and event subscriptions.
+- Non-opted-in base classes with no accessible parameterless constructor.
 - Inaccessible, hidden, or readonly inherited state when the base type has no deep opt-in; external bases must provide the current graph-copy support.
 - Deep-copy record inheritance, multidimensional arrays, pointer state, and
   immutable/frozen collection implementations.

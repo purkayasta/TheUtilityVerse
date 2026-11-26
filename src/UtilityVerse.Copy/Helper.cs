@@ -18,16 +18,30 @@ internal static class Helper
         SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
 
     internal static string TypeName(ITypeSymbol type) => type.ToDisplayString(TypeDisplay);
+
     internal static string Identifier(string name) => SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ? "@" + name : name;
+
     internal static string LocalName(INamedTypeSymbol type) => Identifier(type.Name) +
         (type.TypeParameters.Length == 0 ? "" : "<" + string.Join(", ", type.TypeParameters.Select(p => Identifier(p.Name))) + ">");
 
     internal static bool IsTrulyPrimitive(ITypeSymbol type)
     {
         if (type.TypeKind == TypeKind.Enum || type.SpecialType is >= SpecialType.System_Boolean and <= SpecialType.System_Decimal ||
-            type.SpecialType == SpecialType.System_String) return true;
-        if (IsBuiltinType(type)) return true;
-        if (type is not INamedTypeSymbol { IsValueType: true } named) return false;
+            type.SpecialType == SpecialType.System_String)
+        {
+            return true;
+        }
+
+        if (IsBuiltinType(type))
+        {
+            return true;
+        }
+
+        if (type is not INamedTypeSymbol { IsValueType: true } named)
+        {
+            return false;
+        }
+
         return named.GetMembers().OfType<IFieldSymbol>().Where(f => !f.IsStatic).All(f => IsTrulyPrimitive(f.Type));
     }
 
@@ -50,6 +64,7 @@ internal static class Helper
             "System.Collections.Concurrent.ConcurrentDictionary<TKey, TValue>" => "ConcurrentDictionary",
             _ => null
         };
+
         return kind != null;
     }
 
@@ -57,9 +72,20 @@ internal static class Helper
     {
         foreach (var member in type.GetMembers())
         {
-            if (member.IsStatic) continue;
-            if (member is IFieldSymbol { IsImplicitlyDeclared: false, IsConst: false }) yield return member;
-            if (member is IPropertySymbol { IsIndexer: false } property && IsAutoProperty(property)) yield return member;
+            if (member.IsStatic)
+            {
+                continue;
+            }
+
+            if (member is IFieldSymbol { IsImplicitlyDeclared: false, IsConst: false })
+            {
+                yield return member;
+            }
+
+            if (member is IPropertySymbol { IsIndexer: false } property && IsAutoProperty(property))
+            {
+                yield return member;
+            }
         }
     }
 
@@ -76,26 +102,42 @@ internal static class Helper
     internal static IEnumerable<IPropertySymbol> GetAllProperties(INamedTypeSymbol? type)
     {
         var names = new HashSet<string>();
+
         while (type != null && type.SpecialType != SpecialType.System_Object)
         {
             foreach (var property in type.GetMembers().OfType<IPropertySymbol>())
-                if (!property.IsStatic && !property.IsIndexer && names.Add(property.Name)) yield return property;
+            {
+                if (!property.IsStatic && !property.IsIndexer && names.Add(property.Name))
+                {
+                    yield return property;
+                }
+            }
+
             type = type.BaseType;
         }
     }
 
     internal static bool IsPartial(INamedTypeSymbol type) => type.DeclaringSyntaxReferences.Any(r =>
         r.GetSyntax() is TypeDeclarationSyntax syntax && syntax.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)));
+
     internal static bool HasDeepCopyOptIn(INamedTypeSymbol type) => type.GetAttributes().Any(a => SymbolEquals(a.AttributeClass, "UtilityVerse.Copy.DeepCopy")) ||
         type.AllInterfaces.Any(i => SymbolEquals(i, "UtilityVerse.Copy.IDeepCopy"));
+
     internal static bool HasShallowCopyOptIn(INamedTypeSymbol type) => type.GetAttributes().Any(a => SymbolEquals(a.AttributeClass, "UtilityVerse.Copy.ShallowCopy")) ||
         type.AllInterfaces.Any(i => SymbolEquals(i, "UtilityVerse.Copy.IShallowCopy"));
+
     internal static bool SymbolEquals(ISymbol? symbol, string name) => symbol?.ToDisplayString() == name;
 
     internal static bool HasRequiredState(INamedTypeSymbol type)
     {
         for (var current = type; current != null; current = current.BaseType)
-            if (current.GetMembers().Any(m => m is IPropertySymbol { IsRequired: true } or IFieldSymbol { IsRequired: true })) return true;
+        {
+            if (current.GetMembers().Any(m => m is IPropertySymbol { IsRequired: true } or IFieldSymbol { IsRequired: true }))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -105,49 +147,128 @@ internal static class Helper
     {
         var names = new HashSet<string>();
         var current = type;
+
         while (current != null && current.SpecialType != SpecialType.System_Object)
         {
-            foreach (var member in GetOwnState(current)) if (names.Add(member.Name)) yield return member;
-            if (HasGeneratedDeepBase(current)) yield break;
+            foreach (var member in GetOwnState(current))
+            {
+                if (names.Add(member.Name))
+                {
+                    yield return member;
+                }
+            }
+
+            if (HasGeneratedDeepBase(current))
+            {
+                yield break;
+            }
+
             current = current.BaseType;
         }
     }
 
-    internal static IMethodSymbol? CopyConstructorTarget(INamedTypeSymbol type) => type.InstanceConstructors
-        .Where(c => c.Parameters.All(p => p.RefKind == RefKind.None && MatchParameter(type, p) != null))
-        .OrderBy(c => c.Parameters.Length).FirstOrDefault();
+    internal static IMethodSymbol? PrimaryConstructor(INamedTypeSymbol type) => type.InstanceConstructors
+        .FirstOrDefault(c => c.DeclaringSyntaxReferences.Any(r =>
+            r.GetSyntax() is TypeDeclarationSyntax { ParameterList: not null }));
+
+    // A primary constructor runs before the destination can be registered. Never
+    // pass it a mutable source reference, including one nested inside a struct.
+
+    internal static bool IsConstructorArgumentSafe(ITypeSymbol type) =>
+        type.SpecialType is >= SpecialType.System_Boolean and <= SpecialType.System_Decimal ||
+        type.SpecialType == SpecialType.System_String || type.TypeKind == TypeKind.Enum ||
+        type is INamedTypeSymbol { IsValueType: true } named &&
+        named.GetMembers().OfType<IFieldSymbol>().Where(f => !f.IsStatic).All(f => IsConstructorArgumentSafe(f.Type));
 
     internal static ISymbol? MatchParameter(INamedTypeSymbol type, IParameterSymbol parameter) =>
-        GetAllProperties(type).Cast<ISymbol>().Concat(GetCopiedState(type))
+        GetCopiedState(type)
             .FirstOrDefault(m => m.Name.TrimStart('_').Equals(parameter.Name, System.StringComparison.OrdinalIgnoreCase) &&
                 (m is not IPropertySymbol property || property.GetMethod != null) && IsAssignable(StateType(m), parameter.Type));
 
     private static bool IsAssignable(ITypeSymbol source, ITypeSymbol target)
     {
-        if (SymbolEqualityComparer.Default.Equals(source, target) || target.SpecialType == SpecialType.System_Object) return true;
-        if (source.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, target))) return true;
+        if (SymbolEqualityComparer.Default.Equals(source, target) || target.SpecialType == SpecialType.System_Object)
+        {
+            return true;
+        }
+
+        if (source.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, target)))
+        {
+            return true;
+        }
+
         for (var current = source.BaseType; current != null; current = current.BaseType)
-            if (SymbolEqualityComparer.Default.Equals(current, target)) return true;
+        {
+            if (SymbolEqualityComparer.Default.Equals(current, target))
+            {
+                return true;
+            }
+        }
+
         return false;
+    }
+
+    internal static string MemberIndentation(INamedTypeSymbol type)
+    {
+        var depth = type.ContainingNamespace.IsGlobalNamespace ? 1 : 2;
+
+        for (var parent = type.ContainingType; parent != null; parent = parent.ContainingType)
+        {
+            depth++;
+        }
+
+        return new string(' ', depth * 4);
     }
 
     internal static string BeginType(INamedTypeSymbol type, string? interfaces)
     {
-        var sb = new StringBuilder("// <auto-generated/>\n#nullable enable\nusing System;\nusing System.Linq;\nusing System.Collections.Generic;\n");
-        if (!type.ContainingNamespace.IsGlobalNamespace) sb.AppendLine("namespace " + type.ContainingNamespace.ToDisplayString() + " {");
+        var sb = new StringBuilder("// <auto-generated/>\n#nullable enable\nusing System;\nusing System.Linq;\nusing System.Collections.Generic;\n\n");
+        var indent = "";
+
+        if (!type.ContainingNamespace.IsGlobalNamespace)
+        {
+            sb.AppendLine("namespace " + type.ContainingNamespace.ToDisplayString());
+            sb.AppendLine("{");
+            indent = "    ";
+        }
+
         var parents = new Stack<INamedTypeSymbol>();
-        for (var parent = type.ContainingType; parent != null; parent = parent.ContainingType) parents.Push(parent);
-        foreach (var parent in parents) sb.AppendLine(Declaration(parent) + " {");
-        sb.AppendLine(Declaration(type) + (interfaces == null ? "" : " : " + interfaces) + " {");
+
+        for (var parent = type.ContainingType; parent != null; parent = parent.ContainingType)
+        {
+            parents.Push(parent);
+        }
+
+        foreach (var parent in parents)
+        {
+            sb.AppendLine(indent + Declaration(parent));
+            sb.AppendLine(indent + "{");
+            indent += "    ";
+        }
+
+        sb.AppendLine(indent + Declaration(type) + (interfaces == null ? "" : " : " + interfaces));
+        sb.AppendLine(indent + "{");
+
         return sb.ToString();
     }
 
     internal static string EndType(INamedTypeSymbol type)
     {
-        var result = "}\n";
-        for (var parent = type.ContainingType; parent != null; parent = parent.ContainingType) result += "}\n";
-        if (!type.ContainingNamespace.IsGlobalNamespace) result += "}\n";
-        return result;
+        var sb = new StringBuilder();
+        var indent = MemberIndentation(type);
+
+        for (var current = type; current != null; current = current.ContainingType)
+        {
+            indent = indent.Substring(0, indent.Length - 4);
+            sb.AppendLine(indent + "}");
+        }
+
+        if (!type.ContainingNamespace.IsGlobalNamespace)
+        {
+            sb.AppendLine("}");
+        }
+
+        return sb.ToString();
     }
 
     private static string Declaration(INamedTypeSymbol type)
@@ -161,8 +282,22 @@ internal static class Helper
             Accessibility.ProtectedAndInternal => "private protected",
             _ => "internal"
         };
-        var kind = type.IsRecord ? (type.IsValueType ? "record struct" : "record") : type.TypeKind switch
-        { TypeKind.Struct => "struct", TypeKind.Interface => "interface", _ => "class" };
+        string kind;
+
+        if (type.IsRecord)
+        {
+            kind = type.IsValueType ? "record struct" : "record";
+        }
+        else
+        {
+            kind = type.TypeKind switch
+            {
+                TypeKind.Struct => "struct",
+                TypeKind.Interface => "interface",
+                _ => "class"
+            };
+        }
+
         return access + (type.IsStatic ? " static" : "") + (type.IsReadOnly ? " readonly" : "") + " partial " + kind + " " + LocalName(type);
     }
 }
