@@ -52,7 +52,20 @@ readonly fields can be assigned in these constructors.
 
 CopyContext uses reference equality to preserve aliases and mutable cycles.
 CopyArray, CopySequence, CopyMap, and CopyImmutable implement container registration
-and typed element delegates. Collection comparers and queue/stack ordering are
+and typed element delegates. Nonempty hash sets and maps stage copied entries in
+typed buffers and populate only after the outermost operation hydrates object
+state. Lookup validation rebuilds invalid standard hash containers in place once;
+dependencies that remain unstable fail explicitly. CopyOperation is a readonly
+struct scope with a shared depth/success marker, so nested calls do not allocate
+scope objects. Pending work is allocated lazily; map entries are value-type
+KeyValuePair values, not per-entry work objects. Keep the context itself a reference
+type because graph identity and nesting state must be shared.
+
+Generated IDeepCopyable.Copy routes through CopyContext.CopyGenerated with a static
+factory so direct interface calls also establish a complete graph operation. Keep
+existing public context signatures intact. Failed operations clear cached partial
+destinations and pending work; suppressed nested failures poison the operation.
+Collection comparers and queue/stack ordering are
 preserved. Immutable tuple cycles are rejected explicitly. Generic parameter values
 must be supported immutable scalars or implement generated IDeepCopyable.
 
@@ -75,6 +88,9 @@ consumer documentation, and tests together.
 - DeepCopyRuntimeTests and ShallowCopyRuntimeTests assert copying behavior.
 - ConstructorIsolationTests covers source isolation, constructor execution, readonly
   state, cycles, primary constructors, and unsupported construction paths.
+- HashCollectionHydrationTests covers hash/equality dependencies on later state,
+  collection bucket rebuilding, direct context/interface entry points, duplicate
+  rejection, unstable hashing, and context recovery after failures.
 - CopyRegressionTests replaces the old bug-pinning KnownIssuesTests with compilation,
   analyzer, and runtime regressions for fixed issues, plus unsupported-shape checks.
 - ValidationAnalyzerTests covers positive and negative diagnostics.

@@ -29,7 +29,7 @@ internal static class DeepCopyGenerator
         sb.AppendLine($"{indent}public {(hasBase ? "new " : "")}{name} DeepCopy() => new {context}().Copy(this);");
         sb.AppendLine();
         sb.AppendLine($"{indent}object global::UtilityVerse.Copy.IDeepCopyable.Copy({context} context) =>");
-        sb.AppendLine($"{bodyIndent}__UtilityVerseDeepCopy(context);");
+        sb.AppendLine($"{bodyIndent}context.CopyGenerated(this, static (source, copyContext) => source.__UtilityVerseDeepCopy(copyContext));");
         sb.AppendLine();
 
         var modifier = "protected virtual";

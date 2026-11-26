@@ -24,10 +24,21 @@ scenarios. Passing the original suite did not cover the failures below.
    constructor calls, inheritance, cycles, records, primary constructors, and
    rejection paths. Full scripts/build.sh validation passed: 145 tests, including
    108 Copy tests, with zero build warnings or errors.
-2. **Open — P1 — Dictionary and set insertion can precede state hydration.** A key
-   whose hash depends on its copied owner's scalar state is inserted too early.
-   The copied dictionary cannot find its own key afterward. Plan deferred
-   population after relevant graph state is ready.
+2. **Completed — P1 — Dictionary and set insertion can precede state hydration.**
+   Previously, a key whose hash depends on its copied owner's scalar state could
+   be inserted too early, leaving the copied dictionary unable to find its key.
+   The implementation now stages
+   typed entries, defers insertion until object hydration completes, and validates
+   standard hash-container lookups. Invalid buckets are rebuilt in place once;
+   remaining unstable hash dependencies fail explicitly. Direct context/interface
+   calls and recovery after failures are covered by 23 permanent regression cases
+   in HashCollectionHydrationTests. Completion scopes are readonly structs; pending
+   work uses typed buffers and is allocated only for nonempty hash containers.
+   All existing public context signatures remain, with CopyGenerated added for
+   direct generated-interface calls. Full scripts/build.sh validation passed:
+   168 tests, including 131 Copy tests, with zero build warnings or errors.
+   scripts/verify-packages.sh also passed fresh installed consumers on .NET 8 and
+   .NET 11. Arbitrary comparer-dependency solving remains unsupported; see README.
 3. **Open — P1 — Virtual auto-properties can lose base storage.** Property
    assignments dispatch to overrides; a base property's separately stored value
    becomes zero. Model physical state separately from virtual property behavior.

@@ -55,6 +55,30 @@ unrecognized derived runtime type throws `NotSupportedException` rather than los
 its derived state. Opted-in base classes preserve their private and readonly state.
 Abstract opted-in classes support generated concrete subclasses.
 
+Dictionary entries and hash-set elements are copied into typed temporary buffers.
+Their destination containers are registered immediately, preserving cycles and
+aliases, but insertion waits until the outermost graph operation has hydrated
+object state. This allows a key's hash or equality to depend on its owner's copied
+fields, including fields declared after the collection.
+
+Once every pending container is populated, standard dictionary and set lookups are
+checked. Containers with invalid buckets are rebuilt in place once, preserving
+their identity and comparer, then checked again. Hash/equality dependencies that
+remain unstable throw `NotSupportedException`; duplicate copied keys or elements
+also throw rather than being discarded. This is not a general dependency solver
+for arbitrary comparers. Hash/equality implementations must be side-effect-free
+and stable on the completed graph; custom copy callbacks must not depend on pending
+containers already being populated during hydration.
+
+All public `CopyContext` copy entry points and generated `IDeepCopyable.Copy` calls
+complete pending work before the outermost call returns. Generated implementations
+use `CopyGenerated<T>(T, Func<T, CopyContext, object>)` to establish that boundary
+even when called through the interface directly. Existing context entry-point
+signatures remain unchanged. If an operation fails, cached destinations and pending
+work are cleared so the context cannot return partial copies on a later call. A
+custom copier must propagate nested failures; suppressing one still causes the
+enclosing operation to fail.
+
 Supported state includes:
 
 - Primitive values, enums, strings, immutable built-in values, nullable values,
@@ -109,8 +133,8 @@ nested opt-ins. `UV004` reports shapes that cannot safely be generated:
 
 Use a custom copy implementation for those shapes. Cycles through immutable
 reference tuples throw `NotSupportedException`; mutable object cycles are supported.
-Keys and set elements must retain stable hash/equality behavior while stored, just
-as they must in the original collection. Copies are snapshots of a quiescent graph;
+Keys and set elements must retain stable hash/equality behavior on the completed
+graph, just as they must in the original collection. Copies are snapshots of a quiescent graph;
 concurrent mutation during copying is not synchronized.
 
 ## Validation

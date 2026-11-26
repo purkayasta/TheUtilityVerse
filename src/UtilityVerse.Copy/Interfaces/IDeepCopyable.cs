@@ -9,5 +9,6 @@ namespace UtilityVerse.Copy;
 public interface IDeepCopyable
 {
     /// <summary>Copies this value using the supplied graph context.</summary>
+    /// <remarks>Generated implementations complete pending hash collections before an outermost call returns.</remarks>
     object Copy(CopyContext context);
 }
