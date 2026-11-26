@@ -1,4 +1,4 @@
-﻿# The UtilityVerse
+# The UtilityVerse
 
 ## Give it a star on [github](https://github.com/purkayasta/TheUtilityVerse) if you like the project. 👏 🌠 🌟
 
@@ -8,12 +8,12 @@ There are multiple packages in this universe. Use whatever suits you.
 
 1. [UtilityVerse](https://www.nuget.org/packages/UtilityVerse/)
 2. [UtilityVerse.ASPNET](https://www.nuget.org/packages/UtilityVerse.ASPNET/)
+3. [UtilityVerse.Copy](https://www.nuget.org/packages/UtilityVerse.Copy/)
 
-To Invoke this library, you may want to use ```UtilityVerse``` class.
+To invoke this library, you may want to use the `Utility` class (namespace `UtilityVerse.ASPNET`).
 
-## Features:
-- [x] CreateHttpRequest()
+## Features
 
-
+- `Utility.CreateHttpRequest()` — creates an `HttpRequest`, optionally with a query string key/value.
 
 Made ❤ with C#.

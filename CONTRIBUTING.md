@@ -1,8 +1,9 @@
 # Utility Verse Contribution Guideline
 
-> please carefully read the readme file to understand what I am trying to do. Make sure go through the codebase.
+> Please read the [README](README.md) to understand what this project does, and go through the codebase first.
 
-To contribute there are some simple rules
-- Whatever you want to contribute, feel free to discuss by creating an issue first.
-- Don't push your changes directly into master or even development.
-- Fork the repo on your own account, create a branch based on development. then PR to merge this with this repository development branch.
+- Discuss what you want to contribute by creating an issue first.
+- Don't push directly to `master` or `development`.
+- Fork the repo, create a branch based on `development`, then open a PR against this repository's `development` branch.
+- Add or update tests for your change and make sure it passes by running `scripts/build.ps1` (Windows) or `scripts/build.sh` (Linux/macOS), which clean, restore, build and test.
+- Run `dotnet format` scoped to the C# files you changed (`--include <paths>`) before committing.
