@@ -1,152 +1,168 @@
+// ---------------------------------------------------------------
+// Copyright (c) Pritom Purkayasta All rights reserved.
+// FREE TO USE TO CONNECT THE WORLD
+// ---------------------------------------------------------------
+
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace UtilityVerse.Copy;
 
 internal static class Helper
 {
-	internal static bool IsTrulyPrimitive(ITypeSymbol symbol)
-	{
-		return symbol.IsValueType || symbol.TypeKind is TypeKind.Enum || symbol.SpecialType switch
-		{
-			SpecialType.System_Boolean or
-			SpecialType.System_Byte or
-			SpecialType.System_SByte or
-			SpecialType.System_Int16 or
-			SpecialType.System_UInt16 or
-			SpecialType.System_Int32 or
-			SpecialType.System_UInt32 or
-			SpecialType.System_Int64 or
-			SpecialType.System_UInt64 or
-			SpecialType.System_Single or
-			SpecialType.System_Double or
-			SpecialType.System_Char or
-			SpecialType.System_Enum or
-			SpecialType.System_String => true,
-			_ => false
-		};
-	}
+    private static readonly SymbolDisplayFormat TypeDisplay = SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+        SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
 
-	internal static bool IsBuiltinType(ITypeSymbol symbol)
-	{
-		return symbol.ToDisplayString() switch
-		{
-			"System.DateTime" or
-			"System.DateOnly" or
-			"System.DateTimeOffset" or
-			"System.Guid" or
-			"System.TimeSpan" or
-			"System.Decimal" or
-			"System.Uri" or
-			"System.Version" or
-			"System.Numerics.BigInteger" or
-			"System.Numerics.Complex" or
-			"System.Index" or
-			"System.Range" or
-			"System.Half" or
-			"System.Int128" or
-			"System.UInt128" => true,
-			_ => false
-		};
-	}
-	internal static bool IsCollectionType(ITypeSymbol symbol)
-	{
-		return symbol.AllInterfaces.Any(i =>
-			i.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>");
-	}
+    internal static string TypeName(ITypeSymbol type) => type.ToDisplayString(TypeDisplay);
+    internal static string Identifier(string name) => SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ? "@" + name : name;
+    internal static string LocalName(INamedTypeSymbol type) => Identifier(type.Name) +
+        (type.TypeParameters.Length == 0 ? "" : "<" + string.Join(", ", type.TypeParameters.Select(p => Identifier(p.Name))) + ">");
 
-	internal static bool IsGenericCollection(string? originalDef, out string? kind)
-	{
-		kind = originalDef switch
-		{
-			"System.Collections.Generic.List<T>" => "List",
-			"System.Collections.Generic.IList<T>" => "List",
-			"System.Collections.ObjectModel.Collection<T>" => "List",
-			"System.Collections.ObjectModel.ReadOnlyCollection<T>" => "List",
-			"System.Collections.ObjectModel.ObservableCollection<T>" => "List",
-			"System.ComponentModel.BindingList<T>" => "List",
-			"System.Collections.Immutable.ImmutableList<T>" => "List",
-			"System.Collections.Generic.ReadOnlyList<T>" => "List",
+    internal static bool IsTrulyPrimitive(ITypeSymbol type)
+    {
+        if (type.TypeKind == TypeKind.Enum || type.SpecialType is >= SpecialType.System_Boolean and <= SpecialType.System_Decimal ||
+            type.SpecialType == SpecialType.System_String) return true;
+        if (IsBuiltinType(type)) return true;
+        if (type is not INamedTypeSymbol { IsValueType: true } named) return false;
+        return named.GetMembers().OfType<IFieldSymbol>().Where(f => !f.IsStatic).All(f => IsTrulyPrimitive(f.Type));
+    }
 
-			"System.Collections.Generic.IEnumerable<T>" => "Enumerable",
-			"System.Collections.Generic.ICollection<T>" => "Enumerable",
-			"System.Collections.Generic.IReadOnlyCollection<T>" => "Enumerable",
-			"System.Collections.Generic.IReadOnlyList<T>" => "Enumerable",
+    internal static bool IsBuiltinType(ITypeSymbol type) => type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString() is
+        "System.DateTime" or "System.DateOnly" or "System.DateTimeOffset" or "System.Guid" or "System.TimeSpan" or
+        "decimal" or "System.Decimal" or "System.Uri" or "System.Version" or "System.Numerics.BigInteger" or
+        "System.Numerics.Complex" or "System.Index" or "System.Range" or "System.Half" or "System.Int128" or "System.UInt128";
 
-			"System.Collections.Generic.HashSet<T>" => "HashSet",
+    internal static bool IsGenericCollection(string? originalDef, out string? kind)
+    {
+        kind = originalDef switch
+        {
+            "System.Collections.Generic.List<T>" or "System.Collections.Generic.IList<T>" or
+            "System.Collections.Generic.IEnumerable<T>" or "System.Collections.Generic.ICollection<T>" or
+            "System.Collections.Generic.IReadOnlyList<T>" or "System.Collections.Generic.IReadOnlyCollection<T>" or
+            "System.Collections.ObjectModel.Collection<T>" or "System.Collections.ObjectModel.ReadOnlyCollection<T>" or
+            "System.Collections.ObjectModel.ObservableCollection<T>" or "System.ComponentModel.BindingList<T>" or
+            "System.Collections.Generic.HashSet<T>" or "System.Collections.Generic.Queue<T>" or "System.Collections.Generic.Stack<T>" => "Sequence",
+            "System.Collections.Generic.Dictionary<TKey, TValue>" => "Dictionary",
+            "System.Collections.Concurrent.ConcurrentDictionary<TKey, TValue>" => "ConcurrentDictionary",
+            _ => null
+        };
+        return kind != null;
+    }
 
-			"System.Collections.Generic.Dictionary<TKey, TValue>" => "Dictionary",
-			"System.Collections.Frozen.FrozenDictionary<TKey, TValue>" => "Dictionary",
-			"System.Collections.Concurrent.ConcurrentDictionary<TKey, TValue>" => "Dictionary",
+    internal static IEnumerable<ISymbol> GetOwnState(INamedTypeSymbol type)
+    {
+        foreach (var member in type.GetMembers())
+        {
+            if (member.IsStatic) continue;
+            if (member is IFieldSymbol { IsImplicitlyDeclared: false, IsConst: false }) yield return member;
+            if (member is IPropertySymbol { IsIndexer: false } property && IsAutoProperty(property)) yield return member;
+        }
+    }
 
-			"System.Collections.Immutable.ImmutableArray<T>" => "List",
-			"System.Collections.Immutable.ImmutableSortedSet<T>" => "HashSet",
-			"System.Collections.Immutable.ImmutableHashSet<T>" => "HashSet",
-			"System.Collections.Immutable.ImmutableDictionary<TKey, TValue>" => "Dictionary",
-			"System.Collections.Immutable.ImmutableSortedDictionary<TKey, TValue>" => "Dictionary",
+    internal static bool IsAutoProperty(IPropertySymbol property) => property.ContainingType.GetMembers().OfType<IFieldSymbol>()
+        .Any(f => SymbolEqualityComparer.Default.Equals(f.AssociatedSymbol, property));
 
-			"System.Collections.Generic.Queue<T>" => "Queue",
-			"System.Collections.Generic.Stack<T>" => "Stack",
+    internal static ITypeSymbol StateType(ISymbol member) => member switch
+    {
+        IPropertySymbol p => p.Type,
+        IFieldSymbol f => f.Type,
+        _ => throw new System.InvalidOperationException("Expected stored state.")
+    };
 
-			_ => null
-		};
+    internal static IEnumerable<IPropertySymbol> GetAllProperties(INamedTypeSymbol? type)
+    {
+        var names = new HashSet<string>();
+        while (type != null && type.SpecialType != SpecialType.System_Object)
+        {
+            foreach (var property in type.GetMembers().OfType<IPropertySymbol>())
+                if (!property.IsStatic && !property.IsIndexer && names.Add(property.Name)) yield return property;
+            type = type.BaseType;
+        }
+    }
 
-		return kind != null;
-	}
+    internal static bool IsPartial(INamedTypeSymbol type) => type.DeclaringSyntaxReferences.Any(r =>
+        r.GetSyntax() is TypeDeclarationSyntax syntax && syntax.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)));
+    internal static bool HasDeepCopyOptIn(INamedTypeSymbol type) => type.GetAttributes().Any(a => SymbolEquals(a.AttributeClass, "UtilityVerse.Copy.DeepCopy")) ||
+        type.AllInterfaces.Any(i => SymbolEquals(i, "UtilityVerse.Copy.IDeepCopy"));
+    internal static bool HasShallowCopyOptIn(INamedTypeSymbol type) => type.GetAttributes().Any(a => SymbolEquals(a.AttributeClass, "UtilityVerse.Copy.ShallowCopy")) ||
+        type.AllInterfaces.Any(i => SymbolEquals(i, "UtilityVerse.Copy.IShallowCopy"));
+    internal static bool SymbolEquals(ISymbol? symbol, string name) => symbol?.ToDisplayString() == name;
 
-	internal static IEnumerable<IPropertySymbol> GetAllProperties(INamedTypeSymbol? type)
-	{
-		while (type != null && type.SpecialType != SpecialType.System_Object)
-		{
-			foreach (var member in type.GetMembers().OfType<IPropertySymbol>())
-			{
-				if (!member.IsReadOnly && member.SetMethod != null)
-					yield return member;
-			}
+    internal static bool HasRequiredState(INamedTypeSymbol type)
+    {
+        for (var current = type; current != null; current = current.BaseType)
+            if (current.GetMembers().Any(m => m is IPropertySymbol { IsRequired: true } or IFieldSymbol { IsRequired: true })) return true;
+        return false;
+    }
 
-			type = type.BaseType;
-		}
-	}
+    internal static bool HasGeneratedDeepBase(INamedTypeSymbol type) => type.BaseType != null && HasDeepCopyOptIn(type.BaseType);
 
-	internal static bool IsPartial(INamedTypeSymbol typeSymbol)
-	{
-		return typeSymbol.DeclaringSyntaxReferences.Any(syntaxRef =>
-			syntaxRef.GetSyntax() is TypeDeclarationSyntax syntax &&
-			syntax.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)));
-	}
+    internal static IEnumerable<ISymbol> GetCopiedState(INamedTypeSymbol type)
+    {
+        var names = new HashSet<string>();
+        var current = type;
+        while (current != null && current.SpecialType != SpecialType.System_Object)
+        {
+            foreach (var member in GetOwnState(current)) if (names.Add(member.Name)) yield return member;
+            if (HasGeneratedDeepBase(current)) yield break;
+            current = current.BaseType;
+        }
+    }
 
-	internal static bool HasDeepCopyOptIn(INamedTypeSymbol typeSymbol)
-	{
-		return typeSymbol.GetAttributes().Any(a =>
-				   SymbolEquals(a.AttributeClass, "UtilityVerse.Copy.DeepCopy")) ||
-			   typeSymbol.AllInterfaces.Any(i =>
-				   SymbolEquals(i, "UtilityVerse.Copy.IDeepCopy"));
-	}
+    internal static IMethodSymbol? CopyConstructorTarget(INamedTypeSymbol type) => type.InstanceConstructors
+        .Where(c => c.Parameters.All(p => p.RefKind == RefKind.None && MatchParameter(type, p) != null))
+        .OrderBy(c => c.Parameters.Length).FirstOrDefault();
 
-	internal static bool HasShallowCopyOptIn(INamedTypeSymbol typeSymbol)
-	{
-		return typeSymbol.GetAttributes().Any(a =>
-				   SymbolEquals(a.AttributeClass, "UtilityVerse.Copy.ShallowCopy")) ||
-			   typeSymbol.AllInterfaces.Any(i =>
-				   SymbolEquals(i, "UtilityVerse.Copy.IShallowCopy"));
-	}
+    internal static ISymbol? MatchParameter(INamedTypeSymbol type, IParameterSymbol parameter) =>
+        GetAllProperties(type).Cast<ISymbol>().Concat(GetCopiedState(type))
+            .FirstOrDefault(m => m.Name.TrimStart('_').Equals(parameter.Name, System.StringComparison.OrdinalIgnoreCase) &&
+                (m is not IPropertySymbol property || property.GetMethod != null) && IsAssignable(StateType(m), parameter.Type));
 
-	internal static bool SymbolEquals(ISymbol? symbol, string fullyQualifiedMetadataName)
-	{
-		return symbol?.ToDisplayString() == fullyQualifiedMetadataName;
-	}
-	internal static INamedTypeSymbol UnwrapNullable(ITypeSymbol type)
-	{
-		if (type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
-			type is INamedTypeSymbol namedType &&
-			namedType.TypeArguments.FirstOrDefault() is INamedTypeSymbol underlying)
-		{
-			return underlying;
-		}
+    private static bool IsAssignable(ITypeSymbol source, ITypeSymbol target)
+    {
+        if (SymbolEqualityComparer.Default.Equals(source, target) || target.SpecialType == SpecialType.System_Object) return true;
+        if (source.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, target))) return true;
+        for (var current = source.BaseType; current != null; current = current.BaseType)
+            if (SymbolEqualityComparer.Default.Equals(current, target)) return true;
+        return false;
+    }
 
-		return type as INamedTypeSymbol ?? throw new System.InvalidOperationException("Expected named type.");
-	}
+    internal static string BeginType(INamedTypeSymbol type, string? interfaces)
+    {
+        var sb = new StringBuilder("// <auto-generated/>\n#nullable enable\nusing System;\nusing System.Linq;\nusing System.Collections.Generic;\n");
+        if (!type.ContainingNamespace.IsGlobalNamespace) sb.AppendLine("namespace " + type.ContainingNamespace.ToDisplayString() + " {");
+        var parents = new Stack<INamedTypeSymbol>();
+        for (var parent = type.ContainingType; parent != null; parent = parent.ContainingType) parents.Push(parent);
+        foreach (var parent in parents) sb.AppendLine(Declaration(parent) + " {");
+        sb.AppendLine(Declaration(type) + (interfaces == null ? "" : " : " + interfaces) + " {");
+        return sb.ToString();
+    }
+
+    internal static string EndType(INamedTypeSymbol type)
+    {
+        var result = "}\n";
+        for (var parent = type.ContainingType; parent != null; parent = parent.ContainingType) result += "}\n";
+        if (!type.ContainingNamespace.IsGlobalNamespace) result += "}\n";
+        return result;
+    }
+
+    private static string Declaration(INamedTypeSymbol type)
+    {
+        var access = type.DeclaredAccessibility switch
+        {
+            Accessibility.Public => "public",
+            Accessibility.Private => "private",
+            Accessibility.Protected => "protected",
+            Accessibility.ProtectedOrInternal => "protected internal",
+            Accessibility.ProtectedAndInternal => "private protected",
+            _ => "internal"
+        };
+        var kind = type.IsRecord ? (type.IsValueType ? "record struct" : "record") : type.TypeKind switch
+        { TypeKind.Struct => "struct", TypeKind.Interface => "interface", _ => "class" };
+        return access + (type.IsStatic ? " static" : "") + (type.IsReadOnly ? " readonly" : "") + " partial " + kind + " " + LocalName(type);
+    }
 }

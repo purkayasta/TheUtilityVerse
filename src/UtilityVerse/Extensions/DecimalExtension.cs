@@ -20,7 +20,7 @@ public static class DecimalExtension
     /// <returns>UtilityVerseResult</returns>
     public static UtilityVerseResult<string> ToStr(this decimal[] decimalArray, string separator = null)
     {
-        if (decimalArray is null || decimalArray.Length < 1) UtilityVerseException.Throw("Decimal Array is null or empty");
+        if (decimalArray is null || decimalArray.Length < 1) return UtilityVerseResult<string>.Failure("Decimal Array is null or empty");
 
         var sb = new System.Text.StringBuilder();
 
@@ -34,6 +34,6 @@ public static class DecimalExtension
                 sb.Append(separator);
         }
 
-        return new UtilityVerseResult<string>(sb.ToString());
+        return UtilityVerseResult<string>.Success(sb.ToString());
     }
 }

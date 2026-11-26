@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------
+// ---------------------------------------------------------------
 // Copyright (c) Pritom Purkayasta All rights reserved.
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
@@ -17,12 +17,12 @@ public static class PagedListExtension
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="queryable"></param>
-    /// <param name="index"></param>
+    /// <param name="index">Zero-based page index.</param>
     /// <param name="pageSize"></param>
     /// <returns>PagedList</returns>
     public static PagedList<T> ToPagedList<T>(this IQueryable<T> queryable, int index, int pageSize)
     {
-        if (index == default || pageSize == default)
+        if (queryable is null || index < 0 || pageSize < 1)
         {
             return new PagedList<T>
             {
@@ -33,7 +33,7 @@ public static class PagedListExtension
         var pagedList = new PagedList<T>();
         try
         {
-            var result = queryable.Take(pageSize).Skip(index * pageSize).ToList();
+            var result = queryable.Skip(checked(index * pageSize)).Take(pageSize).ToList();
             pagedList.Results = result;
         }
         catch (Exception exception)

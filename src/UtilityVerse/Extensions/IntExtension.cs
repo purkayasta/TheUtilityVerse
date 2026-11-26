@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------
+// ---------------------------------------------------------------
 // Copyright (c) Pritom Purkayasta All rights reserved.
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
@@ -50,6 +50,6 @@ public static class IntExtension
                 sb.Append(separator);
         }
 
-        return new UtilityVerseResult<string>(sb.ToString());
+        return UtilityVerseResult<string>.Success(sb.ToString());
     }
 }

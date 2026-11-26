@@ -1,183 +1,108 @@
-# 📦 UtilityVerse.Copy — Source Generator for DeepCopy and ShallowCopy in C\#
+# UtilityVerse.Copy
 
-![Nuget](https://img.shields.io/nuget/v/UtilityVerse.Copy) ![Nuget](https://img.shields.io/nuget/dt/UtilityVerse.Copy?style=plastic)
----
+A Roslyn source generator for typed `DeepCopy()` and `ShallowCopy()` methods on
+partial classes, records, structs, and record structs. Public, internal, nested,
+and generic types are supported. Containing types must also be partial.
 
-## 📖 What is UtilityVerse.Copy?
-
-**UtilityVerse.Copy** is a Roslyn-based source generator for C#. It automatically creates `DeepCopy()` and `ShallowCopy()` methods for your classes and structs at compile-time. With zero runtime dependencies, your copy logic is safe, efficient, and maintainable — without writing repetitive code.
-
----
-
-## ❓ Why Use It?
-
-* Copying objects (deep or shallow) usually requires verbose, error-prone boilerplate.
-* UtilityVerse.Copy removes that burden by generating fully-typed copy methods at compile-time using Roslyn.
-* No runtime reflection, no magic — just pure, reliable, compiled code.
-* Perfect for:
-
-  * DTOs
-  * ViewModels
-  * Configuration models
-  * Game entities
-  * Domain models needing clean clone operations
-
----
-
-## ✨ Features
-
-* ✅ Auto-generates `DeepCopy()` and/or `ShallowCopy()` methods
-* ✅ Pure compile-time code generation (no runtime dependencies)
-* ✅ Supports both `[Attributes]` and `Marker Interfaces`
-* ✅ Handles:
-
-  * Common collections (List, HashSet, Dictionary, etc.)
-  * Arrays, Tuples, ValueTuples
-  * Primitive types, strings, and nested objects
-  * Records, classes, and structs (as long as they are `partial`)
-* ✅ Safe — generated code is separate and non-intrusive
-
----
-
-## 🔑 API — What You Need to Use
-
-### 1️⃣ Attributes
-
-Decorate your classes/records using:
-
-* `[DeepCopy]` — to generate a recursive deep copy method.
-* `[ShallowCopy]` — to generate a simple shallow copy.
-
-The attributes target classes only; structs and record structs opt in through the marker interfaces below.
-
-Example:
+Install with `dotnet add package UtilityVerse.Copy`. A compiler with Roslyn 4.11
+or newer is required (.NET SDK 8.0.400+ or Visual Studio 2022 17.11+).
 
 ```csharp
 using UtilityVerse.Copy;
 
 [DeepCopy]
-public partial class Product
+public partial class Node
 {
-    public string Name { get; set; }
-    public decimal Price { get; set; }
-}
-```
-
----
-
-### 2️⃣ Marker Interfaces
-
-If you prefer code-first opt-in:
-
-* Implement `IDeepCopy` for deep copy generation.
-* Implement `IShallowCopy` for shallow copy generation.
-
-Example:
-
-```csharp
-using UtilityVerse.Copy;
-
-public partial class Product : IDeepCopy
-{
-    public string Name { get; set; }
-    public decimal Price { get; set; }
-}
-```
-
----
-
-> **Important:**
-> Your class or struct **must be `public` and marked `partial`** for the source generator to work. The analyzer reports `UV001` if `partial` is missing.
->
-> Requires a compiler with Roslyn 4.11 or newer (Visual Studio 2022 17.11+ or .NET SDK 8.0.400+).
->
-> Generated methods use standard collections and LINQ. Compatibility tests cover .NET Standard 2.0 and .NET 6 consumers without Frozen or Immutable collection packages.
-
----
-
-## 🚀 Tutorial — How to Use
-
-### Step 1️⃣ — Install via NuGet
-
-```bash
-dotnet add package UtilityVerse.Copy
-```
-
----
-
-### Step 2️⃣ — Add `[DeepCopy]` or `[ShallowCopy]`
-
-```csharp
-using UtilityVerse.Copy;
-
-[DeepCopy]
-public partial class User
-{
-    public int Id { get; set; }
     public string? Name { get; set; }
-    public List<Address> Addresses { get; set; } = [];
+    public Node? Next { get; set; }
+    public List<Node> Children { get; } = new();
 }
 
-[DeepCopy]
-public partial class Address
-{
-    public string? StreetNumber { get; set; }
-}
+var node = new Node { Name = "original" };
+node.Next = node;
+var copy = node.DeepCopy();
+// copy != node, copy.Next == copy, and copy.Children is independent.
 ```
 
----
+Use `[DeepCopy]` / `[ShallowCopy]`, or the empty marker interfaces `IDeepCopy` /
+`IShallowCopy`. Attributes also support structs. When both modes are requested on
+one type, deep copy takes precedence, as in earlier versions.
 
-### Step 3️⃣ — Generated Code (Example)
+## Deep-copy contract
 
-`DeepCopy()` for `User` will be automatically generated:
+Generated constructors copy stored instance fields and auto-properties, including
+private fields, readonly fields, init-only properties, and stored getter-only
+properties. Computed properties are derived from that copied state. Static state
+is ignored. Existing constructors may run before the stored state is hydrated;
+constructor parameters must match readable properties or fields by name and a supported assignment-compatible type. No
+unmatched argument is silently replaced by a default value.
 
-```csharp
-public User DeepCopy()
-{
-    return new User
-    {
-        Id = this.Id,
-        Name = this.Name,
-        Addresses = this.Addresses?.Select(x => x?.DeepCopy()).ToList()
-    };
-}
-```
+One `CopyContext` tracks reference identity across the operation. Cycles through
+opted-in classes and mutable collections are supported, and repeated references
+point to the same copied instance. Derived runtime types must also opt in; an
+unrecognized derived runtime type throws `NotSupportedException` rather than losing
+its derived state. Opted-in base classes preserve their private and readonly state.
+Abstract opted-in classes support generated concrete subclasses.
 
-Similarly for `Address`:
+Supported state includes:
 
-```csharp
-public Address DeepCopy()
-{
-    return new Address
-    {
-        StreetNumber = this.StreetNumber
-    };
-}
-```
+- Primitive values, enums, strings, immutable built-in values, nullable values,
+  `Uri`, and `Version`.
+- One-dimensional and jagged arrays, including nullable elements.
+- `List<T>`, `HashSet<T>`, `Queue<T>`, `Stack<T>`, `Collection<T>`,
+  `ReadOnlyCollection<T>`, `ObservableCollection<T>`, and `BindingList<T>`.
+- `IEnumerable<T>`, `IList<T>`, `ICollection<T>`, `IReadOnlyList<T>`, and
+  `IReadOnlyCollection<T>`. Recognized runtime collection types are preserved;
+  other enumerable sequences are materialized into lists. Unsupported collection
+  subclasses are rejected rather than losing their additional state.
+- `Dictionary<TKey,TValue>` and, on frameworks exposing its public `Comparer`,
+  `ConcurrentDictionary<TKey,TValue>`. Dictionary and set comparers are retained.
+- Reference tuples and value tuples; their mutable children are copied recursively.
+- Nested collections and opted-in mutable structs. A struct containing mutable
+  references must opt in; it is never silently treated as an immutable value.
 
----
+Generic type parameters can contain immutable scalar values or generated
+`IDeepCopyable` values. Other runtime generic values require a custom copy method
+and throw `NotSupportedException`. There is no reflection over model members;
+generated typed assignments perform the copy, with a small runtime context from
+this package and no external runtime dependencies. Keep the package's runtime
+reference when distributing consumers.
 
-### Step 4️⃣ — Use It!
+## Shallow-copy contract
 
-```csharp
-var userClone = existingUser.DeepCopy();
-```
+A class or record gets a new outer instance via `MemberwiseClone()`. All reference
+fields remain shared, including arrays, collections, and nested objects. Structs
+and record structs return a value copy. Nested types do not need any copy opt-in.
+This also works for init-only and getter-only properties.
 
----
+**Behavior change:** earlier versions cloned array containers while sharing list
+containers. Arrays now follow the same shallow-copy semantics as every other
+reference field.
 
-## 📚 Supported Types
+## Unsupported shapes and diagnostics
 
-* ✅ Primitives (`int`, `string`, `bool`, etc.)
-* ✅ Arrays
-* ✅ Tuples & ValueTuples
-* ✅ Generic collections (declare properties as `List<T>`, `HashSet<T>`, `Dictionary<K,V>` or an interface such as `IEnumerable<T>`/`IList<T>`)
-* ✅ Records, classes, structs (`partial` required)
-* ✅ Deep recursive copying of nested properties
+`UV001` reports a missing `partial` modifier. `UV002` identifies stored deep-copy
+state whose mutable type has no opt-in, including array elements and struct state.
+`UV003` remains reserved for compatibility; shallow references no longer require
+nested opt-ins. `UV004` reports shapes that cannot safely be generated:
 
----
+- Non-partial containing types, static/ref-like types, and reserved method or
+  constructor collisions.
+- Constructors with no usable state-name match, captured primary-constructor state,
+  and event subscriptions.
+- Inaccessible, hidden, or readonly inherited state when the base type has no deep opt-in; external bases must provide the current graph-copy support.
+- Deep-copy record inheritance, multidimensional arrays, pointer state, and
+  immutable/frozen collection implementations.
 
+Use a custom copy implementation for those shapes. Cycles through immutable
+reference tuples throw `NotSupportedException`; mutable object cycles are supported.
+Keys and set elements must retain stable hash/equality behavior while stored, just
+as they must in the original collection. Copies are snapshots of a quiescent graph;
+concurrent mutation during copying is not synchronized.
 
-## 📣 Like It? Star It! ⭐
+## Validation
 
-If you find UtilityVerse.Copy useful, give the repository a ⭐ and help others discover it!
-
+`tests/UtilityVerse.Copy.UnitTest` checks generated compilation, analyzer results,
+and runtime behavior, including .NET Standard 2.0 and .NET 6 consumer compilation.
+`bash scripts/verify-packages.sh` packs Release artifacts and restores a fresh
+consumer from the local packages, then runs it on .NET 8 and .NET 11. CI runs this check as well.

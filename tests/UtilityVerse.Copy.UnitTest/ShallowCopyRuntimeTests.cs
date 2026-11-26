@@ -92,12 +92,12 @@ public class ShallowCopyRuntimeTests
     }
 
     [Fact]
-    public void ShallowCopy_ClonesArrayButSharesElements_WhenPropertyIsArray()
+    public void ShallowCopy_SharesArrayAndElements_WhenPropertyIsArray()
     {
         var original = NewOrder();
         var copy = original.ShallowCopy();
 
-        Assert.NotSame(original.History, copy.History);
+        Assert.Same(original.History, copy.History);
         Assert.Same(original.History[0], copy.History[0]);
     }
 

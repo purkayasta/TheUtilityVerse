@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 
 namespace UtilityVerse.Copy.Analyzers;
 
@@ -24,6 +24,13 @@ internal static class Rules
         id: "UV003",
         title: "Nested type missing ShallowCopy attribute",
         messageFormat: "Property '{0}' of type '{1}' requires nested type '{2}' to have ShallowCopy attribute or implement IShallowCopy",
+        category: "UtilityVerse.Copy",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+    internal static readonly DiagnosticDescriptor UnsupportedShapeRule = new(
+        id: "UV004",
+        title: "Unsupported copy shape",
+        messageFormat: "Type '{0}' cannot generate a safe copy: {1}",
         category: "UtilityVerse.Copy",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

@@ -7,5 +7,5 @@
 using System;
 namespace UtilityVerse.Copy;
 
-[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
 public sealed class DeepCopy : Attribute;

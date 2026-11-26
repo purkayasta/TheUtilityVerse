@@ -5,6 +5,8 @@
 
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
+using UtilityVerse.Copy.Analyzers;
 
 namespace UtilityVerse.Copy.UnitTest.Infrastructure;
 
@@ -14,6 +16,10 @@ internal sealed record GeneratorRun(
     ImmutableArray<GeneratedSourceResult> GeneratedSources,
     ImmutableArray<Diagnostic> GeneratorDiagnostics)
 {
+    public IReadOnlyList<Diagnostic> AnalyzerErrors => OutputCompilation
+        .WithAnalyzers([new ValidationAnalyzer()]).GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult()
+        .Where(d => d.Severity == DiagnosticSeverity.Error).ToArray();
+
     public string GeneratedText =>
         string.Join(Environment.NewLine, GeneratedSources.Select(s => s.SourceText.ToString()));
 

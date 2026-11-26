@@ -37,7 +37,7 @@ public static class CharacterExtension
                     sb.Append(separator);
             }
 
-            return new UtilityVerseResult<string>(sb.ToString());
+            return UtilityVerseResult<string>.Success(sb.ToString());
         }
         catch (Exception unknownException)
         {

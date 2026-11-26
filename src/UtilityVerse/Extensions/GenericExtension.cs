@@ -1,9 +1,8 @@
-﻿// ---------------------------------------------------------------
+// ---------------------------------------------------------------
 // Copyright (c) Pritom Purkayasta All rights reserved.
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
-using UtilityVerse.Helpers;
 using UtilityVerse.Shared;
 
 namespace UtilityVerse.Extensions;
@@ -26,11 +25,7 @@ public static class GenericExtension
 
         try
         {
-            if (Utils.IsStruct(instance.GetType()))
-            {
-                return new UtilityVerseResult<byte[]>(ConvertStructIntoByteArray(instance));
-            }
-            return new UtilityVerseResult<byte[]>(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes<T>(instance));
+            return new UtilityVerseResult<byte[]>(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes<T>(instance, UtilityVerse.Helpers.Utils.JsonOptions));
         }
         catch (System.Text.Json.JsonException jsonException)
         {
@@ -42,15 +37,5 @@ public static class GenericExtension
         }
     }
 
-    private static byte[] ConvertStructIntoByteArray(object obj)
-    {
-        int size = System.Runtime.InteropServices.Marshal.SizeOf(obj);
-        byte[] arr = new byte[size];
-        IntPtr ptr = System.Runtime.InteropServices.Marshal.AllocHGlobal(size);
-        System.Runtime.InteropServices.Marshal.StructureToPtr(obj, ptr, true);
-        System.Runtime.InteropServices.Marshal.Copy(ptr, arr, 0, size);
-        System.Runtime.InteropServices.Marshal.FreeHGlobal(ptr);
-        return arr;
-    }
 #endif
 }

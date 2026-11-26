@@ -3,6 +3,10 @@
 	<PropertyGroup>
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<Nullable>disable</Nullable>
+		<PackageReadmeFile>nuget.md</PackageReadmeFile>
 	</PropertyGroup>
+	<ItemGroup>
+		<None Include="nuget.md" Pack="true" PackagePath="/" />
+	</ItemGroup>
 
 </Project>

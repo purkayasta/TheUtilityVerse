@@ -1,21 +1,17 @@
-# 📦 UtilityVerse.Copy — Source Generator for DeepCopy and ShallowCopy in C\#
+# UtilityVerse.Copy
 
-🚀 **UtilityVerse.Copy** is a Roslyn-based source generator that automatically creates `DeepCopy()` and `ShallowCopy()` methods for your models. Eliminate repetitive boilerplate and enjoy clean, maintainable code with zero runtime dependencies.
+Generate typed deep-copy and shallow-copy methods for partial C# classes, records,
+structs, and record structs, using attributes or empty marker interfaces.
 
----
+Deep copying preserves stored fields and auto-properties, shared reference identity,
+mutable object cycles, supported runtime derived types, nested collections, and
+collection comparers. Shallow copying creates a new outer object and shares every
+reference field, including arrays.
 
-## ✨ Features
+Requires Roslyn 4.11+ (.NET SDK 8.0.400+ or Visual Studio 2022 17.11+). Generated
+code uses a small graph context from this package, with no model-member reflection
+or external runtime dependencies. Retain the runtime package reference.
 
-* ✅ Automatically generates `DeepCopy()` and/or `ShallowCopy()` methods at compile-time
-* ✅ No runtime overhead — it's all generated in the background by Roslyn
-* ✅ Supports both `[Attribute]`-based and `interface`-based opt-in mechanisms
-* ✅ Works great for DTOs, ViewModels, and plain C# objects
-* ✅ Support for common collection types, arrays, tuples, and more
-* ⚠️ Requires a compiler with Roslyn 4.11 or newer (Visual Studio 2022 17.11+ or .NET SDK 8.0.400+). Generated methods use standard collections and LINQ; compatibility tests cover .NET Standard 2.0 and .NET 6 consumers without Frozen or Immutable collection packages.
-* ⚠️ Opted-in types must be `public` and `partial`
-
----
-
-
-
-> Code is fully opensource and more details can be found here at: [Github](https://github.com/purkayasta/TheUtilityVerse/blob/development/src/UtilityVerse.Copy/README.md)
+Unsupported shapes receive a compiler diagnostic instead of unsafe generated code.
+See the [supported types, behavior changes, and limitations](https://github.com/purkayasta/TheUtilityVerse/blob/development/src/UtilityVerse.Copy/README.md)
+before adopting the package.

@@ -10,7 +10,7 @@ TheUtilityVerse is a set of independently published NuGet packages of C# helpers
 |---|---|---|---|
 | `src/UtilityVerse` | `UtilityVerse` | netstandard2.1; net6.0; net8.0; net9.0; net10.0; net11.0 | Core helpers, no external dependencies |
 | `src/UtilityVerse.ASPNET` | `UtilityVerse.ASPNET` | same multi-target | ASP.NET Core helpers (`Microsoft.AspNetCore.Http*` 2.3.x) |
-| `src/UtilityVerse.Shared` | (not packed separately) | netstandard2.1 | `UtilityVerseResult<T>`, `UtilityVerseException`; referenced by `UtilityVerse` |
+| `src/UtilityVerse.Shared` | `UtilityVerse.Shared` (core dependency) | netstandard2.1 | `UtilityVerseResult<T>`, `UtilityVerseException`; referenced by `UtilityVerse` |
 | `src/UtilityVerse.Copy` | `UtilityVerse.Copy` | netstandard2.0 | Roslyn incremental source generator + analyzer — has its own [`CLAUDE.md`](src/UtilityVerse.Copy/CLAUDE.md) |
 | `tests/UtilityVerse.UnitTest` | — | net11.0 | xUnit tests for `UtilityVerse` |
 | `tests/UtilityVerse.Copy.UnitTest` | — | net11.0 | xUnit tests for the Copy generator + analyzer (in-memory generator runs) |
@@ -48,11 +48,11 @@ For a full build, always run `scripts/build.sh` (Linux/macOS) or `scripts/build.
 ### Core library (`UtilityVerse`)
 - `Utility` is a `sealed partial class` split across `Utility.*.cs` files (e.g. `Utility.Currency.cs`, `Utility.OS.cs`); new static helpers go into a new or existing partial file. `UtilityVerse.ASPNET` has its own separate `UtilityVerse.ASPNET.Utility` partial class following the same pattern.
 - Extension methods live in `Extensions/` as `{Type}Extension` static classes in namespace `UtilityVerse.Extensions`.
-- **Error convention (breaking change, see `src/UtilityVerse/breaking-changes.md`):** helpers return `UtilityVerseResult<T>` instead of throwing. Invalid input → `new UtilityVerseResult<T>(errorMessage)` (sets `Error`, `HasError` becomes true); success → `new UtilityVerseResult<T>(value)`. Tests assert on `.Result` / `.HasError`.
+- **Error convention (breaking change, see `src/UtilityVerse/breaking-changes.md`):** helpers return `UtilityVerseResult<T>` instead of throwing. Prefer `UtilityVerseResult<T>.Failure(errorMessage)` for errors and `.Success(value)` for success; these avoid string constructor ambiguity. Legacy constructors remain available. Tests assert on `.Result` / `.HasError`.
 - Source files start with the copyright header block used throughout the repo.
 
 ### Copy source generator (`UtilityVerse.Copy`)
-`UtilityVerse.Copy` is a Roslyn source generator + analyzer with its own constraints (netstandard2.0, no `UtilityVerseResult<T>` convention, its own test project `tests/UtilityVerse.Copy.UnitTest`). Everything about it — generator pipeline, emitted code per property type, analyzer rules UV001–UV003, known limitations, release steps and how to verify changes — is documented in **[`src/UtilityVerse.Copy/CLAUDE.md`](src/UtilityVerse.Copy/CLAUDE.md)**. Read that file before changing or reviewing anything in `src/UtilityVerse.Copy`, `tests/UtilityVerse.Copy.UnitTest` or `tests/UtilityVerse.Copy.Test`; the conventions in this file's "Core library" section do not apply there.
+`UtilityVerse.Copy` is a Roslyn source generator + analyzer with its own constraints (netstandard2.0, no `UtilityVerseResult<T>` convention, its own test project `tests/UtilityVerse.Copy.UnitTest`). Everything about it — generator pipeline, emitted code per property type, analyzer rules UV001–UV004, known limitations, release steps and how to verify changes — is documented in **[`src/UtilityVerse.Copy/CLAUDE.md`](src/UtilityVerse.Copy/CLAUDE.md)**. Read that file before changing or reviewing anything in `src/UtilityVerse.Copy`, `tests/UtilityVerse.Copy.UnitTest` or `tests/UtilityVerse.Copy.Test`; the conventions in this file's "Core library" section do not apply there.
 
 ## Branching
 

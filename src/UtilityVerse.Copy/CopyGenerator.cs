@@ -31,6 +31,7 @@ public sealed class CopyGenerator : IIncrementalGenerator
             foreach (var group in types.GroupBy(x => (x.Symbol, x.Mode)))
             {
                 var (symbol, mode) = group.Key;
+                if (Validation.HasUnsupportedShape(symbol, mode == CopyMode.Deep, out _)) continue;
                 var source = mode switch
                 {
                     CopyMode.Deep => GenerateDeepCopy(symbol),
@@ -40,7 +41,9 @@ public sealed class CopyGenerator : IIncrementalGenerator
 
                 if (string.IsNullOrWhiteSpace(source)) continue;
 
-                var hintName = $"{symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace("global::", "").Replace(".", "_")}_{mode}Copy.g.cs";
+                var fullName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace("global::", "");
+                var safeName = string.Concat(fullName.Select(c => char.IsLetterOrDigit(c) ? c.ToString() : c == '.' ? "_" : "_" + ((int)c).ToString("X4")));
+                var hintName = $"{safeName}_{mode}Copy.g.cs";
                 spc.AddSource(hintName, SourceText.From(source!, Encoding.UTF8));
             }
         });
@@ -55,14 +58,12 @@ public sealed class CopyGenerator : IIncrementalGenerator
         //     return null;
 
         var symbol = ModelExtensions.GetDeclaredSymbol(context.SemanticModel, typeDecl) as INamedTypeSymbol;
-        if (symbol is not { DeclaredAccessibility: Accessibility.Public })
+        if (symbol is null)
             return null;
 
-        var hasDeep = symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "UtilityVerse.Copy.DeepCopy") ||
-                       symbol.AllInterfaces.Any(i => i.ToDisplayString() == "UtilityVerse.Copy.IDeepCopy");
+        var hasDeep = Helper.HasDeepCopyOptIn(symbol);
 
-        var hasShallow = symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "UtilityVerse.Copy.ShallowCopy") ||
-                          symbol.AllInterfaces.Any(i => i.ToDisplayString() == "UtilityVerse.Copy.IShallowCopy");
+        var hasShallow = Helper.HasShallowCopyOptIn(symbol);
 
         if (hasDeep) return (symbol, CopyMode.Deep);
         if (hasShallow) return (symbol, CopyMode.Shallow);

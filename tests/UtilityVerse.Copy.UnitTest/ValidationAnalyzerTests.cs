@@ -69,7 +69,7 @@ public class ValidationAnalyzerTests
         """);
 
     [Fact]
-    public Task UV003_Reports_WhenShallowCopyPropertyTypeIsNotOptedIn() => AnalyzerVerifier.VerifyAsync("""
+    public Task Analyzer_AcceptsShallowReferences_WhenNestedTypeIsNotOptedIn() => AnalyzerVerifier.VerifyAsync("""
         public class Address
         {
             public string? Street { get; set; }
@@ -78,12 +78,12 @@ public class ValidationAnalyzerTests
         [ShallowCopy]
         public partial class Person
         {
-            public Address? {|UV003:Home|} { get; set; }
+            public Address? Home { get; set; }
         }
         """);
 
     [Fact]
-    public Task UV003_Reports_WhenShallowCopyListElementTypeIsNotOptedIn() => AnalyzerVerifier.VerifyAsync("""
+    public Task Analyzer_AcceptsShallowCollections_WhenElementsAreNotOptedIn() => AnalyzerVerifier.VerifyAsync("""
         public class Address
         {
             public string? Street { get; set; }
@@ -92,12 +92,12 @@ public class ValidationAnalyzerTests
         [ShallowCopy]
         public partial class Person
         {
-            public List<Address>? {|UV003:Addresses|} { get; set; }
+            public List<Address>? Addresses { get; set; }
         }
         """);
 
     [Fact]
-    public Task UV003_Reports_WhenPropertyTypeOnlyOptsIntoDeepCopy() => AnalyzerVerifier.VerifyAsync("""
+    public Task Analyzer_AcceptsShallowReferences_WhenNestedTypeOnlyHasDeepCopy() => AnalyzerVerifier.VerifyAsync("""
         [DeepCopy]
         public partial class Address
         {
@@ -107,7 +107,7 @@ public class ValidationAnalyzerTests
         [ShallowCopy]
         public partial class Person
         {
-            public Address? {|UV003:Home|} { get; set; }
+            public Address? Home { get; set; }
         }
         """);
 
@@ -174,7 +174,7 @@ public class ValidationAnalyzerTests
         """);
 
     [Fact]
-    public Task Analyzer_IgnoresGetOnlyProperty_WhenItsTypeIsNotOptedIn() => AnalyzerVerifier.VerifyAsync("""
+    public Task UV002_Reports_WhenStoredGetOnlyPropertyIsNotOptedIn() => AnalyzerVerifier.VerifyAsync("""
         public class Address
         {
             public string? Street { get; set; }
@@ -183,7 +183,7 @@ public class ValidationAnalyzerTests
         [DeepCopy]
         public partial class Person
         {
-            public Address Home { get; } = new();
+            public Address {|UV002:Home|} { get; } = new();
         }
         """);
 }

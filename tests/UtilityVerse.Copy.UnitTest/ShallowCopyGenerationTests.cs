@@ -9,7 +9,7 @@ namespace UtilityVerse.Copy.UnitTest;
 
 public class ShallowCopyGenerationTests
 {
-    private const string GeneratedCodeAttribute = """[System.CodeDom.Compiler.GeneratedCode("ShallowCopyGenerator", "1.0")]""";
+    private const string GeneratedCodeAttribute = """[global::System.CodeDom.Compiler.GeneratedCode("ShallowCopyGenerator", "1.0")]""";
 
     [Fact]
     public void ShallowCopy_UsesMemberwiseClone_WhenTypeIsClass()
@@ -45,14 +45,15 @@ public class ShallowCopyGenerationTests
 
         Assert.Contains(GeneratedCodeAttribute, order);
         Assert.Contains("public Order ShallowCopy()", order);
-        Assert.Contains("var copy = (Order)this.MemberwiseClone();", order);
-        Assert.Contains("copy.Quantities = this.Quantities != null ? (int[]?)this.Quantities.Clone() : null;", order);
-        Assert.Contains("copy.History = this.History != null ? (Sample.Address[]?)this.History.Clone() : null;", order);
-        Assert.Contains("copy.Pair = this.Pair;", order);
+        Assert.Contains("(Order)MemberwiseClone()", order);
+        Assert.DoesNotContain("copy.Quantities =", order);
+        Assert.DoesNotContain("copy.History =", order);
+        Assert.DoesNotContain("copy.Pair =", order);
         Assert.DoesNotContain("copy.Lines", order);
         Assert.DoesNotContain("copy.ShipTo", order);
-        Assert.Contains("return copy;", order);
-        Assert.Contains("var copy = (Address)this.MemberwiseClone();", address);
+        Assert.Empty(run.CompilationErrors);
+        Assert.Empty(run.AnalyzerErrors);
+        Assert.Contains("(Address)MemberwiseClone()", address);
     }
 
     [Fact]
@@ -67,8 +68,8 @@ public class ShallowCopyGenerationTests
 
         Assert.Contains("public partial record Person", generated);
         Assert.Contains("public Person ShallowCopy()", generated);
-        Assert.Contains("var copy = (Person)this.MemberwiseClone();", generated);
-        Assert.Contains("return copy;", generated);
+        Assert.Contains("(Person)MemberwiseClone()", generated);
+        Assert.DoesNotContain("copy.", generated);
     }
 
     [Fact]
@@ -86,12 +87,12 @@ public class ShallowCopyGenerationTests
 
         Assert.Contains("public partial struct Money", generated);
         Assert.Contains("public Money ShallowCopy()", generated);
-        Assert.Contains("return this;", generated);
+        Assert.Contains("=> this;", generated);
         Assert.DoesNotContain("MemberwiseClone", generated);
     }
 
     [Fact]
-    public void ShallowCopy_UsesMemberwiseClone_WhenTypeIsRecordStruct()
+    public void ShallowCopy_ReturnsThis_WhenTypeIsRecordStruct()
     {
         var generated = GeneratorHarness.Run("""
             namespace Sample;
@@ -101,7 +102,7 @@ public class ShallowCopyGenerationTests
 
         Assert.Contains("public partial record struct Coordinate", generated);
         Assert.Contains("public Coordinate ShallowCopy()", generated);
-        Assert.Contains("var copy = (Coordinate)this.MemberwiseClone();", generated);
+        Assert.Contains("=> this;", generated);
     }
 
     [Fact]
@@ -119,6 +120,6 @@ public class ShallowCopyGenerationTests
         Assert.Contains(GeneratedCodeAttribute, generated);
         Assert.Contains("public partial class ViaInterface", generated);
         Assert.Contains("public ViaInterface ShallowCopy()", generated);
-        Assert.Contains("var copy = (ViaInterface)this.MemberwiseClone();", generated);
+        Assert.Contains("(ViaInterface)MemberwiseClone()", generated);
     }
 }
