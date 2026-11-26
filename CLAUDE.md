@@ -8,17 +8,17 @@ TheUtilityVerse is a set of independently published NuGet packages of C# helpers
 
 | Project | Package | Targets | Notes |
 |---|---|---|---|
-| `src/UtilityVerse` | `UtilityVerse` | netstandard2.1; net6.0; net8.0; net9.0; net10.0 | Core helpers, no external dependencies |
+| `src/UtilityVerse` | `UtilityVerse` | netstandard2.1; net6.0; net8.0; net9.0; net10.0; net11.0 | Core helpers, no external dependencies |
 | `src/UtilityVerse.ASPNET` | `UtilityVerse.ASPNET` | same multi-target | ASP.NET Core helpers (`Microsoft.AspNetCore.Http*` 2.3.x) |
 | `src/UtilityVerse.Shared` | (not packed separately) | netstandard2.1 | `UtilityVerseResult<T>`, `UtilityVerseException`; referenced by `UtilityVerse` |
 | `src/UtilityVerse.Copy` | `UtilityVerse.Copy` | netstandard2.0 | Roslyn incremental source generator + analyzer — has its own [`CLAUDE.md`](src/UtilityVerse.Copy/CLAUDE.md) |
-| `tests/UtilityVerse.UnitTest` | — | net10.0 | xUnit tests for `UtilityVerse` |
-| `tests/UtilityVerse.Copy.UnitTest` | — | net10.0 | xUnit tests for the Copy generator + analyzer (in-memory generator runs) |
-| `tests/UtilityVerse.Copy.Test` | — | net10.0 | Sample console app consuming the Copy generator as a real analyzer reference |
+| `tests/UtilityVerse.UnitTest` | — | net11.0 | xUnit tests for `UtilityVerse` |
+| `tests/UtilityVerse.Copy.UnitTest` | — | net11.0 | xUnit tests for the Copy generator + analyzer (in-memory generator runs) |
+| `tests/UtilityVerse.Copy.Test` | — | net11.0 | Sample console app consuming the Copy generator as a real analyzer reference |
 
 ## Commands
 
-CI (`.github/workflows/dotnet.yml`) uses .NET 10 and runs restore → build → test on push to `development` and PRs to `master`. `global.json` opts `dotnet test` on .NET 10+ SDKs into Microsoft.Testing.Platform mode, which xunit.v3 4.x requires. That runner creates a gitignored `TestResults/` folder (reports, TRX, coverage, dumps) in the working directory; an empty one at the repo root is a leftover and safe to delete, or use `--results-directory <path>` to redirect it.
+CI (`.github/workflows/dotnet.yml`) uses .NET 11 and runs restore → build → test on push to `development` and PRs to `master` and `development`. `global.json` pins the .NET 11 SDK feature band (11.0.100 with patch roll-forward) and opts `dotnet test` on .NET 10+ SDKs into Microsoft.Testing.Platform mode, which xunit.v3 4.x requires. That runner creates a gitignored `TestResults/` folder (reports, TRX, coverage, dumps) in the working directory; an empty one at the repo root is a leftover and safe to delete, or use `--results-directory <path>` to redirect it.
 
 ```bash
 ./scripts/build.sh            # or scripts/build.ps1 on Windows: deletes bin/obj, formats changed .cs files, then restore, build, test
@@ -56,4 +56,4 @@ For a full build, always run `scripts/build.sh` (Linux/macOS) or `scripts/build.
 
 ## Branching
 
-Per `CONTRIBUTING.md`: branch from `development`, PR into `development`; don't push directly to `master` or `development`. CI also runs on PRs to `master`.
+Per `CONTRIBUTING.md`: branch from `development`, PR into `development`; don't push directly to `master` or `development`. CI also runs on PRs to `master` and `development`.

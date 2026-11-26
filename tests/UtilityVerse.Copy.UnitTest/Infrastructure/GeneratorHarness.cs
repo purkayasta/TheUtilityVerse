@@ -26,7 +26,9 @@ internal static class GeneratorHarness
         MetadataReference.CreateFromFile(typeof(DeepCopy).Assembly.Location),
     ];
 
-    public static GeneratorRun Run(string source)
+    public static GeneratorRun Run(string source) => Run(source, References);
+
+    public static GeneratorRun Run(string source, IReadOnlyList<MetadataReference> references)
     {
         var compilation = CSharpCompilation.Create(
             assemblyName: $"CopyGeneratorTest_{Guid.NewGuid():N}",
@@ -35,7 +37,7 @@ internal static class GeneratorHarness
                 CSharpSyntaxTree.ParseText(GlobalUsings, ParseOptions, path: "GlobalUsings.cs"),
                 CSharpSyntaxTree.ParseText(source, ParseOptions, path: "Source.cs"),
             ],
-            references: References,
+            references: references,
             options: new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));

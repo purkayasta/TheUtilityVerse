@@ -149,24 +149,6 @@ public class KnownIssuesTests
     }
 
     [Fact]
-    [Trait("KnownIssue", "frozen-using-unconditional")]
-    public void Generator_EmitsFrozenUsing_WhenAnyTypeIsGenerated()
-    {
-        var run = GeneratorHarness.Run("""
-            namespace Sample;
-
-            [DeepCopy]
-            public partial class Deep { public int Id { get; set; } }
-
-            [ShallowCopy]
-            public partial class Shallow { public int Id { get; set; } }
-            """);
-
-        Assert.Equal(2, run.GeneratedSources.Length);
-        Assert.All(run.GeneratedSources, s => Assert.Contains("using System.Collections.Frozen;", s.SourceText.ToString()));
-    }
-
-    [Fact]
     [Trait("KnownIssue", "recursive-collections")]
     public async Task DeepCopy_CallsDeepCopyOnInnerList_WhenPropertyIsListOfLists()
     {

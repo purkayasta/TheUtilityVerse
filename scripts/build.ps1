@@ -20,16 +20,16 @@ Push-Location $root
 try {
     $changed = @(git diff --name-only HEAD -- '*.cs'; git ls-files --others --exclude-standard -- '*.cs') |
         Where-Object { $_ -and (Test-Path $_) }
+
+    if ($changed) {
+        Invoke-Step "Format changed C# files" { dotnet format $solution --include @changed }
+    }
+    else {
+        Write-Host "==> No changed C# files to format" -ForegroundColor Cyan
+    }
+
+    Invoke-Step "Restore" { dotnet restore $solution }
+    Invoke-Step "Build" { dotnet build $solution --no-restore -c $Configuration }
+    Invoke-Step "Test" { dotnet test $solution --no-build -c $Configuration }
 }
 finally { Pop-Location }
-
-if ($changed) {
-    Invoke-Step "Format changed C# files" { dotnet format $solution --include @changed }
-}
-else {
-    Write-Host "==> No changed C# files to format" -ForegroundColor Cyan
-}
-
-Invoke-Step "Restore" { dotnet restore $solution }
-Invoke-Step "Build" { dotnet build $solution --no-restore -c $Configuration }
-Invoke-Step "Test" { dotnet test $solution --no-build -c $Configuration }

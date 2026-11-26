@@ -30,6 +30,8 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Http" />
 		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
+		<!-- Override Http's vulnerable transitive version (GHSA-6527-9fp8-r4x6). -->
+		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" />
 	</ItemGroup>
 
 </Project>

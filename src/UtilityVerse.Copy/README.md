@@ -90,6 +90,8 @@ public partial class Product : IDeepCopy
 > Your class or struct **must be `public` and marked `partial`** for the source generator to work. The analyzer reports `UV001` if `partial` is missing.
 >
 > Requires a compiler with Roslyn 4.11 or newer (Visual Studio 2022 17.11+ or .NET SDK 8.0.400+).
+>
+> Generated methods use standard collections and LINQ. Compatibility tests cover .NET Standard 2.0 and .NET 6 consumers without Frozen or Immutable collection packages.
 
 ---
 

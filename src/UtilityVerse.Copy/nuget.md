@@ -11,7 +11,7 @@
 * ✅ Supports both `[Attribute]`-based and `interface`-based opt-in mechanisms
 * ✅ Works great for DTOs, ViewModels, and plain C# objects
 * ✅ Support for common collection types, arrays, tuples, and more
-* ⚠️ Requires a compiler with Roslyn 4.11 or newer (Visual Studio 2022 17.11+ or .NET SDK 8.0.400+); the consuming project can still target any framework
+* ⚠️ Requires a compiler with Roslyn 4.11 or newer (Visual Studio 2022 17.11+ or .NET SDK 8.0.400+). Generated methods use standard collections and LINQ; compatibility tests cover .NET Standard 2.0 and .NET 6 consumers without Frozen or Immutable collection packages.
 * ⚠️ Opted-in types must be `public` and `partial`
 
 ---

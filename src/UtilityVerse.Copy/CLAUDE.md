@@ -112,7 +112,6 @@ Analyzer behavior to be aware of:
 - Nullable reference built-ins (`Uri?`, `Version?`) aren't recognized as built-in, so `?.DeepCopy()` is emitted on them (CS1061).
 - `System.Tuple<...>` codegen: a nullable tuple emits `new Tuple<...>?(...)` (CS8628), and two tuple properties in one type redeclare the pattern variable `x` (CS0128).
 - Nested collections (`List<List<Foo>>`) emit `x?.DeepCopy()` on the inner collection (CS1061); the analyzer stays silent.
-- Generated files always contain `using System.Collections.Immutable;` and `using System.Collections.Frozen;`. Consumers must target a framework where these namespaces exist (`Frozen` is .NET 8+), otherwise the generated file fails to compile.
 - Generated method is always `public` and non-virtual; a derived opted-in type shadows the base's `DeepCopy()`/`ShallowCopy()`.
 
 ## Making changes
@@ -124,7 +123,7 @@ Analyzer behavior to be aware of:
 
 ## Verifying changes
 
-Primary verification is the xUnit project `tests/UtilityVerse.Copy.UnitTest`. It runs `CopyGenerator` and `ValidationAnalyzer` in memory (net10 reference assemblies from `Basic.Reference.Assemblies.Net100`, no network needed), so no consumer project has to be rebuilt.
+The test host targets .NET 11. Primary verification is the xUnit project `tests/UtilityVerse.Copy.UnitTest`. It runs `CopyGenerator` and `ValidationAnalyzer` in memory (net10 reference assemblies from `Basic.Reference.Assemblies.Net100`, framework references embedded in the package), so no consumer project has to be rebuilt. `FrameworkCompatibilityTests` additionally compiles both copy modes against .NET Standard 2.0 and .NET 6 reference assemblies; the first run may download those reference packages.
 
 ```bash
 dotnet test tests/UtilityVerse.Copy.UnitTest
@@ -159,7 +158,7 @@ Secondary: `tests/UtilityVerse.Copy.Test` is a small sample consumer (console ap
 ```bash
 dotnet build tests/UtilityVerse.Copy.Test -p:EmitCompilerGeneratedFiles=true
 # inspect output:
-#   tests/UtilityVerse.Copy.Test/obj/Debug/net10.0/generated/UtilityVerse.Copy/UtilityVerse.Copy.CopyGenerator/*.g.cs
+#   tests/UtilityVerse.Copy.Test/obj/Debug/net11.0/generated/UtilityVerse.Copy/UtilityVerse.Copy.CopyGenerator/*.g.cs
 dotnet run --project tests/UtilityVerse.Copy.Test
 ```
 
