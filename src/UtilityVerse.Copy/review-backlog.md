@@ -87,9 +87,16 @@ scenarios. Passing the original suite did not cover the failures below.
    on unsupported subclasses. Custom factories can supply the same runtime type
    and preserve subclass state. Five regressions failed on the baseline and six
    controls passed. All eleven passed unchanged after the fix.
-6. **Open — P1 — Boxed structs lose shared identity.** Two generic members pointing
-   to one boxed opted-in struct produce separate destination boxes. Track boxed
-   values separately from ordinary value copies.
+6. **Completed — P1 — Boxed structs lose shared identity.** CopyContext.Copy
+   tracks the original reference when a boxed struct is passed as an object or
+   interface. Shared boxes stay shared and distinct boxes stay separate. When
+   Unsafe.Unbox is available to the consumer, generated copiers register the new
+   box before copying its contents, preserving cycles and deferred hash keys.
+   Older generated code and targets without that API preserve acyclic aliases
+   and fail explicitly on reentry into an unfinished box. Copy boxed roots via
+   the context so it receives the original reference. Four regressions failed
+   on the baseline and two controls passed. All six tests passed unchanged after
+   the fix.
 7. **Open — P1 — Uri subclasses can retain mutable source state.** Uri is treated
    as immutable even when the runtime object is a mutable subclass. Audit both
    generated and runtime immutable classification.

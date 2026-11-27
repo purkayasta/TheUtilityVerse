@@ -24,6 +24,8 @@ internal static class DeepCopyGenerator
 
         var name = Helper.LocalName(type);
         var context = "global::UtilityVerse.Copy.CopyContext";
+        const string boxedInterface = "global::UtilityVerse.Copy.IBoxedDeepCopyable";
+        var supportsBoxCycles = type.IsValueType && CanUnbox(compilation);
         var hasBase = Helper.HasGeneratedDeepBase(type);
         var sequenceTypes = SequenceRegistration.GetElementTypes(type, models, compilation);
         var states = Helper.GetCopiedState(type)
@@ -34,7 +36,8 @@ internal static class DeepCopyGenerator
             .ToArray();
         var indent = Helper.MemberIndentation(type);
         var bodyIndent = indent + "    ";
-        var sb = new StringBuilder(Helper.BeginType(type, "global::UtilityVerse.Copy.IDeepCopyable"));
+        var copyInterface = supportsBoxCycles ? boxedInterface : "global::UtilityVerse.Copy.IDeepCopyable";
+        var sb = new StringBuilder(Helper.BeginType(type, copyInterface));
 
         sb.AppendLine($"{indent}[global::System.CodeDom.Compiler.GeneratedCode(\"DeepCopyGenerator\", \"1.0\")]");
         sb.AppendLine($"{indent}public {(hasBase ? "new " : "")}{name} DeepCopy() => new {context}().Copy(this);");
@@ -51,6 +54,31 @@ internal static class DeepCopyGenerator
         sb.AppendLine($"{bodyIndent}return context.CopyGenerated(this, static (source, copyContext) => source.__UtilityVerseDeepCopy(copyContext));");
         sb.AppendLine($"{indent}}}");
         sb.AppendLine();
+
+        if (supportsBoxCycles)
+        {
+            sb.AppendLine($"{indent}object {boxedInterface}.CopyBoxed(object source, {context} context)");
+            sb.AppendLine($"{indent}{{");
+
+            if (sequenceTypes.Length != 0)
+            {
+                sb.AppendLine($"{bodyIndent}_ = __UtilityVerseSequenceTypes;");
+                sb.AppendLine();
+            }
+
+            sb.AppendLine($"{bodyIndent}return context.CopyGenerated(source, static (box, copyContext) =>");
+            sb.AppendLine($"{bodyIndent}{{");
+            sb.AppendLine($"{bodyIndent}    object destination = default({name});");
+            sb.AppendLine($"{bodyIndent}    copyContext.Register(box, destination);");
+            sb.AppendLine();
+            sb.AppendLine($"{bodyIndent}    var value = new {name}(({name})box, copyContext);");
+            sb.AppendLine($"{bodyIndent}    global::System.Runtime.CompilerServices.Unsafe.Unbox<{name}>(destination) = value;");
+            sb.AppendLine();
+            sb.AppendLine($"{bodyIndent}    return destination;");
+            sb.AppendLine($"{bodyIndent}}});");
+            sb.AppendLine($"{indent}}}");
+            sb.AppendLine();
+        }
 
         if (sequenceTypes.Length != 0)
         {
@@ -156,6 +184,17 @@ internal static class DeepCopyGenerator
 
         return sb.ToString();
     }
+
+    private static bool CanUnbox(Compilation compilation) =>
+        compilation.GetTypeByMetadataName("System.Runtime.CompilerServices.Unsafe")?.GetMembers("Unbox")
+            .OfType<IMethodSymbol>().Any(method => method is
+            {
+                DeclaredAccessibility: Accessibility.Public,
+                IsStatic: true,
+                ReturnsByRef: true,
+                Arity: 1,
+                Parameters.Length: 1
+            } && method.Parameters[0].Type.SpecialType == SpecialType.System_Object) == true;
 
     private static string ConstructorInitializer(INamedTypeSymbol type, bool hasBase, StoredState[] states)
     {

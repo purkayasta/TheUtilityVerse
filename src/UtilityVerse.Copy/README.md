@@ -159,6 +159,18 @@ generated typed assignments perform the copy, with a small runtime context from
 this package and no external runtime dependencies. Keep the package's runtime
 reference when distributing consumers.
 
+When a graph passes an opted-in struct through an object or interface reference,
+repeated references to the same box share one destination box. Separate boxes
+remain separate even if their values are equal. Use `CopyContext.Copy(boxedValue)`
+to copy a boxed root so the context receives its original reference. Calling
+`IDeepCopyable.Copy` directly on a struct copies its value.
+
+Preserving cycles through a box requires generated code compiled against a
+framework that exposes `Unsafe.Unbox<T>`. The copier registers the new box before
+copying its children, then writes the copied value into it. Older generated
+copiers and targets without that API preserve acyclic box aliases and throw
+`NotSupportedException` when a box is revisited before its copy is ready.
+
 ## Shallow-copy contract
 
 A class or record gets a new outer instance via `MemberwiseClone()`. All reference

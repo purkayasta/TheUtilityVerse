@@ -50,13 +50,27 @@ public sealed partial class CopyContext
             return source;
         }
 
-        if (copies.TryGetValue(source, out var existing))
+        // A value-typed argument has no source box to track. A reference-typed
+        // argument can hold an existing box whose identity matters to the graph.
+        var trackIdentity = !typeof(T).IsValueType;
+
+        if (trackIdentity && copies.TryGetValue(source, out var existing))
         {
             return (T)existing;
         }
 
         if (source is IDeepCopyable copyable)
         {
+            if (trackIdentity && copyable is IBoxedDeepCopyable boxed)
+            {
+                return (T)boxed.CopyBoxed(source, this);
+            }
+
+            if (trackIdentity && source.GetType().IsValueType)
+            {
+                return (T)CopyBoxWithoutEarlyRegistration(copyable);
+            }
+
             return (T)copyable.Copy(this);
         }
 
@@ -74,6 +88,27 @@ public sealed partial class CopyContext
         }
 
         throw new NotSupportedException($"Type '{type}' needs generated deep-copy support.");
+    }
+
+    private object CopyBoxWithoutEarlyRegistration(IDeepCopyable source)
+    {
+        if (!constructing.Add(source))
+        {
+            throw new NotSupportedException(
+                $"Cycles through boxed struct '{source.GetType()}' require a copier that can register the destination box before copying its children.");
+        }
+
+        try
+        {
+            var result = source.Copy(this);
+            Register(source, result);
+
+            return result;
+        }
+        finally
+        {
+            constructing.Remove(source);
+        }
     }
 
     /// <summary>Runs a generated copy factory within a graph operation, including deferred collection population.</summary>

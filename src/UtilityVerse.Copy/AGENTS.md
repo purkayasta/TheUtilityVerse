@@ -97,6 +97,15 @@ Collection comparers and queue/stack ordering are
 preserved. Immutable tuple cycles are rejected explicitly. Generic parameter values
 must be supported immutable scalars or implement generated IDeepCopyable.
 
+For reference-typed inputs, CopyContext.Copy tracks the original box of an
+opted-in struct. Value-typed inputs have no source box to track. If the consumer
+exposes Unsafe.Unbox, generated IBoxedDeepCopyable copiers register a fresh box
+before copying children and write the constructed struct into it before hash
+collection hydration. Never mutate the source box. Older generated copiers and
+targets without Unbox cache completed boxes and reject reentry into an unfinished
+box. Use CopyContext.Copy for boxed roots, since a direct IDeepCopyable.Copy call
+on a struct receives its value. Keep IDeepCopyable compatible with old callers.
+
 Covariant sequence copying dispatches to the actual supported container element
 signature before allocating or registering a destination. CopyContext.Sequences
 keeps weak type/copier caches so collectible model assemblies are not rooted.
@@ -159,6 +168,9 @@ review findings, bug fixes, new support, and performance changes.
 - MapRuntimeTypeTests covers subclass rejection for both built-in map adapters,
   null and exact-type maps, comparers, aliases, cycles, and retry with a custom
   subclass factory in the same context.
+- BoxedStructIdentityTests covers shared and distinct boxes, typed and nullable
+  struct values, readonly box cycles with deferred hash keys, and the fallback
+  compiled against .NET Standard 2.0.
 - VirtualPropertyStorageTests covers independent virtual slots, computed overrides,
   generic bases, cross-assembly metadata, and virtual/abstract/explicit-field/shallow
   behavior. PhysicalStorageAccessTests executes readonly aliases, nested generic
