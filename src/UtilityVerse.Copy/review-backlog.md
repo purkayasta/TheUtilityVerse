@@ -39,9 +39,24 @@ scenarios. Passing the original suite did not cover the failures below.
    168 tests, including 131 Copy tests, with zero build warnings or errors.
    scripts/verify-packages.sh also passed fresh installed consumers on .NET 8 and
    .NET 11. Arbitrary comparer-dependency solving remains unsupported; see README.
-3. **Open — P1 — Virtual auto-properties can lose base storage.** Property
-   assignments dispatch to overrides; a base property's separately stored value
-   becomes zero. Model physical state separately from virtual property behavior.
+3. **Completed — P1 — Virtual auto-properties can lose base storage.** Generated
+   typed field accessors now preserve each physical property slot instead of
+   dispatching virtual getters/setters. The backend supports .NET 8+ non-generic
+   owners and .NET 9+ generic owners, including readonly properties, nested types,
+   aliases, cycles, and computed overrides. Older targets retain UV004 when the
+   required field access is unavailable. External bases require the generated
+   physical-storage capability marker; old binaries must be rebuilt. Helpers
+   preserve generic parameter order/constraints and live in partial enclosing
+   types for inaccessible owners. Unsupported helper hosting is diagnosed.
+   Runtime reflection and dynamic IL are not used. Thirty-eight regression cases
+   cover physical slots, readonly aliases, generic parameter order and constraints,
+   private/protected owners and property types, primary constructors, external-base
+   capability checks, helper collisions, and framework fallbacks. Full
+   scripts/build.sh validation passed: 206 tests, including 169 Copy tests, with
+   zero build warnings or errors. Expanded scripts/verify-packages.sh consumers
+   execute readonly backing-field access on .NET 8 and generic backing-field access
+   on .NET 11. Existing public method and constructor signatures are preserved;
+   generated constructor capability metadata is new.
 4. **Open — P1 — Covariant collection aliases can throw.** A List<Derived> visited
    first through IEnumerable<Base> becomes List<Base>; a later List<Derived>
    reference throws InvalidCastException. Preserve a compatible runtime container

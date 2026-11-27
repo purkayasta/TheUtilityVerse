@@ -36,6 +36,29 @@ safe primary-constructor arguments to stored state. Static, computed, and indexe
 properties are not independently stored state. Explicit backing fields are copied
 directly.
 
+StorageAccess selects a typed UnsafeAccessor field backend per consumer
+Compilation: .NET 8+ for non-generic declaring types, .NET 9+ for generic declaring
+types or generic enclosing types. Never raise the generator's own target or Roslyn
+version to enable it. Unsupported older targets retain UV004 for unsafe override
+chains. Inspect complete type/property hierarchies, including non-opted-in
+intermediate classes. GetCopiedState must retain distinct virtual property slots
+with equal names instead of deduplicating their backing storage.
+
+Generated helper classes match the owning type's flattened generic parameter order
+and constraints; do not place a generic field stub in an unrelated generic type
+or specialize the stub to a closed generic owner. Helpers for inaccessible nested
+owners live in partial enclosing types. Emit headers/usings only once per file.
+Diagnose unsafe helper hosting or user-name collisions rather than emitting invalid
+C#. Copy primary-constructor arguments through the same physical state access plan.
+
+Graph copy constructors with physical own-property storage carry
+GeneratedCode("UtilityVerse.Copy.PhysicalState", "1") as a capability marker. Check
+this marker before trusting an external base to preserve overridden storage;
+legacy bases must be rebuilt for their supported consumer target. Metadata may
+omit private fields, so compiler-generated getter attributes identify stored
+properties during validation. Do not mistake a base-type cast for nonvirtual
+access. No runtime model reflection, dynamic IL, or reflection fallback is allowed.
+
 DeepCopyGenerator emits a typed copy constructor, a public parameterless DeepCopy(),
 an explicit IDeepCopyable implementation, and a virtual helper for class hierarchies.
 The original implicit default constructor is preserved when adding generated ones.
@@ -91,6 +114,13 @@ consumer documentation, and tests together.
 - HashCollectionHydrationTests covers hash/equality dependencies on later state,
   collection bucket rebuilding, direct context/interface entry points, duplicate
   rejection, unstable hashing, and context recovery after failures.
+- VirtualPropertyStorageTests covers independent virtual slots, computed overrides,
+  generic bases, cross-assembly metadata, and virtual/abstract/explicit-field/shallow
+  behavior. PhysicalStorageAccessTests executes readonly aliases, nested generic
+  constraints, private/protected owners, primary constructors, external bases, and
+  .NET 8/.NET 9 capability selection. FrameworkCompatibilityTests checks diagnostics
+  on older targets. The fresh-package consumer executes field access on .NET 8 and
+  generic field access on .NET 11.
 - CopyRegressionTests replaces the old bug-pinning KnownIssuesTests with compilation,
   analyzer, and runtime regressions for fixed issues, plus unsupported-shape checks.
 - ValidationAnalyzerTests covers positive and negative diagnostics.

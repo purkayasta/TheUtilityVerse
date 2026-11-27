@@ -187,20 +187,27 @@ public class CopyRegressionTests
         """));
 
     [Fact]
-    public void DeepCopy_PreservesRuntimeTypeAndBaseState_WhenPropertyIsPolymorphic() => Assert.True(Evaluate("""
+    public void DeepCopy_PreservesRuntimeTypeAndExplicitBaseState_WhenPropertyIsPolymorphic() => Assert.True(Evaluate("""
         [DeepCopy]
         public partial class Base
         {
             private readonly List<int> data = new();
 
+            private int id;
+
             public virtual int Id
             {
-                get; set;
+                get => id;
+                set => id = value;
             }
 
             public int Count => data.Count;
 
             public void Add(int value) => data.Add(value);
+
+            public int ReadBaseId() => id;
+
+            public void SetBaseId(int value) => id = value;
         }
 
         [DeepCopy]
@@ -229,12 +236,15 @@ public class CopyRegressionTests
             {
                 var source = new Derived { Id = 7 };
                 source.Add(1);
+                source.SetBaseId(11);
                 source.Extra.Add(2);
                 var copy = (Derived)new Holder { Value = source }.DeepCopy().Value!;
                 source.Add(3);
+                source.SetBaseId(13);
                 source.Extra[0] = 9;
 
-                return copy.Id == 7 && copy.Count == 1 && copy.Extra[0] == 2;
+                return copy.Id == 7 && copy.ReadBaseId() == 11 &&
+                    copy.Count == 1 && copy.Extra[0] == 2;
             }
         }
         """));

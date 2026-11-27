@@ -11,7 +11,7 @@ namespace UtilityVerse.Copy.Generators;
 
 internal static class DeepCopyGenerator
 {
-    internal static string? Generate(INamedTypeSymbol type)
+    internal static string? Generate(INamedTypeSymbol type, Compilation compilation)
     {
         if (!Helper.IsPartial(type) || type.IsStatic || type.IsRefLikeType)
         {
@@ -21,6 +21,12 @@ internal static class DeepCopyGenerator
         var name = Helper.LocalName(type);
         var context = "global::UtilityVerse.Copy.CopyContext";
         var hasBase = Helper.HasGeneratedDeepBase(type);
+        var states = Helper.GetCopiedState(type)
+            .Select((member, index) => new StoredState(member, index,
+                StorageAccess.CanUse(member, compilation) && member is IPropertySymbol property
+                    ? StorageAccess.Reference(type, property, index, compilation)
+                    : null))
+            .ToArray();
         var indent = Helper.MemberIndentation(type);
         var bodyIndent = indent + "    ";
         var sb = new StringBuilder(Helper.BeginType(type, "global::UtilityVerse.Copy.IDeepCopyable"));
@@ -80,7 +86,13 @@ internal static class DeepCopyGenerator
             sb.AppendLine($"{indent}[global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]");
         }
 
-        var chain = ConstructorInitializer(type, hasBase);
+        if (states.Any(state => state.Accessor != null &&
+            SymbolEqualityComparer.Default.Equals(state.Member.ContainingType, type)))
+        {
+            sb.AppendLine($"{indent}[global::System.CodeDom.Compiler.GeneratedCode(\"{StorageAccess.Capability}\", \"1\")]");
+        }
+
+        var chain = ConstructorInitializer(type, hasBase, states);
 
         sb.AppendLine($"{indent}{(type.IsValueType || type.IsSealed ? "private" : "protected")} {Helper.Identifier(type.Name)}({name} source, {context} context)");
         sb.AppendLine($"{bodyIndent}: {chain}");
@@ -92,21 +104,28 @@ internal static class DeepCopyGenerator
             sb.AppendLine();
         }
 
-        foreach (var member in Helper.GetCopiedState(type))
+        foreach (var state in states)
         {
-            var memberName = Helper.Identifier(member.Name);
-            var expression = CopyExpression(Helper.StateType(member), "source." + memberName, "context", indentation: bodyIndent);
+            var expression = CopyExpression(Helper.StateType(state.Member), state.Access("source"), "context", indentation: bodyIndent);
 
-            sb.AppendLine($"{bodyIndent}this.{memberName} = {expression};");
+            sb.AppendLine($"{bodyIndent}{state.Access("this")} = {expression};");
         }
 
         sb.AppendLine($"{indent}}}");
         sb.Append(Helper.EndType(type));
 
+        foreach (var state in states)
+        {
+            if (state.Accessor != null && state.Member is IPropertySymbol property)
+            {
+                StorageAccess.Emit(sb, type, property, state.Index, compilation);
+            }
+        }
+
         return sb.ToString();
     }
 
-    private static string ConstructorInitializer(INamedTypeSymbol type, bool hasBase)
+    private static string ConstructorInitializer(INamedTypeSymbol type, bool hasBase, StoredState[] states)
     {
         if (type.IsRecord && !type.IsValueType)
         {
@@ -118,7 +137,8 @@ internal static class DeepCopyGenerator
         if (primaryConstructor != null)
         {
             var arguments = primaryConstructor.Parameters.Select(parameter =>
-                "source." + Helper.Identifier(Helper.MatchParameter(type, parameter)!.Name));
+                states.First(state => SymbolEqualityComparer.Default.Equals(
+                    state.Member, Helper.MatchParameter(type, parameter))).Access("source"));
 
             return "this(" + string.Join(", ", arguments) + ")";
         }
@@ -129,6 +149,26 @@ internal static class DeepCopyGenerator
         }
 
         return type.IsValueType ? "this()" : "base()";
+    }
+
+    private readonly struct StoredState
+    {
+        internal ISymbol Member { get; }
+
+        internal int Index { get; }
+
+        internal string? Accessor { get; }
+
+        internal StoredState(ISymbol member, int index, string? accessor)
+        {
+            Member = member;
+            Index = index;
+            Accessor = accessor;
+        }
+
+        internal string Access(string receiver) => Accessor == null
+            ? receiver + "." + Helper.Identifier(Member.Name)
+            : Accessor + "(" + receiver + ")";
     }
 
     internal static string CopyExpression(

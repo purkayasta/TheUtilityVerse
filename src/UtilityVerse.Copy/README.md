@@ -55,6 +55,30 @@ unrecognized derived runtime type throws `NotSupportedException` rather than los
 its derived state. Opted-in base classes preserve their private and readonly state.
 Abstract opted-in classes support generated concrete subclasses.
 
+Overridden auto-properties preserve each declaring class's independent backing
+storage through generated typed `UnsafeAccessor` field methods. Copying bypasses
+virtual getters and setters, including computed overrides, and supports readonly,
+getter-only, init-only, and shared or cyclic reference state.
+
+The field-access backend requires .NET 8+ for non-generic declaring types and .NET
+9+ for generic declaring types, including generic enclosing types. The generator
+and runtime package still target netstandard2.0 and use Roslyn 4.11. Older consumers
+retain ordinary copy support; shapes requiring unsupported physical field access
+receive `UV004` rather than an inaccurate copy. Generic helpers preserve parameter
+order and constraints, even when the derived type's parameters differ from the base.
+
+Opted-in bases distributed in another assembly must be rebuilt with this field
+backend for their applicable target. Generated copy constructors record a physical
+storage capability marker; legacy bases without it receive `UV004` when an override
+would otherwise lose stored state. Private/protected nested owners or property types use helpers in
+partial owning/enclosing types; inaccessible storage whose owners cannot host a
+safe helper (including shadowed enclosing generic parameter names) are diagnosed.
+
+An explicit backing field remains a portable alternative on older targets.
+Overrides of abstract properties need no base storage access. Shallow copies use
+`MemberwiseClone` and preserve both backing fields on all supported targets. No
+runtime model-member reflection or dynamically emitted code is used.
+
 Dictionary entries and hash-set elements are copied into typed temporary buffers.
 Their destination containers are registered immediately, preserving cycles and
 aliases, but insertion waits until the outermost graph operation has hydrated
@@ -128,6 +152,9 @@ nested opt-ins. `UV004` reports shapes that cannot safely be generated:
   constructors, captured primary-constructor state, and event subscriptions.
 - Non-opted-in base classes with no accessible parameterless constructor.
 - Inaccessible, hidden, or readonly inherited state when the base type has no deep opt-in; external bases must provide the current graph-copy support.
+- Stored-property override chains requiring field access unavailable on the
+  consumer framework, legacy external bases without physical-storage capability,
+  or inaccessible nested owners that cannot host a safe generated helper.
 - Deep-copy record inheritance, multidimensional arrays, pointer state, and
   immutable/frozen collection implementations.
 

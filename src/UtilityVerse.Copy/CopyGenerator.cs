@@ -26,40 +26,50 @@ public sealed class CopyGenerator : IIncrementalGenerator
             .Select(static (m, _) => m!.Value)
             .Collect();
 
-        context.RegisterSourceOutput(typeDeclarations, (spc, types) =>
+        context.RegisterSourceOutput(typeDeclarations.Combine(context.CompilationProvider), (spc, input) =>
         {
-            foreach (var group in types.GroupBy(x => (x.Symbol, x.Mode)))
-            {
-                var (symbol, mode) = group.Key;
+            var (types, compilation) = input;
 
-                if (Validation.HasUnsupportedShape(symbol, mode == CopyMode.Deep, out _))
-                {
-                    continue;
-                }
-
-                var source = mode switch
-                {
-                    CopyMode.Deep => GenerateDeepCopy(symbol),
-                    CopyMode.Shallow => GenerateShallowCopy(symbol),
-                    _ => null
-                };
-
-                if (string.IsNullOrWhiteSpace(source))
-                {
-                    continue;
-                }
-
-                var fullName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace("global::", "");
-                var safeName = string.Concat(fullName.Select(character => character switch
-                {
-                    '.' => "_",
-                    _ when char.IsLetterOrDigit(character) => character.ToString(),
-                    _ => "_" + ((int)character).ToString("X4")
-                }));
-                var hintName = $"{safeName}_{mode}Copy.g.cs";
-                spc.AddSource(hintName, SourceText.From(source!, Encoding.UTF8));
-            }
+            GenerateSources(spc, types, compilation);
         });
+    }
+
+    private static void GenerateSources(
+        SourceProductionContext spc,
+        System.Collections.Immutable.ImmutableArray<(INamedTypeSymbol Symbol, CopyMode Mode)> types,
+        Compilation compilation)
+    {
+        foreach (var group in types.GroupBy(x => (x.Symbol, x.Mode)))
+        {
+            var (symbol, mode) = group.Key;
+
+            if (Validation.HasUnsupportedShape(symbol, mode == CopyMode.Deep, out _, compilation))
+            {
+                continue;
+            }
+
+            var source = mode switch
+            {
+                CopyMode.Deep => DeepCopyGenerator.Generate(symbol, compilation),
+                CopyMode.Shallow => GenerateShallowCopy(symbol),
+                _ => null
+            };
+
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                continue;
+            }
+
+            var fullName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace("global::", "");
+            var safeName = string.Concat(fullName.Select(character => character switch
+            {
+                '.' => "_",
+                _ when char.IsLetterOrDigit(character) => character.ToString(),
+                _ => "_" + ((int)character).ToString("X4")
+            }));
+            var hintName = $"{safeName}_{mode}Copy.g.cs";
+            spc.AddSource(hintName, SourceText.From(source!, Encoding.UTF8));
+        }
     }
 
     private static (INamedTypeSymbol Symbol, CopyMode Mode)? GetSemanticTarget(GeneratorSyntaxContext context)
@@ -92,8 +102,6 @@ public sealed class CopyGenerator : IIncrementalGenerator
 
         return null;
     }
-
-    private static string? GenerateDeepCopy(INamedTypeSymbol typeSymbol) => DeepCopyGenerator.Generate(typeSymbol);
 
     private static string? GenerateShallowCopy(INamedTypeSymbol typeSymbol) => ShallowCopyGenerator.Generate(typeSymbol);
 

@@ -11,7 +11,7 @@ namespace UtilityVerse.Copy;
 
 internal static class Validation
 {
-    internal static bool HasUnsupportedShape(INamedTypeSymbol type, bool deep, out string reason)
+    internal static bool HasUnsupportedShape(INamedTypeSymbol type, bool deep, out string reason, Compilation compilation)
     {
         reason = "";
 
@@ -104,7 +104,7 @@ internal static class Validation
                     reason = "the base type must be rebuilt with graph-aware copy support";
                 }
             }
-            else if (!Helper.IsPartial(parent) || HasUnsupportedShape(parent, true, out _))
+            else if (!Helper.IsPartial(parent) || HasUnsupportedShape(parent, true, out _, compilation))
             {
                 reason = "the opted-in base type must support generated deep copying";
             }
@@ -123,6 +123,11 @@ internal static class Validation
 
                 foreach (var inherited in Helper.GetOwnState(parent))
                 {
+                    if (StorageAccess.CanUse(inherited, compilation))
+                    {
+                        continue;
+                    }
+
                     if (!CanAccess(inherited, type) || inherited is IFieldSymbol { IsReadOnly: true } ||
                         inherited is IPropertySymbol p && (p.GetMethod == null || p.SetMethod == null || !CanAccess(p.GetMethod, type) || !CanAccess(p.SetMethod, type)))
                     {
@@ -139,7 +144,7 @@ internal static class Validation
 
         foreach (var member in Helper.GetCopiedState(type))
         {
-            if (!SymbolEqualityComparer.Default.Equals(member.ContainingType, type))
+            if (!SymbolEqualityComparer.Default.Equals(member.ContainingType, type) && !StorageAccess.CanUse(member, compilation))
             {
                 if (member.DeclaredAccessibility == Accessibility.Private ||
                     member is IFieldSymbol { IsReadOnly: true } ||
@@ -158,7 +163,89 @@ internal static class Validation
             }
         }
 
+        var virtualStorageReason = UnsupportedVirtualStorage(type, compilation);
+
+        if (virtualStorageReason != null)
+        {
+            reason = virtualStorageReason;
+        }
+
+        var stateIndex = 0;
+
+        foreach (var member in Helper.GetCopiedState(type))
+        {
+            if (member is IPropertySymbol property && StorageAccess.CanUse(property, compilation) &&
+                StorageAccess.HasNameCollision(type, property, stateIndex, compilation))
+            {
+                reason = "the generated physical storage helper name is reserved";
+            }
+
+            stateIndex++;
+        }
+
         return reason.Length != 0;
+    }
+
+    private static string? UnsupportedVirtualStorage(INamedTypeSymbol type, Compilation compilation)
+    {
+        for (var current = type; current != null && current.SpecialType != SpecialType.System_Object; current = current.BaseType)
+        {
+            foreach (var member in current.GetMembers())
+            {
+                if (member is not IPropertySymbol { OverriddenProperty: not null } property)
+                {
+                    continue;
+                }
+
+                // An override can be computed while a more distant ancestor still
+                // owns an independent auto-property slot. Inspect the entire chain.
+                for (var ancestor = property.OverriddenProperty; ancestor != null; ancestor = ancestor.OverriddenProperty)
+                {
+                    if (!HasStoredProperty(ancestor))
+                    {
+                        continue;
+                    }
+
+                    if (StorageAccess.SupportsOwner(ancestor.ContainingType, compilation))
+                    {
+                        if (ancestor.ContainingType.DeclaringSyntaxReferences.Length != 0 &&
+                            StorageAccess.CanUse(ancestor, compilation))
+                        {
+                            continue;
+                        }
+
+                        if (ancestor.ContainingType.DeclaringSyntaxReferences.Length == 0 &&
+                            StorageAccess.HasCapability(ancestor.ContainingType))
+                        {
+                            continue;
+                        }
+
+                        return "the base type must be rebuilt with accessible physical backing storage support: " + ancestor.ToDisplayString();
+                    }
+
+                    return $"override '{property.ToDisplayString()}' may bypass the backing storage of '{ancestor.ToDisplayString()}'; " +
+                        "use explicit backing fields or a custom copy implementation";
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool HasStoredProperty(IPropertySymbol property)
+    {
+        if (Helper.IsAutoProperty(property))
+        {
+            return true;
+        }
+
+        // Private backing fields are not necessarily imported from metadata.
+        // Auto-property getter attributes remain visible on referenced assemblies.
+        return property.ContainingType.DeclaringSyntaxReferences.Length == 0 &&
+            property.DeclaringSyntaxReferences.Length == 0 &&
+            property.GetMethod?.GetAttributes().Any(attribute => Helper.SymbolEquals(
+                attribute.AttributeClass,
+                "System.Runtime.CompilerServices.CompilerGeneratedAttribute")) == true;
     }
 
     private static bool CanAccess(ISymbol member, INamedTypeSymbol type) => member.DeclaredAccessibility switch

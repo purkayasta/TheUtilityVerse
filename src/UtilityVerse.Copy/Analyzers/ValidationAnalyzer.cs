@@ -37,7 +37,7 @@ public class ValidationAnalyzer : DiagnosticAnalyzer
             context.ReportDiagnostic(Diagnostic.Create(Rules.MissingPartialRule, syntax.Identifier.GetLocation(), type.Name));
             return;
         }
-        if (Validation.HasUnsupportedShape(type, deep, out var reason))
+        if (Validation.HasUnsupportedShape(type, deep, out var reason, context.Compilation))
         {
             context.ReportDiagnostic(Diagnostic.Create(Rules.UnsupportedShapeRule, syntax.Identifier.GetLocation(), type.Name, reason));
             return;

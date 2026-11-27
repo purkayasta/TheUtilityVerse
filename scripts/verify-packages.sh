@@ -56,6 +56,31 @@ if (new[] { 1, 2 }.ToStr(",").Result != "1,2" || Utility.AddRetry(() => 42) != 4
     throw new Exception("Packaged core helpers failed.");
 if (UtilityVerse.ASPNET.Utility.CreateHttpRequest("name", "value").Query["name"] != "value")
     throw new Exception("Packaged ASPNET helper failed.");
+var stored = new StoredDerived();
+stored.ReadBaseValues().Add(node);
+stored.Values.Add(node);
+var storedCopy = stored.DeepCopy();
+if (storedCopy.Id != 2 || storedCopy.ReadBaseId() != 7 ||
+    ReferenceEquals(storedCopy.Values, stored.Values) ||
+    ReferenceEquals(storedCopy.ReadBaseValues(), stored.ReadBaseValues()) ||
+    !ReferenceEquals(storedCopy.Values[0], storedCopy.ReadBaseValues()[0]) ||
+    !ReferenceEquals(storedCopy.Values[0], storedCopy.Values[0].Next))
+{
+    throw new Exception("Packaged generator did not preserve virtual backing storage.");
+}
+
+#if NET9_0_OR_GREATER
+var generic = new StoredGenericDerived<int>();
+generic.ReadBaseValues().Add(7);
+generic.Values.Add(2);
+var genericCopy = generic.DeepCopy();
+if (genericCopy.ReadBaseValues()[0] != 7 || genericCopy.Values[0] != 2 ||
+    ReferenceEquals(genericCopy.Values, generic.Values))
+{
+    throw new Exception("Packaged generator did not preserve generic backing storage.");
+}
+#endif
+
 Console.WriteLine("Fresh-package consumer passed.");
 
 [DeepCopy]
@@ -70,6 +95,43 @@ public partial record Shallow
 {
     public int[]? Items { get; init; }
 }
+
+[DeepCopy]
+public partial class StoredBase
+{
+    public virtual int Id { get; init; } = 7;
+
+    public virtual List<Node> Values { get; } = new();
+}
+
+[DeepCopy]
+public partial class StoredDerived : StoredBase
+{
+    public override int Id { get; init; } = 2;
+
+    public override List<Node> Values { get; } = new();
+
+    public int ReadBaseId() => base.Id;
+
+    public List<Node> ReadBaseValues() => base.Values;
+}
+
+#if NET9_0_OR_GREATER
+[DeepCopy]
+public partial class StoredGenericBase<T>
+{
+    public virtual List<T> Values { get; } = new();
+}
+
+[DeepCopy]
+public partial class StoredGenericDerived<T> : StoredGenericBase<T>
+{
+    public override List<T> Values { get; } = new();
+
+    public List<T> ReadBaseValues() => base.Values;
+}
+#endif
+
 EOF
 
 dotnet restore "$scratch/Consumer.csproj" --configfile "$scratch/NuGet.Config" --packages "$scratch/cache"
