@@ -14,7 +14,7 @@ using System.Runtime.CompilerServices;
 namespace UtilityVerse.Copy;
 
 /// <summary>Tracks reference identity during a generated deep copy. Use one instance per operation.</summary>
-public sealed class CopyContext
+public sealed partial class CopyContext
 {
     private readonly Dictionary<object, object> copies = new(ReferenceComparer.Instance);
 
@@ -111,7 +111,11 @@ public sealed class CopyContext
         return result;
     }
 
-    private T[]? CopyArrayCore<T>(T[]? source, Func<T, CopyContext, T> copyElement)
+    private T[]? CopyArrayCore<T>(T[]? source, Func<T, CopyContext, T> copyElement) =>
+        CopyArrayCore<T, DelegateElementCopier<T>>(source, new DelegateElementCopier<T>(copyElement));
+
+    private T[]? CopyArrayCore<T, TCopier>(T[]? source, TCopier copyElement)
+        where TCopier : struct, IElementCopier<T>
     {
         if (source is null)
         {
@@ -128,7 +132,7 @@ public sealed class CopyContext
 
         for (var index = 0; index < source.Length; index++)
         {
-            result[index] = copyElement(source[index], this);
+            result[index] = copyElement.Copy(source[index], this);
         }
 
         return result;
@@ -148,7 +152,7 @@ public sealed class CopyContext
 
     private IEnumerable<T>? CopySequenceCore<T>(IEnumerable<T>? source, Func<T, CopyContext, T> copyElement)
     {
-        if (source is null)
+        if (source == null)
         {
             return null;
         }
@@ -158,16 +162,35 @@ public sealed class CopyContext
             return (IEnumerable<T>)existing;
         }
 
-        var type = source.GetType();
+        var runtimeType = source.GetType();
 
-        if ((source is ICollection<T> || source is Queue<T> || source is Stack<T>) &&
-            type != typeof(List<T>) && type != typeof(HashSet<T>) && type != typeof(Queue<T>) && type != typeof(Stack<T>) &&
-            type != typeof(ReadOnlyCollection<T>) && type != typeof(ObservableCollection<T>) && type != typeof(BindingList<T>) &&
-            type != typeof(Collection<T>) && source is not T[])
+        if (source is not T[] && !IsExactSequenceType<T>(runtimeType))
         {
-            throw new NotSupportedException($"Collection runtime type '{type}' requires a custom copy implementation.");
+            if (TryGetSequenceCopier(runtimeType, out var copier))
+            {
+                return copier!.Copy(this, source, copyElement);
+            }
+
+            if (source is System.Collections.ICollection || source is ICollection<T> || source is IReadOnlyCollection<T>)
+            {
+                throw new NotSupportedException($"Collection runtime type '{runtimeType}' requires a custom copy implementation.");
+            }
         }
 
+        return CopySequenceCore<T, DelegateElementCopier<T>>(source, new DelegateElementCopier<T>(copyElement));
+    }
+
+    private static bool IsExactSequenceType<T>(Type type) =>
+        type == typeof(List<T>) || type == typeof(HashSet<T>) ||
+        type == typeof(Queue<T>) || type == typeof(Stack<T>) ||
+        type == typeof(Collection<T>) || type == typeof(ReadOnlyCollection<T>) ||
+        type == typeof(ObservableCollection<T>) || type == typeof(BindingList<T>);
+
+    // The entry point has checked the identity cache and runtime shape already.
+    // Covariant dispatch reaches this core with the actual closed element type.
+    private IEnumerable<T> CopySequenceCore<T, TCopier>(IEnumerable<T> source, TCopier copyElement)
+        where TCopier : struct, IElementCopier<T>
+    {
         IEnumerable<T> result;
         Action<T> add;
 
@@ -175,17 +198,17 @@ public sealed class CopyContext
         {
 
             case T[] array:
-                return CopyArray(array, copyElement);
+                return CopyArrayCore<T, TCopier>(array, copyElement)!;
 
             case HashSet<T> set:
-                return CopySet(set, copyElement);
+                return CopySet<T, TCopier>(set, copyElement);
 
             case Stack<T>:
                 var stack = new Stack<T>();
                 Register(source, stack);
                 foreach (var item in source.Reverse())
                 {
-                    stack.Push(copyElement(item, this));
+                    stack.Push(copyElement.Copy(item, this));
                 }
 
                 return stack;
@@ -231,7 +254,7 @@ public sealed class CopyContext
 
         foreach (var item in source)
         {
-            add(copyElement(item, this));
+            add(copyElement.Copy(item, this));
         }
 
         return result;
@@ -343,7 +366,8 @@ public sealed class CopyContext
         }
     }
 
-    private HashSet<T> CopySet<T>(HashSet<T> source, Func<T, CopyContext, T> copyElement)
+    private HashSet<T> CopySet<T, TCopier>(HashSet<T> source, TCopier copyElement)
+        where TCopier : struct, IElementCopier<T>
     {
         var result = new HashSet<T>(source.Comparer);
         Register(source, result);
@@ -358,7 +382,7 @@ public sealed class CopyContext
 
         foreach (var item in source)
         {
-            entries[index++] = copyElement(item, this);
+            entries[index++] = copyElement.Copy(item, this);
         }
 
         Schedule(new PendingSet<T>(result, entries));

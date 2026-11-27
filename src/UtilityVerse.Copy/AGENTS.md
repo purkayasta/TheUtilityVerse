@@ -92,6 +92,25 @@ Collection comparers and queue/stack ordering are
 preserved. Immutable tuple cycles are rejected explicitly. Generic parameter values
 must be supported immutable scalars or implement generated IDeepCopyable.
 
+Covariant sequence copying dispatches to the actual supported container element
+signature before allocating or registering a destination. CopyContext.Sequences
+keeps weak type/copier caches so collectible model assemblies are not rooted.
+Only collection type identity metadata is inspected; no model-member reflection,
+MakeGenericMethod, reflection invocation, or dynamic IL is permitted. Exact generic
+and array paths remain typed. Element adapters are readonly structs passed through
+constrained generic methods; preserve caller delegates, set hydration, ordering,
+and comparers. Unsupported collection subclasses must fail explicitly.
+
+SequenceRegistration gathers declared element types across the complete model
+hierarchy and accessible closed non-generic opted-in source models assignable to
+those views. Generated lazy static registration runs before CopyGenerated enters
+any graph constructor. Reserve the registration member names in validation. Closed
+generic elements explicitly present in declared state are registered too. Hidden
+runtime element types need public CopyContext.RegisterSequenceType<T>() before
+copying; missing registration must throw even for empty collections, never fall
+back to an incompatible List of the declared base element type. Immutable reference
+scalars have built-in registration. Keep existing public context signatures intact.
+
 ShallowCopyGenerator emits MemberwiseClone for reference types and return-this for
 value types. Every reference, including arrays, is shared. Nested references do not
 need shallow opt-ins; UV003 remains tracked but no longer fires for them.
@@ -121,6 +140,11 @@ consumer documentation, and tests together.
   .NET 8/.NET 9 capability selection. FrameworkCompatibilityTests checks diagnostics
   on older targets. The fresh-package consumer executes field access on .NET 8 and
   generic field access on .NET 11.
+- CovariantCollectionTests covers both traversal orders for supported sequence
+  implementations, empty/null-only lists, nested and inherited generic views,
+  custom element delegates, comparers, explicit registration, failures/recovery,
+  collection subclass rejection, and registration-name diagnostics. Installed
+  package consumers exercise covariant aliases on .NET 8 and .NET 11.
 - CopyRegressionTests replaces the old bug-pinning KnownIssuesTests with compilation,
   analyzer, and runtime regressions for fixed issues, plus unsupported-shape checks.
 - ValidationAnalyzerTests covers positive and negative diagnostics.

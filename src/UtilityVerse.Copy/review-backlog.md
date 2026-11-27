@@ -57,10 +57,30 @@ scenarios. Passing the original suite did not cover the failures below.
    execute readonly backing-field access on .NET 8 and generic backing-field access
    on .NET 11. Existing public method and constructor signatures are preserved;
    generated constructor capability metadata is new.
-4. **Open — P1 — Covariant collection aliases can throw.** A List<Derived> visited
-   first through IEnumerable<Base> becomes List<Base>; a later List<Derived>
-   reference throws InvalidCastException. Preserve a compatible runtime container
-   independently of member traversal order.
+4. **Completed — P1 — Covariant collection aliases can throw.** Supported
+   runtime sequences now dispatch to statically compiled copiers for their actual
+   element type before allocating a destination. A List<Derived> shared through
+   IEnumerable<Base> and List<Derived> remains one List<Derived> copy in either
+   traversal order, including empty and null-only sequences. Typed adapters
+   preserve nested aliases, cycles, comparer identity, queue/stack order, and
+   caller-provided element delegates. Readonly struct adapters avoid per-container
+   delegate-adaptation closures. Collection type identity metadata is cached weakly;
+   model-member reflection, runtime generic method construction, and dynamic IL
+   are not used. Generated registration covers declared sequence elements across
+   the inheritance hierarchy and accessible non-generic opted-in source models;
+   generic parameter views include visible source models too. External or otherwise
+   unknown actual element types require CopyContext.RegisterSequenceType<T>()
+   before copying; missing registration fails explicitly even for empty sequences.
+   Collection subclasses are rejected rather than sliced. Twenty-nine new
+   CovariantCollectionTests cases cover supported implementations, both traversal
+   orders, empty/null-only state, nested and generic views, inherited state,
+   delegate behavior, comparer identity, failure recovery, explicit registration,
+   subclass rejection, and generated-name diagnostics. Full scripts/build.sh
+   validation passed: 235 tests, including 198 Copy tests, with zero warnings or
+   errors. Expanded scripts/verify-packages.sh Release consumers passed covariant
+   alias/cycle checks on .NET 8 and .NET 11. Existing public context signatures
+   remain intact; static RegisterSequenceType<T>() is additive. This does not
+   resolve the separate configuration/backing-store findings (#8 and #9).
 5. **Open — P1 — Dictionary subclasses are sliced.** A subclass in a Dictionary
    member becomes an ordinary Dictionary and loses additional state. Apply a
    consistent runtime-type policy across all container adapters.

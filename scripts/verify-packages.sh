@@ -69,6 +69,21 @@ if (storedCopy.Id != 2 || storedCopy.ReadBaseId() != 7 ||
     throw new Exception("Packaged generator did not preserve virtual backing storage.");
 }
 
+var collectionNode = new CollectionNode { Id = 11, Label = "derived" };
+collectionNode.Next = collectionNode;
+var collectionItems = new List<CollectionNode> { collectionNode };
+var covariantCopy = new CovariantHolder { Wide = collectionItems, Narrow = collectionItems }.DeepCopy();
+var reverseCopy = new ReverseCovariantHolder { Wide = collectionItems, Narrow = collectionItems }.DeepCopy();
+if (covariantCopy.Wide is not List<CollectionNode> ||
+    !ReferenceEquals(covariantCopy.Wide, covariantCopy.Narrow) ||
+    !ReferenceEquals(reverseCopy.Wide, reverseCopy.Narrow) ||
+    ReferenceEquals(covariantCopy.Narrow, collectionItems) ||
+    covariantCopy.Narrow![0].Label != "derived" ||
+    !ReferenceEquals(covariantCopy.Narrow[0], covariantCopy.Narrow[0].Next))
+{
+    throw new Exception("Packaged generator did not preserve covariant collection aliases.");
+}
+
 #if NET9_0_OR_GREATER
 var generic = new StoredGenericDerived<int>();
 generic.ReadBaseValues().Add(7);
@@ -88,6 +103,28 @@ public partial class Node
 {
     public int Id { get; set; }
     public Node? Next { get; set; }
+}
+
+[DeepCopy]
+public partial class CollectionNode : Node
+{
+    public string? Label { get; set; }
+}
+
+[DeepCopy]
+public partial class CovariantHolder
+{
+    public IEnumerable<Node>? Wide { get; set; }
+
+    public List<CollectionNode>? Narrow { get; set; }
+}
+
+[DeepCopy]
+public partial class ReverseCovariantHolder
+{
+    public List<CollectionNode>? Narrow { get; set; }
+
+    public IEnumerable<Node>? Wide { get; set; }
 }
 
 [ShallowCopy]

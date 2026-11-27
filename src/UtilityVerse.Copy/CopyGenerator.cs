@@ -39,6 +39,11 @@ public sealed class CopyGenerator : IIncrementalGenerator
         System.Collections.Immutable.ImmutableArray<(INamedTypeSymbol Symbol, CopyMode Mode)> types,
         Compilation compilation)
     {
+        var deepModels = types
+            .Where(item => item.Mode == CopyMode.Deep)
+            .Select(item => item.Symbol)
+            .ToArray();
+
         foreach (var group in types.GroupBy(x => (x.Symbol, x.Mode)))
         {
             var (symbol, mode) = group.Key;
@@ -50,7 +55,7 @@ public sealed class CopyGenerator : IIncrementalGenerator
 
             var source = mode switch
             {
-                CopyMode.Deep => DeepCopyGenerator.Generate(symbol, compilation),
+                CopyMode.Deep => DeepCopyGenerator.Generate(symbol, compilation, deepModels),
                 CopyMode.Shallow => GenerateShallowCopy(symbol),
                 _ => null
             };

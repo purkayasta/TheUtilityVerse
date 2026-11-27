@@ -3,6 +3,7 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -11,7 +12,10 @@ namespace UtilityVerse.Copy.Generators;
 
 internal static class DeepCopyGenerator
 {
-    internal static string? Generate(INamedTypeSymbol type, Compilation compilation)
+    internal static string? Generate(
+        INamedTypeSymbol type,
+        Compilation compilation,
+        IEnumerable<INamedTypeSymbol> models)
     {
         if (!Helper.IsPartial(type) || type.IsStatic || type.IsRefLikeType)
         {
@@ -21,6 +25,7 @@ internal static class DeepCopyGenerator
         var name = Helper.LocalName(type);
         var context = "global::UtilityVerse.Copy.CopyContext";
         var hasBase = Helper.HasGeneratedDeepBase(type);
+        var sequenceTypes = SequenceRegistration.GetElementTypes(type, models, compilation);
         var states = Helper.GetCopiedState(type)
             .Select((member, index) => new StoredState(member, index,
                 StorageAccess.CanUse(member, compilation) && member is IPropertySymbol property
@@ -34,9 +39,36 @@ internal static class DeepCopyGenerator
         sb.AppendLine($"{indent}[global::System.CodeDom.Compiler.GeneratedCode(\"DeepCopyGenerator\", \"1.0\")]");
         sb.AppendLine($"{indent}public {(hasBase ? "new " : "")}{name} DeepCopy() => new {context}().Copy(this);");
         sb.AppendLine();
-        sb.AppendLine($"{indent}object global::UtilityVerse.Copy.IDeepCopyable.Copy({context} context) =>");
-        sb.AppendLine($"{bodyIndent}context.CopyGenerated(this, static (source, copyContext) => source.__UtilityVerseDeepCopy(copyContext));");
+        sb.AppendLine($"{indent}object global::UtilityVerse.Copy.IDeepCopyable.Copy({context} context)");
+        sb.AppendLine($"{indent}{{");
+
+        if (sequenceTypes.Length != 0)
+        {
+            sb.AppendLine($"{bodyIndent}_ = __UtilityVerseSequenceTypes;");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine($"{bodyIndent}return context.CopyGenerated(this, static (source, copyContext) => source.__UtilityVerseDeepCopy(copyContext));");
+        sb.AppendLine($"{indent}}}");
         sb.AppendLine();
+
+        if (sequenceTypes.Length != 0)
+        {
+            sb.AppendLine($"{indent}private static readonly bool __UtilityVerseSequenceTypes = __UtilityVerseRegisterSequenceTypes();");
+            sb.AppendLine();
+            sb.AppendLine($"{indent}private static bool __UtilityVerseRegisterSequenceTypes()");
+            sb.AppendLine($"{indent}{{");
+
+            foreach (var elementType in sequenceTypes)
+            {
+                sb.AppendLine($"{bodyIndent}{context}.RegisterSequenceType<{Helper.TypeName(elementType)}>();");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine($"{bodyIndent}return true;");
+            sb.AppendLine($"{indent}}}");
+            sb.AppendLine();
+        }
 
         var modifier = "protected virtual";
 

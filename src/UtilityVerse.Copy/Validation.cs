@@ -43,6 +43,12 @@ internal static class Validation
             return reason.Length != 0;
         }
 
+        if (type.GetMembers("__UtilityVerseSequenceTypes").Any(IsUserDeclared) ||
+            type.GetMembers("__UtilityVerseRegisterSequenceTypes").Any(IsUserDeclared))
+        {
+            reason = "the generated sequence registration name is reserved";
+        }
+
         if (type.IsRecord && !type.IsValueType && type.BaseType is { SpecialType: not SpecialType.System_Object })
         {
             reason = "record inheritance requires a custom copy implementation";

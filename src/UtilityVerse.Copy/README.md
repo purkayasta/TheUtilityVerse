@@ -120,6 +120,35 @@ Supported state includes:
 - Nested collections and opted-in mutable structs. A struct containing mutable
   references must opt in; it is never silently treated as an immutable value.
 
+Covariant sequence views preserve the exact supported runtime container and its
+actual element type. For example, a `List<Derived>` shared by `IEnumerable<Base>`
+and `List<Derived>` members produces one `List<Derived>` copy in either traversal
+order. This also applies to empty and null-only collections, nested sequences,
+queue/stack order, and set comparers. `IEnumerable<T>` describes enumeration only;
+construction and insertion still use typed adapters for each supported container.
+
+Generated code registers declared sequence element types across the model's
+inheritance hierarchy, plus accessible non-generic opted-in source models assignable
+to those element views. Immutable reference scalars (`string`, `Uri`, `Version`)
+are registered by the runtime. When an actual element type cannot be determined
+from that source context (for example, an external subtype or a closed generic
+subtype visible only through a base view), register it before copying:
+
+```csharp
+CopyContext.RegisterSequenceType<ExternalDerived>();
+
+var copy = model.DeepCopy();
+```
+
+Direct `CopyContext.CopySequence` callers use the same registration API. A known
+container with an unregistered actual element type throws `NotSupportedException`,
+including when empty; it never silently changes that type. Registered adapters
+honor the caller's element-copy delegate. The delegate must return values assignable
+to the actual element type. Registration does not make an unsupported model or
+custom collection implementation copyable. Collection type metadata is inspected
+once per runtime container type and cached weakly; copying uses statically compiled
+generic methods, without model-member reflection or dynamic code generation.
+
 Generic type parameters can contain immutable scalar values or generated
 `IDeepCopyable` values. Other runtime generic values require a custom copy method
 and throw `NotSupportedException`. There is no reflection over model members;
