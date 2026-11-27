@@ -14,7 +14,7 @@ support projects:
 |---|---|---|---|
 | `src/UtilityVerse/` | Core helpers, `Extensions/`, and `Contracts/`; no external dependencies beyond Shared | netstandard2.1; net6.0; net8.0; net9.0; net10.0; net11.0 | Core architecture below |
 | `src/UtilityVerse.ASPNET/` | ASP.NET Core helpers using `Microsoft.AspNetCore.Http*` 2.3.x | Same multi-target list as core | Core architecture below |
-| `src/UtilityVerse.Shared/` | Repository support for `UtilityVerseResult<T>` and `UtilityVerseException`; referenced by core | netstandard2.1 | Core error convention below |
+| `src/UtilityVerse.Shared/` | Repository support for `UtilityVerseResult<T>` and `UtilityVerseException`; referenced by core and bundled inside its package, never published separately | netstandard2.1 | Core error convention below |
 | `src/UtilityVerse.Copy/` | Roslyn incremental copy generator, analyzer, and runtime support; package artwork in `Assets/` | netstandard2.0 | [Copy instructions](src/UtilityVerse.Copy/AGENTS.md) |
 | `tests/UtilityVerse.UnitTest/` | Core helper tests | net11.0 | Testing guidelines below |
 | `tests/UtilityVerse.Copy.UnitTest/` | In-memory generator/analyzer compilation and runtime tests | net11.0 | [Copy instructions](src/UtilityVerse.Copy/AGENTS.md) |
@@ -43,6 +43,10 @@ in `global.json`. Run commands from the repository root.
 
 CI in `.github/workflows/dotnet.yml` restores, builds, tests, and verifies Release
 packages on pushes to `development` and PRs to `master` or `development`.
+`.github/workflows/publish.yml` validates and publishes only UtilityVerse, Copy,
+and ASPNET after pushes to `master`, using NuGet Trusted Publishing and the
+`release` environment. Shared is nonpackable; core bundles its DLL and XML docs
+for each target framework. Keep publishing setup in `CONTRIBUTING.md`.
 
 ## Build configuration and compatibility
 

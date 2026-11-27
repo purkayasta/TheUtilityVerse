@@ -1,0 +1,125 @@
+name: Publish to NuGet
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nuget-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment: release
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            11.0.x
+
+      - name: Validate Release build
+        run: bash scripts/build.sh Release
+
+      - name: Audit all dependencies
+        run: >-
+          dotnet restore UtilityVerse.slnx --force-evaluate
+          -p:NuGetAudit=true -p:NuGetAuditMode=all -p:NuGetAuditLevel=low
+          -warnaserror:NU1900,NU1901,NU1902,NU1903,NU1904,NU1905
+
+      - name: Verify Release packages and fresh consumers
+        run: bash scripts/verify-packages.sh
+
+      - name: Find unpublished package versions
+        id: release
+        run: |
+          pending=()
+          tag=nuget
+          title=""
+
+          for package_id in UtilityVerse UtilityVerse.Copy UtilityVerse.ASPNET; do
+            files=(artifacts/packages/"$package_id".[0-9]*.nupkg)
+            if [ "${#files[@]}" -ne 1 ] || [ ! -f "${files[0]}" ]; then
+              echo "Expected exactly one verified package for $package_id." >&2
+              exit 1
+            fi
+
+            package="${files[0]}"
+            filename="${package##*/}"
+            version="${filename#"$package_id."}"
+            version="${version%.nupkg}"
+            lower_id="$(printf '%s' "$package_id" | tr '[:upper:]' '[:lower:]')"
+            status="$(curl --silent --show-error --retry 3 --max-time 30 \
+              --output /dev/null --write-out '%{http_code}' \
+              "https://api.nuget.org/v3-flatcontainer/$lower_id/$version/$lower_id.nuspec")"
+
+            case "$status" in
+              200) echo "Already published: $package_id $version"; continue ;;
+              404) pending+=("$package") ;;
+              *) echo "NuGet version check failed with HTTP $status." >&2; exit 1 ;;
+            esac
+
+            tag="$tag-$package_id-$version"
+            title="${title:+$title, }$package_id $version"
+          done
+
+          if [ "${#pending[@]}" -eq 0 ]; then
+            echo "Nothing to publish."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          printf '%s\n' "${pending[@]}" > artifacts/nuget-publish.txt
+          printf 'publish=true\ntag=%s\ntitle=%s\n' "$tag" "$title" >> "$GITHUB_OUTPUT"
+
+      - name: NuGet login with OIDC
+        if: steps.release.outputs.publish == 'true'
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Publish unpublished package versions
+        if: steps.release.outputs.publish == 'true'
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          while IFS= read -r package; do
+            dotnet nuget push "$package" \
+              --api-key "$NUGET_API_KEY" \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate
+          done < artifacts/nuget-publish.txt
+
+      - name: Create GitHub Release with generated notes
+        if: steps.release.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_TITLE: ${{ steps.release.outputs.title }}
+        run: |
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            echo "GitHub Release already exists: $RELEASE_TAG"
+            exit 0
+          fi
+
+          mapfile -t packages < artifacts/nuget-publish.txt
+          gh release create "$RELEASE_TAG" \
+            --target "$GITHUB_SHA" \
+            --title "$RELEASE_TITLE" \
+            --generate-notes \
+            "${packages[@]}"
