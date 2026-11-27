@@ -27,6 +27,23 @@ Before reviewing or changing the Copy generator, its tests, or its sample, read
 `tests/`, outside the nested source-directory instruction scope. Core helper error
 and documentation conventions do not override the Copy project's conventions.
 
+## Start with the owning source
+
+Read the relevant implementation and its callers before editing. Use this map to
+limit context and verification to the change:
+
+| Task | Required context |
+|---|---|
+| Core helper or error behavior | Owning partial/extension, its tests, and `src/UtilityVerse/breaking-changes.md` |
+| Copy generator, analyzer, runtime, sample, or tests | `src/UtilityVerse.Copy/AGENTS.md`, then the relevant implementation and test family |
+| Package layout or Shared support types | Core and Shared project files plus `scripts/verify-packages.sh` |
+| CI or publishing | Relevant workflow, build/package scripts, and `CONTRIBUTING.md` |
+| Public documentation or README artwork | Package guides, runnable examples, and existing `assets/`; preserve linked heading anchors |
+
+Treat project files and workflow configuration as the source of current versions,
+targets, and release behavior. Do not use historical test counts or a prior green
+build as proof that the current checkout passes. Keep unrelated local changes.
+
 ## Build, test, and development commands
 
 Use the .NET 11 SDK (`11.0.100` with compatible patch roll-forward), as specified
@@ -45,8 +62,7 @@ CI in `.github/workflows/dotnet.yml` restores, builds, tests, and verifies Relea
 packages on pushes to `development` and PRs to `master` or `development`.
 `.github/workflows/publish.yml` validates and publishes only UtilityVerse, Copy,
 and ASPNET after pushes to `master`, using NuGet Trusted Publishing and the
-`release` environment. Shared is nonpackable; core bundles its DLL and XML docs
-for each target framework. Keep publishing setup in `CONTRIBUTING.md`.
+`release` environment. See release rules below and account setup in `CONTRIBUTING.md`.
 
 ## Build configuration and compatibility
 
@@ -82,7 +98,7 @@ safe to remove.
 - `Utility` is a `sealed partial class` split across `Utility.*.cs`. Add static helpers to a new or existing related partial file. ASPNET has its own separate `UtilityVerse.ASPNET.Utility` partial class following the same pattern.
 - Place core extension methods in `Extensions/`, namespace `UtilityVerse.Extensions`, and name extension classes `{Type}Extension`.
 - Document public core members with XML `<summary>` comments. Core generates XML documentation, and source projects treat warnings as errors.
-- Core helpers return `UtilityVerseResult<T>` for errors instead of throwing; see `src/UtilityVerse/breaking-changes.md`. Prefer `UtilityVerseResult<T>.Failure(errorMessage)` and `.Success(value)` to avoid string-constructor ambiguity. Legacy constructors remain. Tests assert `.Result` and `.HasError`. This convention does not apply to the Copy generator.
+- Helpers using the result convention return `UtilityVerseResult<T>`; prefer `.Failure(errorMessage)` and `.Success(value)` to avoid string-constructor ambiguity. Legacy constructors remain. Tests assert `.Result` and `.HasError`. Some APIs intentionally throw, including retry validation/final failures and malformed conversions; inspect the owning API, examples, and `src/UtilityVerse/breaking-changes.md` before changing that contract. This result convention does not apply to Copy.
 
 ## Mandatory Readability and Performance Rules
 
@@ -102,6 +118,47 @@ behavior, including invalid inputs and regressions. Follow names such as
 `Method_ReturnTrue_WhenCondition`. Put generator/analyzer tests in
 `tests/UtilityVerse.Copy.UnitTest/` and follow the Copy instructions. No numeric
 coverage threshold is documented.
+
+Choose checks that exercise the changed contract:
+
+- C# behavior: focused regression tests, then the repository build workflow.
+- Package layout or dependencies: Release build, dependency audit, and package
+  verification with fresh consumers. A solution build alone cannot prove that
+  installed packages contain their runtime dependencies.
+- Workflow changes: check YAML and shell syntax plus publish/no-op/error paths;
+  distinguish local checks from an actual hosted run and token exchange.
+- Documentation only: check local links and anchors. Compile and run changed C#
+  examples; check SVG syntax for artwork. Do not claim a visual preview or rerun
+  unrelated runtime tests when only prose changes.
+
+## Packaging and releases
+
+- Publish only `UtilityVerse`, `UtilityVerse.Copy`, and `UtilityVerse.ASPNET`.
+  Shared stays a separate source project with `IsPackable=false`. Core references
+  it privately and uses `IncludeSharedBuildOutput` to bundle its DLL and XML docs
+  in every core `lib/<tfm>/` folder. Preserve Shared's assembly identity and public
+  namespaces; do not move its types into core or restore a separate NuGet dependency.
+- Core tests reference Shared explicitly because core's private project reference
+  does not flow to project consumers. Installed package consumers receive both
+  assemblies through UtilityVerse.
+- Bump only packages being released. Shared changes require a core version bump.
+  Keep the consumer versions and core archive path in `scripts/verify-packages.sh`
+  aligned with project versions. Dependency versions remain centrally managed.
+- Package verification uses an isolated temporary feed and exports verified
+  archives to `artifacts/packages`. That output folder may retain old versions;
+  never publish its contents with an unrestricted wildcard.
+- Publishing checks whether each built package version already exists on NuGet.
+  Only missing versions are uploaded. If none are missing, skip NuGet login,
+  uploads, and GitHub Release creation. A source change without a version bump
+  does not create a release. Failed lookups must fail the job, not imply absence.
+- Authenticate with `NuGet/login@v1`, `id-token: write`, and the `release`
+  environment's `NUGET_USER` secret. No long-lived NuGet API key is required.
+  Keep exact policy values and account setup instructions in `CONTRIBUTING.md`.
+- Create generated GitHub release notes and attach only the selected package
+  archives after successful uploads. Preserve existing releases on retries.
+  Upload acceptance precedes NuGet's asynchronous validation and indexing.
+- Before publishing Copy, finalize its diagnostic release tracking as directed
+  by the nested Copy instructions. Do not mark an unrequested future release shipped.
 
 ## Git, commits, and pull requests
 

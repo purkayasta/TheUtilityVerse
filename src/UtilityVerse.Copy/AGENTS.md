@@ -13,6 +13,20 @@ the same readable spacing and block layout. Prefer typed, allocation-conscious
 runtime operations; use value types only where they preserve copying and graph
 identity semantics. Formatting changes must preserve behavior.
 
+## Finding the right code
+
+| Concern | Owning source |
+|---|---|
+| Discovery and source output | `CopyGenerator.cs` and `Generators/` |
+| Supported shapes and diagnostics | `Validation.cs`, `Analyzers/ValidationAnalyzer.cs`, and `Analyzers/Rules.cs` |
+| Stored state and physical access | `Helper.cs`, `StorageAccess.cs`, and the copy generators |
+| Runtime graph identity and containers | `CopyContext.cs` and `CopyContext.*.cs` |
+| Depth configuration | `Attributes/DeepCopy.cs`, `Attributes/CopyDepthAttribute.cs`, `DepthConfiguration.cs`, and `Generators/DeepCopyGenerator.cs` |
+| Public consumer contract | `README.md`, `examples.md`, `Interfaces/`, and `Attributes/` |
+
+Use the test-family map below to choose regression coverage. Follow the root
+instructions for package layout, publishing, and repository validation.
+
 ## Constraints
 
 The generator targets netstandard2.0 and uses Roslyn 4.11. Do not raise its target
@@ -43,6 +57,8 @@ Check the generated public methods and graph helper against same-type names and
 method signatures. Method generic arity and parameter passing mode distinguish
 valid overloads. Existing explicit implementations of the emitted deep-copy
 interface methods conflict only when declared on the same type.
+
+### Model state and generated construction
 
 Helper emits matching namespace/containing-type/generic partial wrappers, classifies
 immutable state, finds stored instance fields and auto-properties, and matches
@@ -94,6 +110,8 @@ and non-opted-in base constructors can still run. Generated base copy constructo
 preserve inherited private/readonly state. Init-only/get-only properties and
 readonly fields can be assigned in these constructors.
 
+### Runtime graph operations
+
 CopyContext uses reference equality to preserve aliases and mutable cycles.
 CopyArray, CopySequence, CopyMap, and CopyImmutable implement container registration
 and typed element delegates. Nonempty hash sets and maps stage copied entries in
@@ -135,6 +153,8 @@ interface copies dispatch to supported concrete maps and preserve comparers.
 Immutable and frozen reference collections use CopyImmutable, which explicitly
 rejects cycles. Their keys or set elements must be supported immutable scalars.
 
+### Policies and depth
+
 Stored members can declare Copy, Share, Reset, or Custom. Custom selects an exact
 runtime type registered in a weak external copier table. External copiers register
 reference destinations early when supporting cycles. Keep these policies out of
@@ -147,6 +167,18 @@ UV006 warns about invalid or ignored configuration. Compiler traversal is
 independently bounded at 100 and rejects unsupported nesting through UV004.
 Bound nested copy operations and check stack space. A rejected depth must poison
 the active graph even if a custom copier catches the exception.
+
+The default is implemented in the parameterless `DeepCopy` attribute constructor,
+`DepthConfiguration.GetDepth`, and the runtime fallback in `CopyContext.BeginCopy`.
+The generator emits `ICopyDepthConfiguration.CopyDepth`; the runtime reads the
+root's value once for the entire operation. Keep these defaults and the consumer
+documentation aligned. The internal operation limit is separate from graph depth;
+never describe it as the consumer's configured maximum. Exceeding the graph budget
+throws `NotSupportedException`, clears partial state, and never returns a truncated
+copy. Cover attribute and marker-interface entry points, invalid configuration,
+container levels, cached cycles/aliases, and recovery when changing this behavior.
+
+### Boxed values and runtime collection dispatch
 
 For reference-typed inputs, CopyContext.Copy tracks the original box of an
 opted-in struct. Value-typed inputs have no source box to track. If the consumer
@@ -204,6 +236,8 @@ consumer documentation, and tests together.
 
 The test-first workflow is mandatory for Copy implementation work, including
 review findings, bug fixes, new support, and performance changes.
+Documentation, artwork, and diagnostic release-table maintenance alone do not
+require invented failing behavior tests; use the scoped checks in the root guide.
 
 1. Define the claim and the expected behavior before writing tests. Identify the
    relevant edge cases, failure paths, and existing behavior that must continue
@@ -280,11 +314,23 @@ review findings, bug fixes, new support, and performance changes.
   Validation must distinguish generated members from user members.
 - scripts/verify-packages.sh verifies Release packing and a fresh installed consumer.
 
-Run the repository build script for full validation. Add new diagnostic descriptors
-to Rules, SupportedDiagnostics, and AnalyzerReleases.Unshipped.md; never reuse a
-shipped diagnostic ID. Change source generator inputs rather than generated outputs.
-Do not bump package versions or move unshipped rules into shipped releases unless
-preparing an explicitly requested release.
+Run the repository build script for full validation. Change source generator
+inputs rather than generated outputs.
+
+## Diagnostic release tracking
+
+- During development, add new descriptors to `Rules`, `SupportedDiagnostics`, and
+  `AnalyzerReleases.Unshipped.md`. Keep help anchors and regression tests aligned.
+  Never reuse a shipped diagnostic ID or rewrite its release history.
+- When preparing an explicitly requested Copy release, move its unshipped entries
+  into the matching `Release <version>` section of `AnalyzerReleases.Shipped.md`
+  **before publishing**, and leave the unshipped table ready for future work.
+  Use the Copy project version, which can differ from the core package version.
+- The shipped table is the authoritative diagnostic history, not proof that
+  NuGet publication succeeded. Keep inactive diagnostic IDs reserved.
+- Build the Copy project after release-table edits to run the release-tracking
+  analyzers. Use the root release workflow for final package verification.
+- Do not bump versions or finalize diagnostic releases during unrelated fixes.
 
 ## Review backlog
 
