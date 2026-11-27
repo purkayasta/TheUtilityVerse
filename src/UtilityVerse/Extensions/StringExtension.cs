@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------
+// ---------------------------------------------------------------
 // Copyright (c) Pritom Purkayasta All rights reserved.
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
@@ -18,7 +18,7 @@ namespace UtilityVerse.Extensions;
 public static class StringExtension
 {
     /// <summary>
-    /// This method will convert any boolean string value to boolean
+    /// Parses true, false, yes, no, 1, or 0 ignoring case. Empty input returns false; other unrecognized text throws FormatException.
     /// </summary>
     /// <param name="value">"YES", "1", "true"</param>
     /// <returns>string</returns>

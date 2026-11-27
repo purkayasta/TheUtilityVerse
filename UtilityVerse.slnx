@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/assets/">
+    <File Path="assets/utility-verse.png" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/UtilityVerse.ASPNET/UtilityVerse.ASPNET.csproj" />
+    <Project Path="src/UtilityVerse.Copy/UtilityVerse.Copy.csproj" />
+    <Project Path="src/UtilityVerse.Shared/UtilityVerse.Shared.csproj" />
+    <Project Path="src/UtilityVerse/UtilityVerse.csproj" />
+  </Folder>
+  <Folder Name="/src/UtilityVerse/">
+    <File Path="src/UtilityVerse/breaking-changes.md" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/UtilityVerse.Copy.Test/UtilityVerse.Copy.Test.csproj" />
+    <Project Path="tests/UtilityVerse.Copy.UnitTest/UtilityVerse.Copy.UnitTest.csproj" />
+    <Project Path="tests/UtilityVerse.UnitTest/UtilityVerse.UnitTest.csproj" />
+  </Folder>
+  <File Path=".gitattributes" />
+  <File Path=".gitignore" />
+  <File Path="CONTRIBUTING.md" />
+  <File Path="Directory.Packages.props" />
+  <File Path="LICENSE.txt" />
+  <File Path="README.md" />
+  <File Path="TODO.md" />
+</Solution>

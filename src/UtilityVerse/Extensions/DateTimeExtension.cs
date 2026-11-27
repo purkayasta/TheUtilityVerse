@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------
+// ---------------------------------------------------------------
 // Copyright (c) Pritom Purkayasta All rights reserved.
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
@@ -48,7 +48,7 @@ public static class DateTimeExtension
     }
 
     /// <summary>
-    /// Convert datetime object into custom int format. If this method cannot parse the format it will return -1;
+    /// Formats the date as an integer, returning an error result when integer parsing fails.
     /// </summary>
     /// <param name="dateTime">new DateTime() like [6/10/2023 4:02:06 PM]</param>
     /// <param name="format">yyyyMMdd</param>
@@ -72,7 +72,7 @@ public static class DateTimeExtension
     }
 
     /// <summary>
-    /// this method will convert your current datetime into utc formatted datetime
+    /// Creates a UTC-kind value from the same calendar components, keeping hours, minutes, and seconds only when includeTime is true.
     /// </summary>
     /// <param name="dateTime"></param>
     /// <param name="includeTime"></param>

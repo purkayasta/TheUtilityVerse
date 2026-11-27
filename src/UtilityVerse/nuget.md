@@ -1,65 +1,63 @@
-﻿## The UtilityVerse 🧰 -  *(Multi verse of utility methods) is a library for all the helper methods that you might want to use.*
+# UtilityVerse
 
-> There are multiple packages in this universe. Use whatever suits you.
-		
-1. [UtilityVerse](https://www.nuget.org/packages/UtilityVerse/)
-2. [UtilityVerse.ASPNET](https://www.nuget.org/packages/UtilityVerse.ASPNET/)
+<img src="https://raw.githubusercontent.com/purkayasta/TheUtilityVerse/development/assets/utility-verse.png" alt="UtilityVerse icon" width="64" height="64">
 
-To Invoke this library, you may want to use ```Utility``` class.
+[![UtilityVerse NuGet version](https://img.shields.io/nuget/v/UtilityVerse?style=flat-square&logo=nuget&logoColor=white&label=NuGet&color=2563eb)](https://www.nuget.org/packages/UtilityVerse/) [![UtilityVerse total downloads](https://img.shields.io/nuget/dt/UtilityVerse?style=flat-square&logo=nuget&logoColor=white&label=downloads&color=16a34a)](https://www.nuget.org/packages/UtilityVerse/#statistics-body-tab)
 
-## Methods:
+Extension methods and static helpers for collections, strings, dates, conversions,
+retries, and pagination.
 
-- [ ] Boolean Extensions
-	- [x] ToBoolean(string value).
+[Install](#install) · [Results](#results) · [Methods](#methods) · [Features](#features)
 
-- [ ] Date Extensions
-	- [x] IsInBetween().
-	- [x] ToUnixTimeStamp().
-	- [x] ToIntDate().
-	- [x] DestructFromDateTime().
-	- [x] ToDateTime().
-	- [x] ToUtcDateTime().
+## Install
 
-- [ ] Generic Extensions
-	- [x] ToByteArray().
-	- [x] To<T>().
+```sh
+dotnet add package UtilityVerse
+```
 
-- [ ] Integer Extensions
-	- [x] IsInBetween().
-	- [x] ToInt(bool value).
-	- [x] ToStr()
+Import `UtilityVerse.Extensions` for extension methods and `UtilityVerse` for
+static helpers on `Utility`.
 
-- [ ] Byte Extensions
-	- [x] ToObject().
+## Results
 
-- [ ] Object Extensions
-	- [x] ToByteArray().
+Helpers using the result convention return `UtilityVerseResult<T>`. Check
+`HasError` and `Error`, then read `Result` when successful. Construct results
+explicitly with `Success(value)` or `Failure(error)`.
 
-- [ ] Character Extensions
-	- [x] ToStr().
+The package supports .NET Standard 2.1 and includes framework-specific builds
+for modern .NET. NuGet selects a compatible assembly automatically.
+The core package references UtilityVerse.Shared for its result and exception types.
 
-- [ ] Decimal Extensions
-	- [x] ToStr().
+## Methods
 
-- [ ] Double Extensions.
-	- [x] ToStr().
+- Bool: `ToInt()`, `ToStr()`
+- Byte[]: `ToObject()`, `To<T>()`
+- Char[]: `ToStr()`
+- Collections: `IsNullOrEmpty()` (enumerables, lists, sets, concurrent collections and more)
+- DateOnly: `IsInBetween()`, `ToIntDate()`, `ToDateTime()`, `ToUtcDateTime()`
+- DateTime: `IsInBetween()`, `ToUnixTimeStamp()`, `ToIntDate()`, `DestructFromDateTime()`, `ToUtcDateTime()`
+- Decimal[] / Double[] / Int[]: `ToStr()`
+- Generic / Object: `ToByteArray()`
+- Int: `IsInBetween()`
+- Long: `ToDateTime()`
+- IQueryable: `ToPagedList()`
+- ReadOnlySpan\<byte\>: `ToObject()`
+- String: `ToBoolean()`, `IsNullOrEmptyOrWhiteSpace()`, `EncodeToBase64()`, `DecodeFromBase64()`, `ConvertOsWisePath()`, `ToSlugUrl()`, `IsIpAddress()`, `IsValidEmail()`, `ToStr()` (on `string[]`)
 
-- [ ] Span Extensions.
-	- [x] ToObject().
+## Features
 
-- [ ] String Extensions
-	- [x] IsNullOrEmptyOrWhiteSpace().
-	- [x] ToStr().
-	- [x] EncodeToBase64().
-	- [x] DecodeFromBase64().
-	- [x] ConvertOsWisePath().
-	- [x] ToSlugUrl().
-	- [x] IsInIpAddress().
-	- [x] IsValidEmail().
+- Retry mechanism: `Utility.AddRetry()`, `Utility.AddRetryAsync()`
+- Currency conversion: `Utility.DollarToCent()`, `Utility.CentToDollar()`
 
-- [ ] Collection Extensions
-	- [x] IsNullOrEmpty().
+## Related packages
 
-- [ ] Features:
-	- [x] Retry Mechanism.
-	- [x] Dollar Cent Conversion.
+UtilityVerse.ASPNET provides HTTP helpers. UtilityVerse.Copy generates deep and
+shallow copies with configurable depth limits and execution-stack safeguards.
+See the repository for their guides and migration notes.
+[The UtilityVerse](https://github.com/purkayasta/TheUtilityVerse)
+
+## Runnable examples
+
+The package includes `examples.md` at its root with complete programs and expected
+behavior for consumers and coding agents.
+[Browse examples](https://github.com/purkayasta/TheUtilityVerse/blob/development/src/UtilityVerse/examples.md)

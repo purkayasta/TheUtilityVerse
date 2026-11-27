@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------
+// ---------------------------------------------------------------
 // Copyright (c) Pritom Purkayasta All rights reserved.
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
@@ -16,9 +16,9 @@ namespace UtilityVerse.Contracts;
 public class PagedList<T>
 {
     /// <summary>
-    /// If the instance has any error or not. If error found then it will true.
+    /// Whether pagination completed without an error.
     /// </summary>
-    public bool IsValid => Errors.Length > 0;
+    public bool IsValid => string.IsNullOrEmpty(Errors);
 
     /// <summary>
     /// Number of results.

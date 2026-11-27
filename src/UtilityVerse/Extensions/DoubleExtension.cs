@@ -33,6 +33,6 @@ public static class DoubleExtension
                 sb.Append(separator);
         }
 
-        return new UtilityVerseResult<string>(sb.ToString());
+        return UtilityVerseResult<string>.Success(sb.ToString());
     }
 }

@@ -1,9 +1,8 @@
-﻿// ---------------------------------------------------------------
+// ---------------------------------------------------------------
 // Copyright (c) Pritom Purkayasta All rights reserved.
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
-using UtilityVerse.Helpers;
 using UtilityVerse.Shared;
 
 namespace UtilityVerse.Extensions;
@@ -24,11 +23,7 @@ public static class ObjectExtension
         if (obj is null) return new UtilityVerseResult<byte[]>("Object is null or invalid");
         try
         {
-            if (Utils.IsStruct(obj.GetType()))
-            {
-                return new UtilityVerseResult<byte[]>(ConvertStructObjectIntoByteArray(obj));
-            }
-            return new UtilityVerseResult<byte[]>(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(obj));
+            return new UtilityVerseResult<byte[]>(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(obj, UtilityVerse.Helpers.Utils.JsonOptions));
         }
         catch (System.Text.Json.JsonException)
         {
@@ -40,15 +35,5 @@ public static class ObjectExtension
         }
     }
 
-    private static byte[] ConvertStructObjectIntoByteArray(object obj)
-    {
-        int size = System.Runtime.InteropServices.Marshal.SizeOf(obj);
-        byte[] arr = new byte[size];
-        IntPtr ptr = System.Runtime.InteropServices.Marshal.AllocHGlobal(size);
-        System.Runtime.InteropServices.Marshal.StructureToPtr(obj, ptr, true);
-        System.Runtime.InteropServices.Marshal.Copy(ptr, arr, 0, size);
-        System.Runtime.InteropServices.Marshal.FreeHGlobal(ptr);
-        return arr;
-    }
 #endif
 }

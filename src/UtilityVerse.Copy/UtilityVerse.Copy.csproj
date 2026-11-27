@@ -1,8 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
         <TargetFramework>netstandard2.0</TargetFramework>
-        <LangVersion>latest</LangVersion>
-        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -15,36 +15,26 @@
     <PropertyGroup>
         <Title>Copy</Title>
         <PackageId>UtilityVerse.Copy</PackageId>
-        <Version>0.5.0</Version>
-        <Authors>Pritom Purkayasta</Authors>
+        <Version>0.6.0</Version>
         <Description>A Roslyn source generator for generating shallow copy and deep copy for class,
             records and structs
         </Description>
         <PackageTags>
             sourcegenerator;roslyn;codegeneration;csharp;shallowcopy;deepcopy;shallowclone;deepclone;clone;shallow;deep;dotnet
         </PackageTags>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <RepositoryUrl>https://github.com/purkayasta/TheUtilityVerse</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
         <PackageProjectUrl>https://github.com/purkayasta/TheUtilityVerse</PackageProjectUrl>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <IsPackable>true</IsPackable>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <Copyright>
-            Pritom Purkayasta
-            Copyright (c) Pritom Purkayasta All rights reserved.
-            FREE TO USE TO CONNECT THE WORLD
-        </Copyright>
         <PackageIcon>copy.png</PackageIcon>
         <PackageReadmeFile>nuget.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0">
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
     </ItemGroup>
 
 
@@ -61,5 +51,9 @@
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
         </None>
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="examples.md" Pack="true" PackagePath="/" />
+        <None Update="README.md" Pack="true" PackagePath="/" />
     </ItemGroup>
 </Project>

@@ -1,0 +1,37 @@
+namespace UtilityVerse.Copy.Test;
+
+[DeepCopy(depth: 5)]
+public partial class HelloWorld
+{
+    public int Id { get; set; }
+    public string? Name { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public List<Address> Addresses { get; set; } = [];
+}
+
+[DeepCopy]
+public partial class Address
+{
+    public string? StreetNumber { get; set; }
+}
+
+
+[DeepCopy]
+public partial class Hello
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public Status Status { get; set; }
+    public DateOnly CreatedDateOnly { get; set; }
+
+    public Hello2[]? Hello2s { get; set; }
+}
+
+[DeepCopy]
+public partial record Hello2(Guid Id);
+
+public enum Status
+{
+    Ready,
+    Finished
+}
