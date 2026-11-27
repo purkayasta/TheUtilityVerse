@@ -8,7 +8,8 @@
 		<PackageTags>utility, utils, C#, dotnet, aspnet, aspnet.core, dotnet core</PackageTags>
 		<Description>a curated list of utility methods that will help you, do your work at your best.</Description>
 		<PackageProjectUrl>https://www.nuget.org/packages/UtilityVerse/</PackageProjectUrl>
-		<GenerateDocumentationFile>False</GenerateDocumentationFile>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
 		<Title>TheUtilityVerse.ASPNET</Title>
 		<PackageIcon>utility-verse.png</PackageIcon>
 		<PackageReadmeFile>nuget.md</PackageReadmeFile>
@@ -34,4 +35,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" />
 	</ItemGroup>
 
+    <ItemGroup>
+        <None Include="examples.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
 </Project>

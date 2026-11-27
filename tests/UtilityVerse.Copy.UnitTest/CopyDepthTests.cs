@@ -51,7 +51,7 @@ public class CopyDepthTests
     [Fact]
     public void Copy_PreservesCyclesBelowTheDepthLimit()
     {
-        var source = Chain(100);
+        var source = Chain(5);
         var current = source;
 
         while (current.Next != null)
@@ -64,7 +64,7 @@ public class CopyDepthTests
         var copy = new CopyContext().Copy(source);
         current = copy;
 
-        for (var index = 0; index < 100; index++)
+        for (var index = 0; index < 5; index++)
         {
             current = Assert.IsType<Node>(current.Next);
         }

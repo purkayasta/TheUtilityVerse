@@ -27,7 +27,7 @@ public sealed partial class CopyContext
     /// <summary>Copies a value using its registered external copier.</summary>
     public T CopyExternal<T>(T source)
     {
-        using var operation = BeginCopy();
+        using var operation = BeginCopy(source);
 
         var result = source;
 

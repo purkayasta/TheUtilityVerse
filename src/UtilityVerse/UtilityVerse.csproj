@@ -29,4 +29,7 @@
 		</None>
 	</ItemGroup>
 
+    <ItemGroup>
+        <None Include="examples.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
 </Project>

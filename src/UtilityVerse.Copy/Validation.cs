@@ -34,13 +34,20 @@ internal static class Validation
         bool deep,
         out string reason,
         Compilation compilation,
-        Action<ISymbol, string>? reportMemberIssue = null)
+        Action<ISymbol, string>? reportMemberIssue = null,
+        System.Threading.CancellationToken cancellationToken = default)
     {
         reason = "";
 
         if (FindFileLocalDeclaration(type) is { } fileLocal)
         {
             reason = FileLocalReason(fileLocal);
+            return true;
+        }
+
+        if (deep && !CompilerDepth.IsSupported(type, cancellationToken))
+        {
+            reason = "Type traversal exceeds the compiler safety limit of 100. Simplify nested type state or use a custom copy policy";
             return true;
         }
 

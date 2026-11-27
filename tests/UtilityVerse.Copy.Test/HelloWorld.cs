@@ -1,6 +1,6 @@
 namespace UtilityVerse.Copy.Test;
 
-[DeepCopy]
+[DeepCopy(depth: 5)]
 public partial class HelloWorld
 {
     public int Id { get; set; }

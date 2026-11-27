@@ -15,8 +15,9 @@ namespace UtilityVerse.Copy.Analyzers;
 public class ValidationAnalyzer : DiagnosticAnalyzer
 {
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [Rules.MissingPartialRule, Rules.DeepRule, Rules.ShallowRule, Rules.UnsupportedShapeRule, Rules.IgnoredCopyPolicyRule];
+        [Rules.MissingPartialRule, Rules.DeepRule, Rules.ShallowRule, Rules.UnsupportedShapeRule, Rules.IgnoredCopyPolicyRule, Rules.DepthConfigurationRule];
 
+    /// <summary>Registers concurrent validation of copy opt-ins, stored shapes, policies, and depth configuration.</summary>
     public override void Initialize(AnalysisContext context)
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
@@ -34,6 +35,28 @@ public class ValidationAnalyzer : DiagnosticAnalyzer
 
         var deep = Helper.HasDeepCopyOptIn(type);
         var shallow = Helper.HasShallowCopyOptIn(type);
+
+        var depthAttributes = type.GetAttributes().Where(DepthConfiguration.IsConfiguration).ToArray();
+
+        foreach (var attribute in depthAttributes)
+        {
+            var isDepthOnly = attribute.AttributeClass?.Name == "CopyDepthAttribute";
+            var value = attribute.ConstructorArguments.FirstOrDefault().Value as int?;
+            var configurationReason = value.HasValue && (value < 1 || value > 100)
+                ? "Use a depth from 1 through 100. The default depth of 5 will be used."
+                : isDepthOnly && !deep
+                    ? "Add [DeepCopy] or implement IDeepCopy to use CopyDepth."
+                    : isDepthOnly && depthAttributes.Any(item => item.AttributeClass?.Name == "DeepCopy")
+                        ? "Remove CopyDepth. The DeepCopy attribute takes precedence."
+                        : null;
+
+            if (configurationReason != null)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(Rules.DepthConfigurationRule,
+                    attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation() ?? syntax.Identifier.GetLocation(),
+                    type.Name, configurationReason));
+            }
+        }
 
         if (!deep && !shallow)
         {
@@ -87,7 +110,7 @@ public class ValidationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (Validation.HasUnsupportedShape(type, true, out var deepReason, context.Compilation, ReportMemberIssue))
+        if (Validation.HasUnsupportedShape(type, true, out var deepReason, context.Compilation, ReportMemberIssue, context.CancellationToken))
         {
             if (deepReason.Length != 0 && deepReason != shallowReason)
             {

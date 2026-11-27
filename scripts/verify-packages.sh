@@ -96,7 +96,45 @@ if (genericCopy.ReadBaseValues()[0] != 7 || genericCopy.Values[0] != 2 ||
 }
 #endif
 
+var depthRoot = new DepthNode();
+var depthTail = depthRoot;
+
+for (var level = 1; level < 10; level++)
+{
+    depthTail.Next = new DepthNode();
+    depthTail = depthTail.Next;
+}
+
+depthTail.Next = depthRoot;
+new CopyContext().Copy(depthRoot);
+((IDeepCopyable)depthRoot).Copy(new CopyContext());
+var interfaceRoot = new InterfaceDepthNode();
+interfaceRoot.Next = interfaceRoot;
+interfaceRoot.DeepCopy();
+interfaceRoot.Next = new InterfaceDepthNode();
+
+try
+{
+    interfaceRoot.DeepCopy();
+    throw new Exception("Packaged depth limit was not enforced.");
+}
+catch (NotSupportedException)
+{
+}
+
 Console.WriteLine("Fresh-package consumer passed.");
+
+[DeepCopy(depth: 10)]
+public partial class DepthNode
+{
+    public DepthNode? Next { get; set; }
+}
+
+[CopyDepth(1)]
+public partial class InterfaceDepthNode : IDeepCopy
+{
+    public InterfaceDepthNode? Next { get; set; }
+}
 
 [DeepCopy]
 public partial class Node
@@ -171,10 +209,68 @@ public partial class StoredGenericDerived<T> : StoredGenericBase<T>
 
 EOF
 
+cp "$scratch/Program.cs" "$scratch/OriginalProgram.txt"
+
 dotnet restore "$scratch/Consumer.csproj" --configfile "$scratch/NuGet.Config" --packages "$scratch/cache"
 dotnet run --project "$scratch/Consumer.csproj" --no-restore -c Release -f net8.0
 dotnet run --project "$scratch/Consumer.csproj" --no-restore -c Release -f net11.0
 
+# Verify the installed documentation and execute every complete example program.
+for package_name in UtilityVerse UtilityVerse.Shared UtilityVerse.ASPNET UtilityVerse.Copy; do
+    example_document="$scratch/$package_name.examples.md"
+
+    if [ "$package_name" = "UtilityVerse.Shared" ]; then
+        cp "$root/src/$package_name/examples.md" "$example_document"
+    else
+        package_archive=""
+
+        for candidate in "$packages/$package_name."[0-9]*.nupkg; do
+            package_archive="$candidate"
+        done
+
+        unzip -p "$package_archive" examples.md > "$example_document"
+        cmp "$root/src/$package_name/examples.md" "$example_document"
+
+        if ! unzip -Z1 "$package_archive" | grep -Eq "^lib/[^/]+/$package_name\.xml$"; then
+            echo "Missing XML method documentation in $package_name."
+            exit 1
+        fi
+    fi
+
+    example_count="$(awk -v destination="$scratch" '
+        /^```csharp$/ {
+            count++
+            active = 1
+            next
+        }
+        /^```$/ {
+            active = 0
+            next
+        }
+        active {
+            print > (destination "/example-" count ".txt")
+        }
+        END {
+            print count + 0
+        }
+    ' "$example_document")"
+
+    if [ "$example_count" -eq 0 ]; then
+        echo "No runnable examples found for $package_name."
+        exit 1
+    fi
+
+    for ((example_index = 1; example_index <= example_count; example_index++)); do
+        cp "$scratch/example-$example_index.txt" "$scratch/Program.cs"
+        echo "==> $package_name example $example_index/$example_count"
+        dotnet run --project "$scratch/Consumer.csproj" --no-restore -c Release -f net8.0
+        dotnet run --project "$scratch/Consumer.csproj" --no-restore -c Release -f net11.0
+    done
+
+done
+
+# Diagnostic fixtures are compiled alongside the original consumer smoke test.
+cp "$scratch/OriginalProgram.txt" "$scratch/Program.cs"
 cat > "$scratch/Diagnostics.cs" <<'EOF'
 using UtilityVerse.Copy;
 

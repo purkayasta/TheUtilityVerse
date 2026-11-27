@@ -23,5 +23,20 @@ intentionally change incorrect behavior:
   from the previous native-memory implementation are not a supported wire format;
   regenerate them as JSON. Invalid buffers return an error result.
 
-See UtilityVerse.Copy/README.md for its graph-copy contract, shallow-array behavior
-change, and compiler diagnostics for unsupported model shapes.
+## Copy package migration
+
+UtilityVerse.Copy defaults to **5 graph levels**, with the root at **level 1**.
+For deeper graphs, configure `[DeepCopy(depth: 10)]` or `[CopyDepth(10)]` with
+`IDeepCopy`, then rebuild the consumer. Valid depths are **1–100**. Invalid values
+produce UV006 and fall back to 5. The root's budget covers the entire operation.
+
+Exceeding the depth budget throws `NotSupportedException` and clears partial copy
+state. Execution-stack checks can reject an operation before its configured limit.
+An independent compiler traversal guard reports excessive type nesting with UV004.
+
+Shallow copies share array references alongside other reference fields. Deep
+copies of `Stack<T>` preserve LIFO order, and copies of `Queue<T>` preserve FIFO
+order. Both containers count as one graph level.
+
+See the full contract, constructor restrictions, and diagnostic fixes in the Copy
+guide. [UtilityVerse.Copy guide](../UtilityVerse.Copy/README.md)

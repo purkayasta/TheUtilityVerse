@@ -40,8 +40,12 @@ internal static class DeepCopyGenerator
         var indent = Helper.MemberIndentation(type);
         var bodyIndent = indent + "    ";
         var copyInterface = supportsBoxCycles ? boxedInterface : "global::UtilityVerse.Copy.IDeepCopyable";
-        var sb = new StringBuilder(Helper.BeginType(type, copyInterface));
+        var sb = new StringBuilder(Helper.BeginType(type, copyInterface + ", global::UtilityVerse.Copy.ICopyDepthConfiguration"));
 
+        sb.AppendLine($"{indent}int global::UtilityVerse.Copy.ICopyDepthConfiguration.CopyDepth => {DepthConfiguration.GetDepth(type)};");
+        sb.AppendLine();
+
+        sb.AppendLine($"{indent}/// <summary>Copies supported stored state and mutable children while preserving graph identity within the configured root depth.</summary>");
         sb.AppendLine($"{indent}[global::System.CodeDom.Compiler.GeneratedCode(\"DeepCopyGenerator\", \"1.0\")]");
 
         if (type.IsValueType)
@@ -157,6 +161,7 @@ internal static class DeepCopyGenerator
 
         if (!type.IsValueType && type.InstanceConstructors.Any(c => c.IsImplicitlyDeclared && c.Parameters.Length == 0))
         {
+            sb.AppendLine($"{indent}/// <summary>Creates an instance using the model's default initialization.</summary>");
             sb.AppendLine($"{indent}{(type.IsAbstract ? "protected" : "public")} {Helper.Identifier(type.Name)}()");
             sb.AppendLine($"{indent}{{");
             sb.AppendLine($"{indent}}}");

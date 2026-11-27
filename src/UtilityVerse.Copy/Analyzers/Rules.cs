@@ -53,4 +53,12 @@ internal static class Rules
         isEnabledByDefault: true,
         description: "CopyPolicy applies when generating a deep copy for a stored instance field or auto-property.",
         helpLinkUri: DiagnosticGuide + "uv005");
+    internal static readonly DiagnosticDescriptor DepthConfigurationRule = new(
+        id: "UV006",
+        title: "Invalid or ignored depth configuration",
+        messageFormat: "Depth configuration on '{0}': {1}",
+        category: "UtilityVerse.Copy",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        helpLinkUri: DiagnosticGuide + "uv006");
 }

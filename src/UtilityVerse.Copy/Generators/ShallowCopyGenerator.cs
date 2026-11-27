@@ -23,6 +23,7 @@ internal static class ShallowCopyGenerator
         var expression = type.IsValueType ? "this" : $"({name})MemberwiseClone()";
         var sb = new StringBuilder(Helper.BeginType(type, null));
 
+        sb.AppendLine($"{indent}/// <summary>Creates an outer copy while sharing reference fields, including arrays and collections.</summary>");
         sb.AppendLine($"{indent}[global::System.CodeDom.Compiler.GeneratedCode(\"ShallowCopyGenerator\", \"1.0\")]");
         sb.AppendLine($"{indent}public {(hidesBase ? "new " : "")}{name} ShallowCopy() => {expression};");
         sb.Append(Helper.EndType(type));

@@ -7,13 +7,14 @@ change, and maintain one authoritative copy of each rule.
 
 ## Project map and required context
 
-`UtilityVerse.slnx` groups independently published C# utility packages:
+`UtilityVerse.slnx` groups three published C# utility packages and their repository
+support projects:
 
 | Path | Package or purpose | Targets | Context |
 |---|---|---|---|
 | `src/UtilityVerse/` | Core helpers, `Extensions/`, and `Contracts/`; no external dependencies beyond Shared | netstandard2.1; net6.0; net8.0; net9.0; net10.0; net11.0 | Core architecture below |
 | `src/UtilityVerse.ASPNET/` | ASP.NET Core helpers using `Microsoft.AspNetCore.Http*` 2.3.x | Same multi-target list as core | Core architecture below |
-| `src/UtilityVerse.Shared/` | Shared `UtilityVerseResult<T>` and `UtilityVerseException`; referenced by core | netstandard2.1 | Core error convention below |
+| `src/UtilityVerse.Shared/` | Repository support for `UtilityVerseResult<T>` and `UtilityVerseException`; referenced by core | netstandard2.1 | Core error convention below |
 | `src/UtilityVerse.Copy/` | Roslyn incremental copy generator, analyzer, and runtime support; package artwork in `Assets/` | netstandard2.0 | [Copy instructions](src/UtilityVerse.Copy/AGENTS.md) |
 | `tests/UtilityVerse.UnitTest/` | Core helper tests | net11.0 | Testing guidelines below |
 | `tests/UtilityVerse.Copy.UnitTest/` | In-memory generator/analyzer compilation and runtime tests | net11.0 | [Copy instructions](src/UtilityVerse.Copy/AGENTS.md) |
@@ -51,6 +52,11 @@ Dependency versions are managed centrally in `Directory.Packages.props`;
 - Root `Directory.Build.props`: `LangVersion`, `Nullable`, `ImplicitUsings`, `LatestTargetFramework`, and common package metadata (authors, copyright, license, repository). Update `LatestTargetFramework` when intentionally moving to a new .NET version.
 - `src/Directory.Build.props`: `LibraryTargetFrameworks` for core and ASPNET, `TreatWarningsAsErrors`, and `CheckForOverflowUnderflow`.
 - `tests/Directory.Build.props`: `TargetFramework` from `LatestTargetFramework` and `IsPackable=false`.
+
+Each published package ships an `examples.md` at its root and XML documentation
+beside its assemblies. Keep public method summaries and runnable examples aligned
+with API behavior. Package verification compiles every C# block in the packaged
+example documents on .NET 8 and .NET 11.
 
 Keep project files limited to project-specific settings. Preserve compatibility
 across target frameworks; core targets down to netstandard2.1, while Copy targets

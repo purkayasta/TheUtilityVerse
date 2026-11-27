@@ -15,7 +15,7 @@ namespace UtilityVerse.Extensions;
 public static class LongExtension
 {
     /// <summary>
-    /// This method will convert any valid time stamp into a DateTime object
+    /// Converts a positive Unix timestamp in the selected unit to a DateTime with unspecified kind. Unsupported units and out-of-range timestamps throw.
     /// </summary>
     /// <param name="timeStamp"></param>
     /// <param name="timerEnum"></param>

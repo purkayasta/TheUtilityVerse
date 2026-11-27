@@ -60,6 +60,11 @@ internal static class Helper
         System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
         activeTypes ??= new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
 
+        if (activeTypes.Count >= 100)
+        {
+            return false;
+        }
+
         if (!activeTypes.Add(named))
         {
             // An inline value-type cycle is invalid C#. Leave that diagnostic to the compiler.

@@ -17,6 +17,14 @@ public sealed partial class CopyContext
 {
     private const int MaxCopyDepth = 512;
 
+    private int maximumGraphDepth = 5;
+
+    private int graphDepth;
+
+    private int forwardingDepth = -1;
+
+    private object? activeSource;
+
     private const string SharedBackingStoreMessage =
         "A collection wrapper shares its backing store with another copied collection; use a custom copy implementation.";
 
@@ -48,7 +56,7 @@ public sealed partial class CopyContext
     /// <summary>Copies an opted-in object or an immutable scalar, preserving runtime type and identity.</summary>
     public T Copy<T>(T source)
     {
-        using var operation = BeginCopy();
+        using var operation = BeginCopy(source);
 
         var result = CopyCore(source);
 
@@ -75,17 +83,27 @@ public sealed partial class CopyContext
 
         if (source is IDeepCopyable copyable)
         {
-            if (trackIdentity && copyable is IBoxedDeepCopyable boxed)
-            {
-                return (T)boxed.CopyBoxed(source, this);
-            }
+            var previousForwardingDepth = forwardingDepth;
+            forwardingDepth = copyDepth;
 
-            if (trackIdentity && source.GetType().IsValueType)
+            try
             {
-                return (T)CopyBoxWithoutEarlyRegistration(copyable);
-            }
+                if (trackIdentity && copyable is IBoxedDeepCopyable boxed)
+                {
+                    return (T)boxed.CopyBoxed(source, this);
+                }
 
-            return (T)copyable.Copy(this);
+                if (trackIdentity && source.GetType().IsValueType)
+                {
+                    return (T)CopyBoxWithoutEarlyRegistration(copyable);
+                }
+
+                return (T)copyable.Copy(this);
+            }
+            finally
+            {
+                forwardingDepth = previousForwardingDepth;
+            }
         }
 
         var type = source.GetType();
@@ -140,7 +158,7 @@ public sealed partial class CopyContext
     /// <remarks>The factory must register reference-type destinations before copying their children.</remarks>
     public object CopyGenerated<T>(T source, Func<T, CopyContext, object> create)
     {
-        using var operation = BeginCopy();
+        using var operation = BeginCopy(source, forwardingDepth == copyDepth);
 
         if (source is null)
         {
@@ -162,7 +180,7 @@ public sealed partial class CopyContext
     /// <summary>Runs a typed value copier within a graph operation without creating a source box.</summary>
     public T CopyValue<T>(T source, Func<T, CopyContext, T> create) where T : struct
     {
-        using var operation = BeginCopy();
+        using var operation = BeginCopy(source);
 
         var result = create(source, this);
 
@@ -174,7 +192,7 @@ public sealed partial class CopyContext
     /// <summary>Copies an array, registering its container before copying the elements.</summary>
     public T[]? CopyArray<T>(T[]? source, Func<T, CopyContext, T> copyElement)
     {
-        using var operation = BeginCopy();
+        using var operation = BeginCopy(source);
 
         var result = CopyArrayCore(source, copyElement);
 
@@ -187,7 +205,7 @@ public sealed partial class CopyContext
     /// <remarks>Use this path for element types whose values can be shared safely.</remarks>
     public Array? CopyArrayContainer(Array? source)
     {
-        using var operation = BeginCopy();
+        using var operation = BeginCopy(source);
 
         Array? result = null;
 
@@ -240,7 +258,7 @@ public sealed partial class CopyContext
     /// <exception cref="ArgumentException">The array's elements are incompatible with <typeparamref name="T"/>.</exception>
     public Array? CopyShapedArray<T>(Array? source, Func<T, CopyContext, T> copyElement)
     {
-        using var operation = BeginCopy();
+        using var operation = BeginCopy(source);
 
         var result = CopyShapedArrayCore<T, DelegateElementCopier<T>>(source, new DelegateElementCopier<T>(copyElement));
 
@@ -317,7 +335,7 @@ public sealed partial class CopyContext
     /// <summary>Copies standard sequences while preserving their concrete collection and comparer.</summary>
     public IEnumerable<T>? CopySequence<T>(IEnumerable<T>? source, Func<T, CopyContext, T> copyElement)
     {
-        using var operation = BeginCopy();
+        using var operation = BeginCopy(source);
 
         var result = CopySequenceCore(source, copyElement);
 
@@ -513,7 +531,7 @@ public sealed partial class CopyContext
         Func<TValue, CopyContext, TValue> copyValue)
         where TMap : class, IEnumerable<KeyValuePair<TKey, TValue>>
     {
-        using var operation = BeginCopy();
+        using var operation = BeginCopy(source);
 
         var result = CopyMapCore(source, create, add, copyKey, copyValue);
 
@@ -531,7 +549,7 @@ public sealed partial class CopyContext
         Func<TMap, TMap>? createOther = null)
         where TMap : class, IEnumerable<KeyValuePair<TKey, TValue>>
     {
-        using var operation = BeginCopy();
+        using var operation = BeginCopy(source);
 
         var result = CopyMapCore(
             source,
@@ -628,7 +646,7 @@ public sealed partial class CopyContext
     /// <summary>Rebuilds an immutable container. Cycles through immutable containers are rejected.</summary>
     public T? CopyImmutable<T>(T? source, Func<T, T> create) where T : class
     {
-        using var operation = BeginCopy();
+        using var operation = BeginCopy(source);
 
         var result = CopyImmutableCore(source, create);
 
@@ -709,7 +727,7 @@ public sealed partial class CopyContext
         pendingCollections.Add(collection);
     }
 
-    private CopyOperation BeginCopy()
+    private CopyOperation BeginCopy<T>(T source, bool forwarded = false)
     {
         if (copyDepth >= MaxCopyDepth)
         {
@@ -722,9 +740,42 @@ public sealed partial class CopyContext
             EnsureCopyStack();
         }
 
+        object? boxedSource = source;
+        var previousSource = activeSource;
+        var previousGraphDepth = graphDepth;
+
+        if (copyDepth == 0)
+        {
+            var configuredDepth = source is ICopyDepthConfiguration configuration ? configuration.CopyDepth : 5;
+            maximumGraphDepth = configuredDepth is >= 1 and <= 100 ? configuredDepth : 5;
+        }
+
+        if (!forwarded && boxedSource != null && !ReferenceEquals(activeSource, boxedSource) &&
+            !copies.ContainsKey(boxedSource) && !IsSharedScalar(boxedSource))
+        {
+            if (graphDepth >= maximumGraphDepth)
+            {
+                copyFailed = copyDepth != 0;
+                throw new NotSupportedException($"Deep copying exceeded the configured depth of {maximumGraphDepth} at level {graphDepth + 1}.");
+            }
+
+            graphDepth++;
+        }
+
+        activeSource = boxedSource;
         copyDepth++;
 
-        return new CopyOperation(this, copyDepth);
+        return new CopyOperation(this, copyDepth, previousSource, previousGraphDepth);
+    }
+
+    private static bool IsSharedScalar(object source)
+    {
+        var type = source.GetType();
+        return type.IsPrimitive || type.IsEnum || type == typeof(Uri) ||
+            source is string or decimal or DateTime or DateTimeOffset or TimeSpan or Guid or Version ||
+            type.FullName is "System.DateOnly" or "System.TimeOnly" or "System.Half" or "System.Int128" or
+                "System.UInt128" or "System.Index" or "System.Range" or "System.Numerics.BigInteger" or
+                "System.Numerics.Complex" or "System.Text.Rune";
     }
 
     private void EnsureCopyStack()
@@ -813,10 +864,16 @@ public sealed partial class CopyContext
 
         private readonly int depth;
 
-        internal CopyOperation(CopyContext context, int depth)
+        private readonly object? previousSource;
+
+        private readonly int previousGraphDepth;
+
+        internal CopyOperation(CopyContext context, int depth, object? previousSource, int previousGraphDepth)
         {
             this.context = context;
             this.depth = depth;
+            this.previousSource = previousSource;
+            this.previousGraphDepth = previousGraphDepth;
         }
 
         internal void Complete()
@@ -830,6 +887,8 @@ public sealed partial class CopyContext
             // Scopes are internal and strictly nested. A parent can complete only
             // after its children dispose, so one depth marker records success
             // without mutable struct state or a per-call heap allocation.
+            context.activeSource = previousSource;
+            context.graphDepth = previousGraphDepth;
             context.EndCopy(context.completedDepth == depth);
         }
     }

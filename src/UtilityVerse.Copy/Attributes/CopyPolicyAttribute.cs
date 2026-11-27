@@ -11,7 +11,7 @@ namespace UtilityVerse.Copy;
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, Inherited = false)]
 public sealed class CopyPolicyAttribute : Attribute
 {
-    /// <summary>Creates a policy with the specified behavior.</summary>
+    /// <summary>Selects how a stored member is copied, shared, reset, or dispatched to an external copier.</summary>
     public CopyPolicyAttribute(CopyBehavior behavior)
     {
         Behavior = behavior;

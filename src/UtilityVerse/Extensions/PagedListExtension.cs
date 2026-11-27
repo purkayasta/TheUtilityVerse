@@ -13,7 +13,7 @@ namespace UtilityVerse.Extensions;
 public static class PagedListExtension
 {
     /// <summary>
-    /// This will convert your list into a paged list. (Pagination helper).
+    /// Materializes a zero-based page after skipping index times pageSize items. Invalid arguments and query failures populate Errors.
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="queryable"></param>

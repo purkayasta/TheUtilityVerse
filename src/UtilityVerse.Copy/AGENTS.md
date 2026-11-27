@@ -140,6 +140,11 @@ runtime type registered in a weak external copier table. External copiers regist
 reference destinations early when supporting cycles. Keep these policies out of
 primary-constructor argument handling unless the default policy applies.
 
+Deep-copy roots default to graph depth 5 and may configure 1–100 through DeepCopy
+or CopyDepth with IDeepCopy. The root is level 1; containers count, cached aliases
+and scalars do not. Keep graph depth separate from internal operation nesting.
+UV006 warns about invalid or ignored configuration. Compiler traversal is
+independently bounded at 100 and rejects unsupported nesting through UV004.
 Bound nested copy operations and check stack space. A rejected depth must poison
 the active graph even if a custom copier catches the exception.
 

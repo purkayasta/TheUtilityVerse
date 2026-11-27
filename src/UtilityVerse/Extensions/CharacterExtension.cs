@@ -13,7 +13,7 @@ namespace UtilityVerse.Extensions;
 public static class CharacterExtension
 {
     /// <summary>
-    /// This extension method will convert any double array into string with separator.
+    /// Joins a nonempty character array with an optional separator, returning an error result for null or empty input.
     /// </summary>
     /// <param name="characterArray"></param>
     /// <param name="separator"></param>

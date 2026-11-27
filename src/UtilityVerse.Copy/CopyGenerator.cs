@@ -1,8 +1,6 @@
-/// <summary>
-/// Author: Pritom Purkayasta
+// Author: Pritom Purkayasta
 //  Copyright (c) Pritom Purkayasta All rights reserved.
 //  FREE TO USE TO CONNECT THE WORLD
-/// </summary>
 
 using System;
 using System.Collections.Immutable;
@@ -19,6 +17,7 @@ namespace UtilityVerse.Copy;
 [Generator]
 public sealed class CopyGenerator : IIncrementalGenerator
 {
+    /// <summary>Registers model discovery and incremental generation for deep-copy and shallow-copy opt-ins.</summary>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var typeDeclarations = context.SyntaxProvider
@@ -54,12 +53,12 @@ public sealed class CopyGenerator : IIncrementalGenerator
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if ((modes & CopyMode.Deep) != 0 && !Validation.HasUnsupportedShape(symbol, true, out _, compilation))
+            if ((modes & CopyMode.Deep) != 0 && !Validation.HasUnsupportedShape(symbol, true, out _, compilation, cancellationToken: cancellationToken))
             {
                 AddSource(sources, symbol, CopyMode.Deep, DeepCopyGenerator.Generate(symbol, compilation, deepModels));
             }
 
-            if ((modes & CopyMode.Shallow) != 0 && !Validation.HasUnsupportedShape(symbol, false, out _, compilation))
+            if ((modes & CopyMode.Shallow) != 0 && !Validation.HasUnsupportedShape(symbol, false, out _, compilation, cancellationToken: cancellationToken))
             {
                 AddSource(sources, symbol, CopyMode.Shallow, ShallowCopyGenerator.Generate(symbol));
             }

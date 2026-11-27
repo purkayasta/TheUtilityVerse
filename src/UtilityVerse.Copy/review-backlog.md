@@ -162,6 +162,15 @@ orders, and a valid generic overload on both runtimes.
 
 ## Support and optimization work
 
+- **Completed.** Configurable root graph depth defaults to 5, starts at level 1,
+  and accepts 1–100 through `DeepCopy(depth: ...)` or `CopyDepth` with `IDeepCopy`.
+  UV006 warns about invalid or ignored settings. Graph levels are tracked
+  separately from internal operations; runtime stack guards remain active.
+  Independent compiler traversal is capped at 100. Full validation passed
+  370 tests, including 333 Copy tests, with zero build warnings or errors.
+  Fresh installed consumers passed on .NET 8 and .NET 11. Consumer documentation
+  covers configuration, migration, stack safety, and stack/queue ordering.
+
 - **Completed.** Emit both methods for dual opt-ins. Validate each mode
   independently and deduplicate partial declarations. Three regression cases
   failed on the baseline and passed unchanged with the fix.
