@@ -5,7 +5,7 @@
 		<Nullable>disable</Nullable>
 		<IsPackable>true</IsPackable>
 		<PackageId>UtilityVerse</PackageId>
-		<PackageVersion>1.1</PackageVersion>
+		<PackageVersion>0.7.0</PackageVersion>
 		<PackageTags>utility, utils, C#, dotnet, c# utility, dotnet core</PackageTags>
 		<Description>a curated list of utility methods that will help you, do your work at your
 			best.</Description>
@@ -15,6 +15,7 @@
 		<PackageIcon>utility-verse.png</PackageIcon>
 		<PackageReadmeFile>nuget.md</PackageReadmeFile>
 		<IncludeSymbols>True</IncludeSymbols>
+		<TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeSharedBuildOutput</TargetsForTfmSpecificBuildOutput>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -22,7 +23,7 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<ProjectReference Include="..\UtilityVerse.Shared\UtilityVerse.Shared.csproj" />
+		<ProjectReference Include="..\UtilityVerse.Shared\UtilityVerse.Shared.csproj" PrivateAssets="all" />
 		<None Include="nuget.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
@@ -32,4 +33,14 @@
     <ItemGroup>
         <None Include="examples.md" Pack="true" PackagePath="/" />
     </ItemGroup>
+
+    <!-- Keep Shared's assembly identity while distributing it inside the core package. -->
+    <Target Name="IncludeSharedBuildOutput" DependsOnTargets="ResolveReferences">
+        <ItemGroup>
+            <_SharedBuildOutput Include="@(ReferenceCopyLocalPaths)"
+                                Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'UtilityVerse.Shared' and '%(ReferenceCopyLocalPaths.Extension)' == '.dll'" />
+            <BuildOutputInPackage Include="@(_SharedBuildOutput)" />
+            <BuildOutputInPackage Include="@(_SharedBuildOutput->'%(RootDir)%(Directory)%(Filename).xml')" />
+        </ItemGroup>
+    </Target>
 </Project>

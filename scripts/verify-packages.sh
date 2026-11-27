@@ -2,11 +2,32 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-packages="$root/artifacts/packages"
 scratch="$(mktemp -d "${TMPDIR:-/tmp}/utilityverse-packages.XXXXXX")"
+packages="$scratch/packages"
 trap 'rm -rf "$scratch"' EXIT
 
 dotnet pack "$root/UtilityVerse.slnx" --no-restore -c Release -o "$packages"
+
+core_package="$packages/UtilityVerse.0.7.0.nupkg"
+if unzip -p "$core_package" UtilityVerse.nuspec | grep 'dependency id="UtilityVerse.Shared"' > /dev/null; then
+    echo "UtilityVerse must bundle Shared instead of requiring a separate package."
+    exit 1
+fi
+
+core_contents="$(unzip -Z1 "$core_package")"
+while IFS= read -r framework; do
+    for extension in dll xml; do
+        if ! printf '%s\n' "$core_contents" | grep -Fx "lib/$framework/UtilityVerse.Shared.$extension" > /dev/null; then
+            echo "Missing bundled Shared $extension for $framework."
+            exit 1
+        fi
+    done
+done < <(printf '%s\n' "$core_contents" | sed -n 's@^lib/\([^/]*\)/UtilityVerse.dll$@\1@p')
+
+if [ -e "$packages/UtilityVerse.Shared.1.0.0.nupkg" ]; then
+    echo "Shared must not produce a standalone package."
+    exit 1
+fi
 
 cat > "$scratch/NuGet.Config" <<EOF
 <configuration>
@@ -32,7 +53,7 @@ cat > "$scratch/Consumer.csproj" <<'EOF'
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="UtilityVerse" Version="1.1.0" />
+    <PackageReference Include="UtilityVerse" Version="0.7.0" />
     <PackageReference Include="UtilityVerse.Copy" Version="0.6.0" />
     <PackageReference Include="UtilityVerse.ASPNET" Version="0.6.0" />
   </ItemGroup>
@@ -231,7 +252,7 @@ for package_name in UtilityVerse UtilityVerse.Shared UtilityVerse.ASPNET Utility
         unzip -p "$package_archive" examples.md > "$example_document"
         cmp "$root/src/$package_name/examples.md" "$example_document"
 
-        if ! unzip -Z1 "$package_archive" | grep -Eq "^lib/[^/]+/$package_name\.xml$"; then
+        if ! unzip -Z1 "$package_archive" | grep -E "^lib/[^/]+/$package_name\.xml$" > /dev/null; then
             echo "Missing XML method documentation in $package_name."
             exit 1
         fi
@@ -326,3 +347,6 @@ for rule in uv001 uv002 uv004 uv005; do
 done
 
 echo "Fresh-package analyzer diagnostics passed."
+
+mkdir -p "$root/artifacts/packages"
+cp "$packages/"*.nupkg "$packages/"*.snupkg "$root/artifacts/packages/"

@@ -21,6 +21,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\UtilityVerse\UtilityVerse.csproj" />
+		<ProjectReference Include="..\..\src\UtilityVerse.Shared\UtilityVerse.Shared.csproj" />
 	</ItemGroup>
 
 </Project>
