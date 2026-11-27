@@ -31,21 +31,60 @@ public class ValidationAnalyzer : DiagnosticAnalyzer
             "System.CodeDom.Compiler.GeneratedCodeAttribute" or "System.Runtime.CompilerServices.CompilerGeneratedAttribute")) return;
         if (type.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() is not TypeDeclarationSyntax syntax) return;
         var deep = Helper.HasDeepCopyOptIn(type);
-        if (!deep && !Helper.HasShallowCopyOptIn(type)) return;
+        var shallow = Helper.HasShallowCopyOptIn(type);
+
+        if (!deep && !shallow)
+        {
+            return;
+        }
+
+        var location = syntax.Identifier.GetLocation();
+
         if (!Helper.IsPartial(type))
         {
-            context.ReportDiagnostic(Diagnostic.Create(Rules.MissingPartialRule, syntax.Identifier.GetLocation(), type.Name));
+            context.ReportDiagnostic(Diagnostic.Create(Rules.MissingPartialRule, location, type.Name));
             return;
         }
-        if (Validation.HasUnsupportedShape(type, deep, out var reason, context.Compilation))
+
+        string? shallowReason = null;
+
+        if (shallow && Validation.HasUnsupportedShape(type, false, out var reason, context.Compilation))
         {
-            context.ReportDiagnostic(Diagnostic.Create(Rules.UnsupportedShapeRule, syntax.Identifier.GetLocation(), type.Name, reason));
+            shallowReason = reason;
+            context.ReportDiagnostic(Diagnostic.Create(Rules.UnsupportedShapeRule, location, type.Name, reason));
+        }
+
+        if (!deep)
+        {
             return;
         }
-        if (!deep) return;
+
+        if (Validation.HasUnsupportedShape(type, true, out var deepReason, context.Compilation))
+        {
+            if (deepReason != shallowReason)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(Rules.UnsupportedShapeRule, location, type.Name, deepReason));
+            }
+
+            return;
+        }
+
         foreach (var member in Helper.GetCopiedState(type))
+        {
+            if (Helper.GetCopyBehavior(member) != CopyBehavior.Copy)
+            {
+                continue;
+            }
+
             foreach (var missing in Validation.MissingOptIns(Helper.StateType(member)))
-                context.ReportDiagnostic(Diagnostic.Create(Rules.DeepRule, member.Locations.FirstOrDefault() ?? syntax.Identifier.GetLocation(),
-                    member.Name, type.Name, missing.Name));
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Rules.DeepRule,
+                    member.Locations.FirstOrDefault() ?? location,
+                    member.Name,
+                    type.Name,
+                    missing.Name));
+            }
+        }
     }
 }

@@ -139,20 +139,55 @@ orders, and a valid generic overload on both runtimes.
 
 ## Support and optimization work
 
-- Generate both methods when both modes are requested; deep currently wins.
-- Add supported runtime dispatch for generic state such as Holder<List<int>>.
-- Expand arrays to multiple dimensions and nonzero lower bounds.
-- Support record inheritance without losing inherited storage.
-- Add dictionary interfaces, sorted and linked collections, immutable and frozen
-  collections, and adapters for common external value types.
-- Add external copier registration and explicit copy/share/reset/custom policies.
-  Resources such as streams, locks, delegates, handles, and ref-like values need
-  defined semantics rather than an unconditional universal-copy promise.
-- Protect against excessive recursion in deep graphs.
-- Optimize typed struct paths, allocations, collection capacities, array copying,
-  and generator incrementality after correctness is established.
-- Benchmark time, allocations, and incremental rebuild behavior before making
-  performance claims.
+- **Completed.** Emit both methods for dual opt-ins. Validate each mode
+  independently and deduplicate partial declarations. Three regression cases
+  failed on the baseline and passed unchanged with the fix.
+- **Completed for sequences.** Generic state such as Holder<List<int>> uses
+  typed runtime dispatch. Visible models and common scalars are registered
+  automatically. Hidden element types use the existing explicit registration.
+  Five regressions failed on the baseline and two controls passed.
+- **Completed.** Preserve array type, rank, bounds, aliases, and cycles, including
+  runtime System.Array views and non-vector rank-one arrays. Five regressions
+  failed on the baseline and one vector control passed.
+- **Supported within documented constructor limits.** Non-positional records
+  can preserve private and readonly state through an opted-in base graph
+  constructor. Positional records support accessible inherited state through
+  a verified synthesized constructor chain.
+- **Supported within documented shape limits.** Dictionary interfaces preserve
+  supported concrete maps. Added sorted maps and sets, linked lists, selected
+  immutable and frozen collections with stable scalar keys, and scalar support
+  for Rune and TimeOnly.
+- **Completed.** Added exact runtime type external copier registration and
+  explicit Copy, Share, Reset, and Custom policies for stored fields and
+  properties. Pointer and ref-like state still requires custom model handling.
+- **Completed.** Guard nesting and available stack space. A rejected copy
+  clears partial state, and a caught nested failure poisons its outer operation.
+- **Completed.** Use a typed factory for direct struct copies, clone arrays of
+  shareable values without a traversal, and preallocate list, queue, and stack
+  destinations. Roslyn reuses unchanged output files after model or unrelated
+  edits.
+- **Measured.** BenchmarkDotNet 0.15.8 ShortRun on .NET 8 arm64, Apple M4 Pro.
+  Runtime comparisons used saved Release builds immediately before and after
+  the hot-path changes. Inputs were 4,096 integers for arrays and lists, and a
+  generated struct holding one long.
+
+  | Workload | Mean before → after | Allocated before → after |
+  |---|---:|---:|
+  | Generated integer array copy | 2.95 μs → 0.80 μs | 16,776 B → 16,776 B |
+  | Integer list copy | 14.21 μs → 9.86 μs | 33,496 B → 16,784 B |
+  | Generated typed struct copy | 43.23 ns → 26.37 ns | 280 B → 208 B |
+  | Unrelated edit with 128 opted-in models | 1.844 ms → 1.859 ms | 2.57 MB → 2.64 MB |
+
+  The generator comparison includes the new policy and collection checks. It
+  showed unchanged file reuse in Roslyn tracking, similar elapsed time, and
+  slightly higher allocations in the measured incremental run. Per-model
+  semantic planning is still repeated.
+
+Validation: `scripts/build.sh` passed 335 tests, including 298 Copy tests, with
+zero build warnings or errors. `scripts/verify-packages.sh` and a separate
+installed-package smoke test passed on .NET 8 and .NET 11. The smoke test exercised
+dual-mode generation, generic lists, shaped arrays, map interfaces, immutable and
+frozen collections, external policies, and record inheritance.
 
 Acceptance criterion: every accepted shape preserves its documented state and
 reference relationships, and every unsupported shape fails clearly. Add permanent

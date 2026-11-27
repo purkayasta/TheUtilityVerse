@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace UtilityVerse.Copy;
@@ -16,6 +15,8 @@ namespace UtilityVerse.Copy;
 /// <summary>Tracks reference identity during a generated deep copy. Use one instance per operation.</summary>
 public sealed partial class CopyContext
 {
+    private const int MaxCopyDepth = 512;
+
     private const string SharedBackingStoreMessage =
         "A collection wrapper shares its backing store with another copied collection; use a custom copy implementation.";
 
@@ -96,9 +97,19 @@ public sealed partial class CopyContext
         }
 
         if (type.FullName is "System.DateOnly" or "System.TimeOnly" or "System.Half" or "System.Int128" or "System.UInt128" or
-            "System.Index" or "System.Range" or "System.Numerics.BigInteger" or "System.Numerics.Complex")
+            "System.Index" or "System.Range" or "System.Numerics.BigInteger" or "System.Numerics.Complex" or "System.Text.Rune")
         {
             return source;
+        }
+
+        if (externalCopiers.TryGetValue(type, out var copier))
+        {
+            return (T)CopyExternalCore(source, copier, trackIdentity);
+        }
+
+        if (TryGetSequenceCopier(type, out var sequence, registerDefaultElements: true))
+        {
+            return (T)sequence!.CopyRuntime(this, source);
         }
 
         throw new NotSupportedException($"Type '{type}' needs generated deep-copy support.");
@@ -148,12 +159,50 @@ public sealed partial class CopyContext
         return result;
     }
 
+    /// <summary>Runs a typed value copier within a graph operation without creating a source box.</summary>
+    public T CopyValue<T>(T source, Func<T, CopyContext, T> create) where T : struct
+    {
+        using var operation = BeginCopy();
+
+        var result = create(source, this);
+
+        operation.Complete();
+
+        return result;
+    }
+
     /// <summary>Copies an array, registering its container before copying the elements.</summary>
     public T[]? CopyArray<T>(T[]? source, Func<T, CopyContext, T> copyElement)
     {
         using var operation = BeginCopy();
 
         var result = CopyArrayCore(source, copyElement);
+
+        operation.Complete();
+
+        return result;
+    }
+
+    /// <summary>Copies an array container while sharing its element values.</summary>
+    /// <remarks>Use this path for element types whose values can be shared safely.</remarks>
+    public Array? CopyArrayContainer(Array? source)
+    {
+        using var operation = BeginCopy();
+
+        Array? result = null;
+
+        if (source != null)
+        {
+            if (copies.TryGetValue(source, out var existing))
+            {
+                result = (Array)existing;
+            }
+            else
+            {
+                result = (Array)source.Clone();
+                Register(source, result);
+            }
+        }
 
         operation.Complete();
 
@@ -185,6 +234,84 @@ public sealed partial class CopyContext
         }
 
         return result;
+    }
+
+    /// <summary>Copies an array while preserving its runtime array type, rank, and bounds.</summary>
+    /// <exception cref="ArgumentException">The array's elements are incompatible with <typeparamref name="T"/>.</exception>
+    public Array? CopyShapedArray<T>(Array? source, Func<T, CopyContext, T> copyElement)
+    {
+        using var operation = BeginCopy();
+
+        var result = CopyShapedArrayCore<T, DelegateElementCopier<T>>(source, new DelegateElementCopier<T>(copyElement));
+
+        operation.Complete();
+
+        return result;
+    }
+
+    private Array? CopyShapedArrayCore<T, TCopier>(Array? source, TCopier copyElement)
+        where TCopier : struct, IElementCopier<T>
+    {
+        if (source is null)
+        {
+            return null;
+        }
+
+        if (source is T[] vector)
+        {
+            return CopyArrayCore<T, TCopier>(vector, copyElement);
+        }
+
+        if (!typeof(T).IsAssignableFrom(source.GetType().GetElementType()))
+        {
+            throw new ArgumentException($"The source array elements cannot be copied as '{typeof(T)}'.", nameof(source));
+        }
+
+        if (copies.TryGetValue(source, out var existing))
+        {
+            return (Array)existing;
+        }
+
+        var result = (Array)source.Clone();
+        Register(source, result);
+
+        if (source.LongLength == 0)
+        {
+            return result;
+        }
+
+        var rank = source.Rank;
+        var indices = new int[rank];
+        var lowerBounds = new int[rank];
+        var upperBounds = new int[rank];
+
+        for (var dimension = 0; dimension < rank; dimension++)
+        {
+            indices[dimension] = lowerBounds[dimension] = source.GetLowerBound(dimension);
+            upperBounds[dimension] = source.GetUpperBound(dimension);
+        }
+
+        while (true)
+        {
+            var value = (T)source.GetValue(indices)!;
+            result.SetValue(copyElement.Copy(value, this), indices);
+
+            // Advance in row-major order without incrementing past an upper bound.
+            var dimension = rank - 1;
+
+            while (dimension >= 0 && indices[dimension] == upperBounds[dimension])
+            {
+                indices[dimension] = lowerBounds[dimension];
+                dimension--;
+            }
+
+            if (dimension < 0)
+            {
+                return result;
+            }
+
+            indices[dimension]++;
+        }
     }
 
     /// <summary>Copies standard sequences while preserving their concrete collection and comparer.</summary>
@@ -231,6 +358,7 @@ public sealed partial class CopyContext
 
     private static bool IsExactSequenceType<T>(Type type) =>
         type == typeof(List<T>) || type == typeof(HashSet<T>) ||
+        type == typeof(SortedSet<T>) || type == typeof(LinkedList<T>) ||
         type == typeof(Queue<T>) || type == typeof(Stack<T>) ||
         type == typeof(Collection<T>) || type == typeof(ReadOnlyCollection<T>) ||
         type == typeof(ObservableCollection<T>) || type == typeof(BindingList<T>);
@@ -250,23 +378,57 @@ public sealed partial class CopyContext
                 return CopyArrayCore<T, TCopier>(array, copyElement)!;
 
             case HashSet<T> set:
-                return CopySet<T, TCopier>(set, copyElement);
+                return CopySet<T, TCopier, HashSet<T>, HashSet<T>.Enumerator>(
+                    set, new HashSet<T>(set.Comparer), set.GetEnumerator(), copyElement);
 
-            case Stack<T>:
-                var stack = new Stack<T>();
-                Register(source, stack);
-                foreach (var item in source.Reverse())
+            case SortedSet<T> sorted:
+                return CopySet<T, TCopier, SortedSet<T>, SortedSet<T>.Enumerator>(
+                    sorted, new SortedSet<T>(sorted.Comparer), sorted.GetEnumerator(), copyElement);
+
+            case List<T> sourceList:
+                var listCopy = new List<T>(sourceList.Count);
+                Register(sourceList, listCopy);
+
+                foreach (var item in sourceList)
                 {
-                    stack.Push(copyElement.Copy(item, this));
+                    listCopy.Add(copyElement.Copy(item, this));
+                }
+
+                return listCopy;
+
+            case LinkedList<T>:
+                var linked = new LinkedList<T>();
+                Register(source, linked);
+
+                foreach (var item in source)
+                {
+                    linked.AddLast(copyElement.Copy(item, this));
+                }
+
+                return linked;
+
+            case Stack<T> sourceStack:
+                var stack = new Stack<T>(sourceStack.Count);
+                Register(sourceStack, stack);
+                var topFirst = sourceStack.ToArray();
+
+                for (var index = topFirst.Length - 1; index >= 0; index--)
+                {
+                    stack.Push(copyElement.Copy(topFirst[index], this));
                 }
 
                 return stack;
 
-            case Queue<T>:
-                var queue = new Queue<T>();
-                result = queue;
-                add = queue.Enqueue;
-                break;
+            case Queue<T> sourceQueue:
+                var queue = new Queue<T>(sourceQueue.Count);
+                Register(sourceQueue, queue);
+
+                foreach (var item in sourceQueue)
+                {
+                    queue.Enqueue(copyElement.Copy(item, this));
+                }
+
+                return queue;
 
             case ReadOnlyCollection<T>:
                 var backing = new List<T>();
@@ -360,12 +522,37 @@ public sealed partial class CopyContext
         return result;
     }
 
+    /// <summary>Copies a dictionary interface view using the source's supported concrete type and comparer.</summary>
+    /// <remarks>The optional factory can supply a destination for additional runtime types.</remarks>
+    public TMap? CopyDictionaryView<TMap, TKey, TValue>(
+        TMap? source,
+        Func<TKey, CopyContext, TKey> copyKey,
+        Func<TValue, CopyContext, TValue> copyValue,
+        Func<TMap, TMap>? createOther = null)
+        where TMap : class, IEnumerable<KeyValuePair<TKey, TValue>>
+    {
+        using var operation = BeginCopy();
+
+        var result = CopyMapCore(
+            source,
+            createOther,
+            static (copy, key, value) => ((IDictionary<TKey, TValue>)copy).Add(key, value),
+            copyKey,
+            copyValue,
+            useStandardFactory: true);
+
+        operation.Complete();
+
+        return result;
+    }
+
     private TMap? CopyMapCore<TMap, TKey, TValue>(
         TMap? source,
-        Func<TMap, TMap> create,
+        Func<TMap, TMap>? create,
         Action<TMap, TKey, TValue> add,
         Func<TKey, CopyContext, TKey> copyKey,
-        Func<TValue, CopyContext, TValue> copyValue)
+        Func<TValue, CopyContext, TValue> copyValue,
+        bool useStandardFactory = false)
         where TMap : class, IEnumerable<KeyValuePair<TKey, TValue>>
     {
         if (source is null)
@@ -379,7 +566,9 @@ public sealed partial class CopyContext
         }
 
         var sourceType = source.GetType();
-        var result = create(source);
+        var result = useStandardFactory
+            ? CreateStandardMap<TMap, TKey, TValue>(source, create)
+            : create!(source);
 
         if (result?.GetType() != sourceType)
         {
@@ -389,11 +578,16 @@ public sealed partial class CopyContext
 
         Register(source, result);
 
-        var capacity = source is ICollection<KeyValuePair<TKey, TValue>> collection ? collection.Count : 0;
+        var capacity = 0;
 
-        if (source is ICollection<KeyValuePair<TKey, TValue>> { Count: 0 })
+        if (source is ICollection<KeyValuePair<TKey, TValue>> collection)
         {
-            return result;
+            capacity = collection.Count;
+
+            if (capacity == 0)
+            {
+                return result;
+            }
         }
 
         var entries = new List<KeyValuePair<TKey, TValue>>(capacity);
@@ -412,6 +606,23 @@ public sealed partial class CopyContext
         }
 
         return result;
+    }
+
+    private static TMap CreateStandardMap<TMap, TKey, TValue>(TMap source, Func<TMap, TMap>? createOther)
+        where TMap : class, IEnumerable<KeyValuePair<TKey, TValue>>
+    {
+        object result = source switch
+        {
+            Dictionary<TKey, TValue> dictionary => new Dictionary<TKey, TValue>(dictionary.Comparer),
+            SortedDictionary<TKey, TValue> sorted => new SortedDictionary<TKey, TValue>(sorted.Comparer),
+            SortedList<TKey, TValue> sorted => new SortedList<TKey, TValue>(sorted.Comparer),
+            _ when createOther != null => createOther(source),
+            _ => throw new NotSupportedException($"Unsupported dictionary runtime type '{source.GetType()}'.")
+        };
+
+        return result is TMap typed && result is IDictionary<TKey, TValue>
+            ? typed
+            : throw new NotSupportedException("A dictionary view copy requires a destination that implements the mutable dictionary interface.");
     }
 
     /// <summary>Rebuilds an immutable container. Cycles through immutable containers are rejected.</summary>
@@ -456,10 +667,15 @@ public sealed partial class CopyContext
         }
     }
 
-    private HashSet<T> CopySet<T, TCopier>(HashSet<T> source, TCopier copyElement)
+    private TSet CopySet<T, TCopier, TSet, TEnumerator>(
+        TSet source,
+        TSet result,
+        TEnumerator enumerator,
+        TCopier copyElement)
         where TCopier : struct, IElementCopier<T>
+        where TSet : class, ISet<T>
+        where TEnumerator : struct, IEnumerator<T>
     {
-        var result = new HashSet<T>(source.Comparer);
         Register(source, result);
 
         if (source.Count == 0)
@@ -470,12 +686,19 @@ public sealed partial class CopyContext
         var entries = new T[source.Count];
         var index = 0;
 
-        foreach (var item in source)
+        try
         {
-            entries[index++] = copyElement.Copy(item, this);
+            while (enumerator.MoveNext())
+            {
+                entries[index++] = copyElement.Copy(enumerator.Current, this);
+            }
+        }
+        finally
+        {
+            enumerator.Dispose();
         }
 
-        Schedule(new PendingSet<T>(result, entries));
+        Schedule(new PendingSet<T, TSet>(result, entries));
 
         return result;
     }
@@ -488,9 +711,33 @@ public sealed partial class CopyContext
 
     private CopyOperation BeginCopy()
     {
+        if (copyDepth >= MaxCopyDepth)
+        {
+            copyFailed = true;
+            throw new NotSupportedException($"Deep copying exceeded the maximum depth of {MaxCopyDepth} nested operations.");
+        }
+
+        if ((copyDepth & 15) == 0)
+        {
+            EnsureCopyStack();
+        }
+
         copyDepth++;
 
         return new CopyOperation(this, copyDepth);
+    }
+
+    private void EnsureCopyStack()
+    {
+        try
+        {
+            RuntimeHelpers.EnsureSufficientExecutionStack();
+        }
+        catch (InsufficientExecutionStackException error)
+        {
+            copyFailed = copyDepth != 0;
+            throw new NotSupportedException("Deep copying exceeded the available stack depth.", error);
+        }
     }
 
     private void CompleteCopy()
@@ -596,13 +843,13 @@ public sealed partial class CopyContext
         void Rebuild();
     }
 
-    private sealed class PendingSet<T> : IPendingCollection
+    private sealed class PendingSet<T, TSet> : IPendingCollection where TSet : class, ISet<T>
     {
-        private readonly HashSet<T> destination;
+        private readonly TSet destination;
 
         private readonly T[] entries;
 
-        internal PendingSet(HashSet<T> destination, T[] entries)
+        internal PendingSet(TSet destination, T[] entries)
         {
             this.destination = destination;
             this.entries = entries;
@@ -671,6 +918,8 @@ public sealed partial class CopyContext
                 {
                     Dictionary<TKey, TValue> dictionary => dictionary.ContainsKey(entry.Key),
                     ConcurrentDictionary<TKey, TValue> dictionary => dictionary.ContainsKey(entry.Key),
+                    SortedDictionary<TKey, TValue> dictionary => dictionary.ContainsKey(entry.Key),
+                    SortedList<TKey, TValue> dictionary => dictionary.ContainsKey(entry.Key),
                     _ => true
                 };
 
@@ -692,6 +941,14 @@ public sealed partial class CopyContext
                     break;
 
                 case ConcurrentDictionary<TKey, TValue> dictionary:
+                    dictionary.Clear();
+                    break;
+
+                case SortedDictionary<TKey, TValue> dictionary:
+                    dictionary.Clear();
+                    break;
+
+                case SortedList<TKey, TValue> dictionary:
                     dictionary.Clear();
                     break;
 

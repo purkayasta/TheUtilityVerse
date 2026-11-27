@@ -32,13 +32,7 @@ internal static class Helper
 
     internal static bool IsTrulyPrimitive(ITypeSymbol type)
     {
-        if (type.TypeKind == TypeKind.Enum || type.SpecialType is >= SpecialType.System_Boolean and <= SpecialType.System_Decimal ||
-            type.SpecialType == SpecialType.System_String)
-        {
-            return true;
-        }
-
-        if (IsBuiltinType(type))
+        if (IsImmutableScalar(type))
         {
             return true;
         }
@@ -55,10 +49,16 @@ internal static class Helper
     internal static bool IsUri(ITypeSymbol type) =>
         type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString() == "System.Uri";
 
+    internal static bool IsImmutableScalar(ITypeSymbol type) =>
+        type.TypeKind == TypeKind.Enum ||
+        type.SpecialType is >= SpecialType.System_Boolean and <= SpecialType.System_Decimal ||
+        type.SpecialType == SpecialType.System_String || IsBuiltinType(type);
+
     private static bool IsBuiltinType(ITypeSymbol type) => type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString() is
-        "System.DateTime" or "System.DateOnly" or "System.DateTimeOffset" or "System.Guid" or "System.TimeSpan" or
+        "System.DateTime" or "System.DateOnly" or "System.TimeOnly" or "System.DateTimeOffset" or "System.Guid" or "System.TimeSpan" or
         "decimal" or "System.Decimal" or "System.Version" or "System.Numerics.BigInteger" or
-        "System.Numerics.Complex" or "System.Index" or "System.Range" or "System.Half" or "System.Int128" or "System.UInt128";
+        "System.Numerics.Complex" or "System.Index" or "System.Range" or "System.Half" or "System.Int128" or "System.UInt128" or
+        "System.Text.Rune";
 
     internal static bool IsGenericCollection(string? originalDef, out string? kind)
     {
@@ -69,9 +69,23 @@ internal static class Helper
             "System.Collections.Generic.IReadOnlyList<T>" or "System.Collections.Generic.IReadOnlyCollection<T>" or
             "System.Collections.ObjectModel.Collection<T>" or "System.Collections.ObjectModel.ReadOnlyCollection<T>" or
             "System.Collections.ObjectModel.ObservableCollection<T>" or "System.ComponentModel.BindingList<T>" or
-            "System.Collections.Generic.HashSet<T>" or "System.Collections.Generic.Queue<T>" or "System.Collections.Generic.Stack<T>" => "Sequence",
+            "System.Collections.Generic.HashSet<T>" or "System.Collections.Generic.SortedSet<T>" or
+            "System.Collections.Generic.LinkedList<T>" or "System.Collections.Generic.Queue<T>" or
+            "System.Collections.Generic.Stack<T>" => "Sequence",
             "System.Collections.Generic.Dictionary<TKey, TValue>" => "Dictionary",
+            "System.Collections.Generic.SortedDictionary<TKey, TValue>" => "SortedDictionary",
+            "System.Collections.Generic.SortedList<TKey, TValue>" => "SortedList",
+            "System.Collections.Generic.IDictionary<TKey, TValue>" or
+            "System.Collections.Generic.IReadOnlyDictionary<TKey, TValue>" => "DictionaryInterface",
             "System.Collections.Concurrent.ConcurrentDictionary<TKey, TValue>" => "ConcurrentDictionary",
+            "System.Collections.Immutable.ImmutableArray<T>" => "ImmutableArray",
+            "System.Collections.Immutable.ImmutableList<T>" => "ImmutableList",
+            "System.Collections.Immutable.ImmutableHashSet<T>" or
+            "System.Collections.Immutable.ImmutableSortedSet<T>" => "ImmutableSet",
+            "System.Collections.Immutable.ImmutableDictionary<TKey, TValue>" or
+            "System.Collections.Immutable.ImmutableSortedDictionary<TKey, TValue>" => "ImmutableMap",
+            "System.Collections.Frozen.FrozenSet<T>" => "FrozenSet",
+            "System.Collections.Frozen.FrozenDictionary<TKey, TValue>" => "FrozenMap",
             _ => null
         };
 
@@ -108,6 +122,33 @@ internal static class Helper
         IFieldSymbol f => f.Type,
         _ => throw new System.InvalidOperationException("Expected stored state.")
     };
+
+    internal static CopyBehavior GetCopyBehavior(ISymbol member)
+    {
+        var policy = GetDeclaredCopyBehavior(member);
+
+        if (policy == null && member is IPropertySymbol property && StorageAccess.BackingField(property) is { } field)
+        {
+            policy = GetDeclaredCopyBehavior(field);
+        }
+
+        return policy ?? CopyBehavior.Copy;
+    }
+
+    private static CopyBehavior? GetDeclaredCopyBehavior(ISymbol member)
+    {
+        foreach (var attribute in member.GetAttributes())
+        {
+            if (SymbolEquals(attribute.AttributeClass, "UtilityVerse.Copy.CopyPolicyAttribute") &&
+                attribute.ConstructorArguments.Length == 1 &&
+                attribute.ConstructorArguments[0].Value is int behavior)
+            {
+                return (CopyBehavior)behavior;
+            }
+        }
+
+        return null;
+    }
 
     internal static IEnumerable<IPropertySymbol> GetAllProperties(INamedTypeSymbol? type)
     {
@@ -153,10 +194,15 @@ internal static class Helper
 
     internal static bool HasGeneratedDeepBase(INamedTypeSymbol type) => type.BaseType != null && HasDeepCopyOptIn(type.BaseType);
 
+    internal static bool UsesSynthesizedRecordCopy(INamedTypeSymbol type) =>
+        type.IsRecord && !type.IsValueType &&
+        (!HasGeneratedDeepBase(type) || PrimaryConstructor(type) != null);
+
     internal static IEnumerable<ISymbol> GetCopiedState(INamedTypeSymbol type)
     {
         var names = new HashSet<string>();
         var current = type;
+        var copiesThroughRecordChain = UsesSynthesizedRecordCopy(type);
 
         while (current != null && current.SpecialType != SpecialType.System_Object)
         {
@@ -170,7 +216,7 @@ internal static class Helper
                 }
             }
 
-            if (HasGeneratedDeepBase(current))
+            if (!copiesThroughRecordChain && HasGeneratedDeepBase(current))
             {
                 yield break;
             }

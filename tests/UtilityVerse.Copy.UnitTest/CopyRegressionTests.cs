@@ -644,18 +644,6 @@ public class CopyRegressionTests
         """));
 
     [Fact]
-    public Task UV004_Reports_WhenArrayHasMultipleDimensions() => AnalyzerVerifier.VerifyAsync("""
-        [DeepCopy]
-        public partial class {|UV004:Item|}
-        {
-            public int[,]? Values
-            {
-                get; set;
-            }
-        }
-        """);
-
-    [Fact]
     public Task UV004_Reports_WhenBaseContainsInaccessibleState() => AnalyzerVerifier.VerifyAsync("""
         public class Base
         {
@@ -673,31 +661,12 @@ public class CopyRegressionTests
         """);
 
     [Fact]
-    public Task UV004_Reports_WhenImmutableCollectionWouldNeedUnsupportedConstruction() => AnalyzerVerifier.VerifyAsync("""
-        [DeepCopy]
-        public partial class {|UV004:Item|}
-        {
-            public System.Collections.Immutable.ImmutableList<int>? Values
-            {
-                get; set;
-            }
-        }
-        """);
-
-    [Fact]
     public Task UV004_Reports_WhenPrimaryConstructorCapturesHiddenState() => AnalyzerVerifier.VerifyAsync("""
         [DeepCopy]
         public partial class {|UV004:Item|}(List<int> values)
         {
             public List<int> Values => values;
         }
-        """);
-
-    [Fact]
-    public Task UV004_Reports_WhenRecordInheritsStoredState() => AnalyzerVerifier.VerifyAsync("""
-        public record Base(int Id);
-
-        [DeepCopy] public partial record {|UV004:Item|}(int Id) : Base(Id);
         """);
 
     [Fact]

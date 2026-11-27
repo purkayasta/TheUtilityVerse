@@ -31,7 +31,10 @@ public sealed partial class CopyContext
     /// <remarks>Generated code registers visible model and declared sequence element types before copying a graph.</remarks>
     public static void RegisterSequenceType<T>() => _ = SequenceCopier<T>.Instance;
 
-    private static bool TryGetSequenceCopier(Type runtimeType, out ISequenceCopier? copier)
+    private static bool TryGetSequenceCopier(
+        Type runtimeType,
+        out ISequenceCopier? copier,
+        bool registerDefaultElements = false)
     {
         var shape = sequenceRuntimeTypes.GetValue(runtimeType, static type => new SequenceRuntimeType(type));
 
@@ -40,6 +43,16 @@ public sealed partial class CopyContext
             if (sequenceElementCopiers.TryGetValue(shape.ElementType, out copier))
             {
                 return true;
+            }
+
+            if (registerDefaultElements)
+            {
+                DefaultRuntimeSequenceElements.EnsureRegistered();
+
+                if (sequenceElementCopiers.TryGetValue(shape.ElementType, out copier))
+                {
+                    return true;
+                }
             }
 
             throw new NotSupportedException(
@@ -68,6 +81,11 @@ public sealed partial class CopyContext
         public T Copy(T value, CopyContext context) => copy(value, context);
     }
 
+    private readonly struct RuntimeElementCopier<T> : IElementCopier<T>
+    {
+        public T Copy(T value, CopyContext context) => context.Copy(value);
+    }
+
     private readonly struct CovariantElementCopier<TActual, TView> : IElementCopier<TActual>
     {
         private readonly Func<TView, CopyContext, TView> copy;
@@ -83,6 +101,8 @@ public sealed partial class CopyContext
 
     private interface ISequenceCopier
     {
+        object CopyRuntime(CopyContext context, object source);
+
         IEnumerable<TView> Copy<TView>(
             CopyContext context,
             IEnumerable<TView> source,
@@ -97,6 +117,11 @@ public sealed partial class CopyContext
         {
             sequenceElementCopiers.Add(typeof(TActual), Instance);
         }
+
+        public object CopyRuntime(CopyContext context, object source) =>
+            source is Array array
+                ? context.CopyShapedArrayCore<TActual, RuntimeElementCopier<TActual>>(array, default)!
+                : context.CopySequenceCore<TActual, RuntimeElementCopier<TActual>>((IEnumerable<TActual>)source, default);
 
         public IEnumerable<TView> Copy<TView>(
             CopyContext context,
@@ -113,12 +138,50 @@ public sealed partial class CopyContext
         }
     }
 
+    private static class DefaultRuntimeSequenceElements
+    {
+        static DefaultRuntimeSequenceElements()
+        {
+            RegisterSequenceType<object>();
+            RegisterSequenceType<bool>();
+            RegisterSequenceType<char>();
+            RegisterSequenceType<byte>();
+            RegisterSequenceType<sbyte>();
+            RegisterSequenceType<short>();
+            RegisterSequenceType<ushort>();
+            RegisterSequenceType<int>();
+            RegisterSequenceType<uint>();
+            RegisterSequenceType<long>();
+            RegisterSequenceType<ulong>();
+            RegisterSequenceType<float>();
+            RegisterSequenceType<double>();
+            RegisterSequenceType<decimal>();
+            RegisterSequenceType<IntPtr>();
+            RegisterSequenceType<UIntPtr>();
+            RegisterSequenceType<DateTime>();
+            RegisterSequenceType<DateTimeOffset>();
+            RegisterSequenceType<TimeSpan>();
+            RegisterSequenceType<Guid>();
+        }
+
+        internal static void EnsureRegistered()
+        {
+            // Calling this method runs the registrations in the type initializer.
+        }
+    }
+
     private sealed class SequenceRuntimeType
     {
         internal Type? ElementType { get; }
 
         internal SequenceRuntimeType(Type type)
         {
+            if (type.IsArray)
+            {
+                ElementType = type.GetElementType();
+                return;
+            }
+
             if (!type.IsGenericType)
             {
                 return;
@@ -129,6 +192,7 @@ public sealed partial class CopyContext
             var definition = type.GetGenericTypeDefinition();
 
             if (definition == typeof(List<>) || definition == typeof(HashSet<>) ||
+                definition == typeof(SortedSet<>) || definition == typeof(LinkedList<>) ||
                 definition == typeof(Queue<>) || definition == typeof(Stack<>) ||
                 definition == typeof(Collection<>) || definition == typeof(ReadOnlyCollection<>) ||
                 definition == typeof(ObservableCollection<>) || definition == typeof(BindingList<>))

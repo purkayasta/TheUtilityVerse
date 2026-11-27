@@ -4,8 +4,11 @@
 //  FREE TO USE TO CONNECT THE WORLD
 /// </summary>
 
+using System;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
@@ -26,58 +29,69 @@ public sealed class CopyGenerator : IIncrementalGenerator
             .Select(static (m, _) => m!.Value)
             .Collect();
 
-        context.RegisterSourceOutput(typeDeclarations.Combine(context.CompilationProvider), (spc, input) =>
-        {
-            var (types, compilation) = input;
+        var sources = typeDeclarations.Combine(context.CompilationProvider)
+            .SelectMany(static (input, cancellationToken) => GenerateSources(input.Left, input.Right, cancellationToken));
 
-            GenerateSources(spc, types, compilation);
+        context.RegisterSourceOutput(sources, static (output, source) =>
+        {
+            output.AddSource(source.HintName, SourceText.From(source.Text, Encoding.UTF8));
         });
     }
 
-    private static void GenerateSources(
-        SourceProductionContext spc,
-        System.Collections.Immutable.ImmutableArray<(INamedTypeSymbol Symbol, CopyMode Mode)> types,
-        Compilation compilation)
+    private static ImmutableArray<(string HintName, string Text)> GenerateSources(
+        ImmutableArray<(INamedTypeSymbol Symbol, CopyMode Modes)> types,
+        Compilation compilation,
+        CancellationToken cancellationToken)
     {
         var deepModels = types
-            .Where(item => item.Mode == CopyMode.Deep)
+            .Where(item => (item.Modes & CopyMode.Deep) != 0)
             .Select(item => item.Symbol)
             .ToArray();
 
-        foreach (var group in types.GroupBy(x => (x.Symbol, x.Mode)))
+        var sources = ImmutableArray.CreateBuilder<(string HintName, string Text)>();
+
+        foreach (var (symbol, modes) in types)
         {
-            var (symbol, mode) = group.Key;
+            cancellationToken.ThrowIfCancellationRequested();
 
-            if (Validation.HasUnsupportedShape(symbol, mode == CopyMode.Deep, out _, compilation))
+            if ((modes & CopyMode.Deep) != 0 && !Validation.HasUnsupportedShape(symbol, true, out _, compilation))
             {
-                continue;
+                AddSource(sources, symbol, CopyMode.Deep, DeepCopyGenerator.Generate(symbol, compilation, deepModels));
             }
 
-            var source = mode switch
+            if ((modes & CopyMode.Shallow) != 0 && !Validation.HasUnsupportedShape(symbol, false, out _, compilation))
             {
-                CopyMode.Deep => DeepCopyGenerator.Generate(symbol, compilation, deepModels),
-                CopyMode.Shallow => GenerateShallowCopy(symbol),
-                _ => null
-            };
-
-            if (string.IsNullOrWhiteSpace(source))
-            {
-                continue;
+                AddSource(sources, symbol, CopyMode.Shallow, ShallowCopyGenerator.Generate(symbol));
             }
-
-            var fullName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace("global::", "");
-            var safeName = string.Concat(fullName.Select(character => character switch
-            {
-                '.' => "_",
-                _ when char.IsLetterOrDigit(character) => character.ToString(),
-                _ => "_" + ((int)character).ToString("X4")
-            }));
-            var hintName = $"{safeName}_{mode}Copy.g.cs";
-            spc.AddSource(hintName, SourceText.From(source!, Encoding.UTF8));
         }
+
+        // Comparing individual names and text lets Roslyn reuse unchanged output
+        // even when another model or the compilation has changed.
+        return sources.ToImmutable();
     }
 
-    private static (INamedTypeSymbol Symbol, CopyMode Mode)? GetSemanticTarget(GeneratorSyntaxContext context)
+    private static void AddSource(
+        ImmutableArray<(string HintName, string Text)>.Builder sources,
+        INamedTypeSymbol symbol,
+        CopyMode mode,
+        string? source)
+    {
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            return;
+        }
+
+        var fullName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace("global::", "");
+        var safeName = string.Concat(fullName.Select(character => character switch
+        {
+            '.' => "_",
+            _ when char.IsLetterOrDigit(character) => character.ToString(),
+            _ => "_" + ((int)character).ToString("X4")
+        }));
+        sources.Add(($"{safeName}_{mode}Copy.g.cs", source!));
+    }
+
+    private static (INamedTypeSymbol Symbol, CopyMode Modes)? GetSemanticTarget(GeneratorSyntaxContext context)
     {
         if (context.Node is not TypeDeclarationSyntax typeDecl)
         {
@@ -91,28 +105,34 @@ public sealed class CopyGenerator : IIncrementalGenerator
             return null;
         }
 
-        var hasDeep = Helper.HasDeepCopyOptIn(symbol);
+        // The symbol includes attributes and interfaces from every partial declaration.
+        var firstDeclaration = symbol.DeclaringSyntaxReferences[0];
 
-        var hasShallow = Helper.HasShallowCopyOptIn(symbol);
-
-        if (hasDeep)
+        if (firstDeclaration.SyntaxTree != typeDecl.SyntaxTree || firstDeclaration.Span != typeDecl.Span)
         {
-            return (symbol, CopyMode.Deep);
+            return null;
         }
 
-        if (hasShallow)
+        var modes = CopyMode.None;
+
+        if (Helper.HasDeepCopyOptIn(symbol))
         {
-            return (symbol, CopyMode.Shallow);
+            modes |= CopyMode.Deep;
         }
 
-        return null;
+        if (Helper.HasShallowCopyOptIn(symbol))
+        {
+            modes |= CopyMode.Shallow;
+        }
+
+        return modes == CopyMode.None ? null : (symbol, modes);
     }
 
-    private static string? GenerateShallowCopy(INamedTypeSymbol typeSymbol) => ShallowCopyGenerator.Generate(typeSymbol);
-
-    enum CopyMode
+    [Flags]
+    private enum CopyMode
     {
-        Deep,
-        Shallow
+        None = 0,
+        Deep = 1,
+        Shallow = 2
     }
 }

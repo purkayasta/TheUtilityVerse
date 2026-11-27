@@ -25,8 +25,11 @@ used by the runtime copy context. Preserve existing empty marker interfaces.
 ## Pipeline
 
 CopyGenerator discovers opted-in named types through attributes or inherited marker
-interfaces. Deep wins when both modes are selected. Symbols are deduplicated across
-partial declarations. Hint names encode punctuation to avoid collisions and invalid
+interfaces. Both methods are emitted when both modes are selected. Each mode is
+validated independently. Symbols are deduplicated across partial declarations.
+Incremental source output compares each generated file by hint name and text so
+unchanged files can be reused after a model or compilation edit.
+Hint names encode punctuation to avoid collisions and invalid
 generic names. Validation.HasUnsupportedShape is shared by generator and analyzer;
 unsupported shapes are diagnosed with UV004 and skipped by code generation.
 Check the generated public methods and graph helper against same-type names and
@@ -74,8 +77,11 @@ The copy constructor bypasses ordinary class constructors, chains to the generat
 base copy constructor or an accessible parameterless base constructor, registers
 the destination, and hydrates stored state. Primary constructors can only
 receive matching stored immutable values without mutable references; primary
-constructors with generated deep bases are rejected. Reference records use only
-synthesized record copy constructors; user-defined copy constructors are rejected.
+constructors with generated deep bases are rejected for ordinary classes.
+Non-positional records can chain to an opted-in base graph constructor. Other
+supported reference records verify their synthesized constructor chain in source
+and hydrate accessible inherited state. User-defined record copy constructors
+are rejected.
 Structs without primary constructors use this() initialization. Field initializers
 and non-opted-in base constructors can still run. Generated base copy constructors
 preserve inherited private/readonly state. Init-only/get-only properties and
@@ -106,7 +112,29 @@ preserved. Binding lists retain their editing flags and effective AllowNew setti
 Populate them through their normal insertion API to establish fresh item change
 wiring. External subscribers and pending add-new transactions belong to the source.
 Immutable tuple cycles are rejected explicitly. Generic parameter values
-must be supported immutable scalars or implement generated IDeepCopyable.
+can use runtime dispatch to built-in sequences and arrays with registered element
+types. Scalars and generated IDeepCopyable values continue to use their own paths.
+
+Vector arrays use typed element access. Other array shapes clone the runtime
+array, register it before copying children, and traverse the original bounds
+with reusable index buffers. Generated typed array members still validate their
+declared element types. System.Array members require registered runtime elements.
+Generated arrays with only shareable element values clone the container directly.
+Direct struct copy methods run a typed factory in a graph operation without boxing
+the root. Keep the boxed-interface paths separate so they can preserve identity.
+
+Sorted maps and sets defer insertion until the graph is hydrated. Dictionary
+interface copies dispatch to supported concrete maps and preserve comparers.
+Immutable and frozen reference collections use CopyImmutable, which explicitly
+rejects cycles. Their keys or set elements must be supported immutable scalars.
+
+Stored members can declare Copy, Share, Reset, or Custom. Custom selects an exact
+runtime type registered in a weak external copier table. External copiers register
+reference destinations early when supporting cycles. Keep these policies out of
+primary-constructor argument handling unless the default policy applies.
+
+Bound nested copy operations and check stack space. A rejected depth must poison
+the active graph even if a custom copier catches the exception.
 
 For reference-typed inputs, CopyContext.Copy tracks the original box of an
 opted-in struct. Value-typed inputs have no source box to track. If the consumer
@@ -183,6 +211,21 @@ review findings, bug fixes, new support, and performance changes.
 - DeepCopyGenerationTests compiles original model scenarios and checks analyzer
   results, generated presence, and assembly emission.
 - DeepCopyRuntimeTests and ShallowCopyRuntimeTests assert copying behavior.
+- CopyModeTests covers dual opt-in across partial declarations and inherited
+  markers, and independent validation of both modes.
+- GenericSequenceCopyTests covers runtime generic sequences, registration,
+  comparers, ordering, aliases, and cycles.
+- ShapedArrayCopyTests covers nonzero bounds, multiple ranks, empty and null
+  arrays, runtime views, aliases, cycles, and nested opt-in diagnostics.
+- RecordInheritanceCopyTests covers generated base chaining, accessible positional
+  state, private and readonly base state, and unsafe constructor boundaries.
+- AdditionalCollectionCopyTests and ImmutableCollectionCopyTests cover the supported
+  map interfaces, linked and sorted sequences, immutable and frozen collections,
+  comparers, aliases, and rejection paths.
+- CopyPolicyTests and CopyDepthTests cover member ownership, external copier
+  registration, depth rejection, and failure recovery.
+- CopyIncrementalityTests checks which source outputs Roslyn reuses after related
+  and unrelated edits.
 - ConstructorIsolationTests covers source isolation, constructor execution, readonly
   state, cycles, primary constructors, and unsupported construction paths.
 - HashCollectionHydrationTests covers hash/equality dependencies on later state,

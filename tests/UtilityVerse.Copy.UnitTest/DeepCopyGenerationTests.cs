@@ -345,7 +345,7 @@ public class DeepCopyGenerationTests
     }
 
     [Fact]
-    public void DeepCopy_OnlyGeneratesDeepCopy_WhenTypeOptsIntoDeepAndShallow()
+    public void CopyMethods_GenerateBoth_WhenTypeOptsIntoDeepAndShallow()
     {
         var run = GeneratorHarness.Run("""
             namespace Sample;
@@ -358,10 +358,10 @@ public class DeepCopyGenerationTests
             }
             """);
         Assert.Empty(run.GeneratorDiagnostics);
-        Assert.NotEmpty(run.GeneratedSources);
+        Assert.Equal(2, run.GeneratedSources.Length);
         Assert.Contains(" DeepCopy()", run.GeneratedText);
         Assert.Empty(run.CompilationErrors);
-        Assert.DoesNotContain(" ShallowCopy()", run.GeneratedText);
+        Assert.Contains(" ShallowCopy()", run.GeneratedText);
         Assert.Empty(run.AnalyzerErrors);
         using var assembly = GeneratorHarness.Load(run);
     }

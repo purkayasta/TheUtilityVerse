@@ -25,8 +25,9 @@ var copy = node.DeepCopy();
 ```
 
 Use `[DeepCopy]` / `[ShallowCopy]`, or the empty marker interfaces `IDeepCopy` /
-`IShallowCopy`. Attributes also support structs. When both modes are requested on
-one type, deep copy takes precedence, as in earlier versions.
+`IShallowCopy`. Attributes also support structs. Request both modes on one type
+to generate both methods. A validation error in one mode only suppresses that
+mode's method.
 
 ## Deep-copy contract
 
@@ -41,12 +42,16 @@ does not suppress arbitrary side effects in that code.
 
 A primary constructor must run under C# constructor-chaining rules. Its
 arguments must match stored fields or auto-properties and contain only immutable
-values with no mutable references, including references nested in structs. A primary
-constructor cannot be combined with a generated base copy constructor. Reference
-records use the compiler-synthesized copy constructor; custom record copy constructors
-are rejected because they can mutate the source. Structs without primary constructors
-initialize through `this()` before hydrating state; an explicitly declared
-parameterless struct constructor can run.
+values with no mutable references, including references nested in structs. An ordinary
+class primary constructor cannot be combined with a generated base copy constructor.
+A non-positional derived record can chain to an opted-in base's generated constructor
+and preserve its private and readonly state. Its own field initializers can run.
+Other supported reference records use a chain of compiler-synthesized record copy
+constructors and hydrate accessible inherited state. Positional records that need
+inaccessible inherited state, custom record copy constructors, and unverified
+external record-copy chains receive `UV004`.
+Structs without primary constructors initialize through `this()` before hydrating
+state. An explicitly declared parameterless struct constructor can run.
 
 One `CopyContext` tracks reference identity across the operation. Cycles through
 opted-in classes and mutable collections are supported, and repeated references
@@ -54,6 +59,9 @@ point to the same copied instance. Derived runtime types must also opt in; an
 unrecognized derived runtime type throws `NotSupportedException` rather than losing
 its derived state. Opted-in base classes preserve their private and readonly state.
 Abstract opted-in classes support generated concrete subclasses.
+Deep copying supports up to 512 nested copy operations and checks available stack
+space periodically. Excessive nesting throws `NotSupportedException` and clears
+the partial graph. A model can take more than one operation per layer.
 
 Overridden auto-properties preserve each declaring class's independent backing
 storage through generated typed `UnsafeAccessor` field methods. Copying bypasses
@@ -111,8 +119,10 @@ Supported state includes:
   `NotSupportedException`. A struct containing a `Uri` member needs a deep copy
   opt-in so the copier checks the member's runtime type. Rebuild previously
   generated consumers to replace assignments that shared `Uri` members directly.
-- One-dimensional and jagged arrays, including nullable elements.
-- `List<T>`, `HashSet<T>`, `Queue<T>`, `Stack<T>`, `Collection<T>`,
+- Arrays of any rank, including jagged arrays, nullable elements, and nonzero
+  lower bounds. Copies keep the runtime array type, lengths, and bounds.
+- `List<T>`, `LinkedList<T>`, `HashSet<T>`, `SortedSet<T>`, `Queue<T>`,
+  `Stack<T>`, `Collection<T>`,
   `ReadOnlyCollection<T>`, `ObservableCollection<T>`, and `BindingList<T>`.
   Binding lists preserve `AllowEdit`, `AllowRemove`, `RaiseListChangedEvents`,
   and the current `AllowNew` value. Copies start with fresh change-notification
@@ -122,12 +132,23 @@ Supported state includes:
   `IReadOnlyCollection<T>`. Recognized runtime collection types are preserved;
   other enumerable sequences are materialized into lists. Unsupported collection
   subclasses are rejected rather than losing their additional state.
-- `Dictionary<TKey,TValue>` and, on frameworks exposing its public `Comparer`,
-  `ConcurrentDictionary<TKey,TValue>`. Dictionary and set comparers are retained.
+- `Dictionary<TKey,TValue>`, `SortedDictionary<TKey,TValue>`,
+  `SortedList<TKey,TValue>`, and `ConcurrentDictionary<TKey,TValue>` on
+  frameworks exposing its public `Comparer`. `IDictionary<TKey,TValue>` and
+  `IReadOnlyDictionary<TKey,TValue>` views preserve these concrete types. An
+  interface view can copy a concurrent dictionary when the declared key type
+  satisfies the concurrent dictionary's nonnullable key constraint.
+  Dictionary and set comparers are retained.
   Generated copies throw `NotSupportedException` for runtime subclasses of these
   maps. A custom `CopyContext.CopyMap` factory can handle a subclass by returning
   the same runtime type and preserving its additional state.
 - Reference tuples and value tuples; their mutable children are copied recursively.
+- `ImmutableList<T>`, `ImmutableHashSet<T>`, `ImmutableSortedSet<T>`,
+  `ImmutableDictionary<TKey,TValue>`, `ImmutableSortedDictionary<TKey,TValue>`,
+  `FrozenDictionary<TKey,TValue>`, and `FrozenSet<T>`. Immutable and frozen maps
+  and sets require immutable scalar keys or elements. Map values and immutable list
+  items can be mutable and are copied recursively. `ImmutableArray<T>` with
+  immutable scalar elements shares its immutable backing.
 - Nested collections and opted-in mutable structs. A struct containing mutable
   references must opt in; it is never silently treated as an immutable value.
 
@@ -168,9 +189,15 @@ custom collection implementation copyable. Collection type metadata is inspected
 once per runtime container type and cached weakly; copying uses statically compiled
 generic methods, without model-member reflection or dynamic code generation.
 
-Generic type parameters can contain immutable scalar values or generated
-`IDeepCopyable` values. Other runtime generic values require a custom copy method
-and throw `NotSupportedException`. There is no reflection over model members;
+Generic type parameters can contain immutable scalars, `IDeepCopyable` values,
+and supported runtime sequences such as `List<int>`. Members declared as
+`System.Array` use the same runtime element dispatch. Common scalar element
+types and `object` are registered automatically. Generated code also registers
+visible opted-in model types for these runtime views. Use
+`CopyContext.RegisterSequenceType<T>()` for other element types, including
+closed generic or nested array types that the generator cannot discover.
+Unsupported runtime values throw `NotSupportedException`.
+There is no reflection over model members;
 generated typed assignments perform the copy, with a small runtime context from
 this package and no external runtime dependencies. Keep the package's runtime
 reference when distributing consumers.
@@ -186,6 +213,24 @@ framework that exposes `Unsafe.Unbox<T>`. The copier registers the new box befor
 copying its children, then writes the copied value into it. Older generated
 copiers and targets without that API preserve acyclic box aliases and throw
 `NotSupportedException` when a box is revisited before its copy is ready.
+
+## Member policies and external copiers
+
+Apply `[CopyPolicy(CopyBehavior.Share)]` to keep a reference such as a stream or
+shared lock. `Reset` assigns the type's default value, which can clear a callback
+or release the destination's reference to a source-owned resource.
+`Copy` is the default. `Custom` uses a copier registered with
+`CopyContext.RegisterExternalCopier<T>()` for the value's exact runtime type.
+Apply the policy to a stored property or field. An auto-property can also receive
+the attribute on its backing field using the `field:` target.
+
+An external copier returns a new instance of the same runtime type. It can call
+`context.Register(source, destination)` before copying child references to
+preserve cycles. Register each supported subtype separately. Boxed external
+structs preserve completed aliases and reject cycles that require creating the
+destination box before the copier returns. Keep the same policy on members that
+should point to the same copied object. Ref-like and pointer state still requires
+a custom model-level implementation.
 
 ## Shallow-copy contract
 
@@ -219,11 +264,12 @@ nested opt-ins. `UV004` reports shapes that cannot safely be generated:
   or inaccessible nested owners that cannot host a safe generated helper.
 - Explicit-interface auto-properties in deep-copy models. Implement the property
   with an ordinary backing field or supply a custom deep copier.
-- Deep-copy record inheritance, multidimensional arrays, pointer state, and
-  immutable/frozen collection implementations.
+- Pointer state, unsupported immutable or frozen collection implementations,
+  and mutable keys in immutable or frozen maps and sets.
 
 Use a custom copy implementation for those shapes. Cycles through immutable
-reference tuples throw `NotSupportedException`; mutable object cycles are supported.
+reference tuples and immutable or frozen collections throw
+`NotSupportedException`. Mutable object cycles are supported.
 Keys and set elements must retain stable hash/equality behavior on the completed
 graph, just as they must in the original collection. Copies are snapshots of a quiescent graph;
 concurrent mutation during copying is not synchronized.

@@ -69,10 +69,8 @@ internal static class Validation
             reason = "the generated sequence registration name is reserved";
         }
 
-        if (type.IsRecord && !type.IsValueType && type.BaseType is { SpecialType: not SpecialType.System_Object })
-        {
-            reason = "record inheritance requires a custom copy implementation";
-        }
+        var hasGeneratedBase = Helper.HasGeneratedDeepBase(type);
+        var copiesThroughRecordChain = Helper.UsesSynthesizedRecordCopy(type);
 
         if (type.GetMembers().OfType<IEventSymbol>().Any(e => !e.IsStatic) ||
             type.GetMembers().OfType<IFieldSymbol>().Any(f => !f.IsStatic && f.IsImplicitlyDeclared && f.AssociatedSymbol == null))
@@ -86,10 +84,18 @@ internal static class Validation
             reason = "the generated copy constructor signature is reserved";
         }
 
-        if (type.IsRecord && !type.IsValueType && type.InstanceConstructors.Any(c =>
-            c.Parameters.Length == 1 && SymbolEqualityComparer.Default.Equals(c.Parameters[0].Type, type) && !c.IsImplicitlyDeclared))
+        if (type.IsRecord && !type.IsValueType)
         {
-            reason = "a custom record copy constructor could mutate the source; use a custom copy implementation";
+            for (var record = type; record is { IsRecord: true }; record = copiesThroughRecordChain ? record.BaseType : null)
+            {
+                if (record.DeclaringSyntaxReferences.Length == 0 || record.InstanceConstructors.Any(constructor =>
+                    !constructor.IsImplicitlyDeclared && constructor.Parameters.Length == 1 &&
+                    IsByValueParameter(constructor.Parameters[0], record)))
+                {
+                    reason = $"record '{record.Name}' may use a custom record copy constructor that could mutate the source";
+                    return true;
+                }
+            }
         }
 
         if (!type.IsRecord || type.IsValueType)
@@ -98,25 +104,26 @@ internal static class Validation
 
             if (primary != null)
             {
-                if (Helper.HasGeneratedDeepBase(type))
+                if (hasGeneratedBase)
                 {
                     reason = "a primary constructor cannot chain to the generated base copy constructor";
                 }
 
                 if (primary.Parameters.Any(p => p.RefKind != RefKind.None || !Helper.IsConstructorArgumentSafe(p.Type) ||
-                    Helper.MatchParameter(type, p) is not { } member || !Helper.IsConstructorArgumentSafe(Helper.StateType(member))))
+                    Helper.MatchParameter(type, p) is not { } member || !Helper.IsConstructorArgumentSafe(Helper.StateType(member)) ||
+                    Helper.GetCopyBehavior(member) != CopyBehavior.Copy))
                 {
-                    reason = "primary constructor arguments must match stored immutable values to avoid mutating the source";
+                    reason = "primary constructor arguments must match stored immutable values with the default copy policy to avoid mutating the source";
                 }
             }
-            else if (!type.IsValueType && !Helper.HasGeneratedDeepBase(type) && type.BaseType is { } baseType &&
+            else if (!type.IsValueType && !hasGeneratedBase && type.BaseType is { } baseType &&
                 !baseType.InstanceConstructors.Any(c => c.Parameters.Length == 0 && CanAccess(c, type)))
             {
                 reason = "the base type needs an accessible parameterless constructor or generated deep-copy support";
             }
         }
 
-        if (!type.IsValueType && Helper.HasGeneratedDeepBase(type))
+        if (!type.IsValueType && hasGeneratedBase)
         {
             var parent = type.BaseType!;
 
@@ -134,11 +141,11 @@ internal static class Validation
             }
         }
 
-        if (!type.IsValueType && !Helper.HasGeneratedDeepBase(type))
+        if (!type.IsValueType && (!hasGeneratedBase || copiesThroughRecordChain))
         {
             for (var parent = type.BaseType; parent != null && parent.SpecialType != SpecialType.System_Object; parent = parent.BaseType)
             {
-                if (parent.DeclaringSyntaxReferences.Length == 0 || Helper.HasDeepCopyOptIn(parent) ||
+                if (parent.DeclaringSyntaxReferences.Length == 0 || (!hasGeneratedBase && Helper.HasDeepCopyOptIn(parent)) ||
                     parent.GetMembers().OfType<IEventSymbol>().Any(e => !e.IsStatic) ||
                     parent.GetMembers().OfType<IFieldSymbol>().Any(f => !f.IsStatic && f.IsImplicitlyDeclared && f.AssociatedSymbol == null))
                 {
@@ -185,7 +192,19 @@ internal static class Validation
                 }
             }
 
-            var unsupported = UnsupportedType(Helper.StateType(member));
+            var stateType = Helper.StateType(member);
+            var behavior = Helper.GetCopyBehavior(member);
+
+            if (behavior is < CopyBehavior.Copy or > CopyBehavior.Custom)
+            {
+                reason = member.Name + ": invalid copy policy";
+                return true;
+            }
+
+            var unsupported = behavior == CopyBehavior.Copy ||
+                stateType.TypeKind is TypeKind.Pointer or TypeKind.FunctionPointer || stateType.IsRefLikeType
+                ? UnsupportedType(stateType)
+                : null;
 
             if (unsupported != null)
             {
@@ -347,7 +366,7 @@ internal static class Validation
     {
         if (type is IArrayTypeSymbol array)
         {
-            return array.Rank != 1 ? "only one-dimensional arrays are supported" : UnsupportedType(array.ElementType);
+            return UnsupportedType(array.ElementType);
         }
 
         if (type.TypeKind is TypeKind.Pointer or TypeKind.FunctionPointer || type.IsRefLikeType)
@@ -355,25 +374,37 @@ internal static class Validation
             return "pointer and ref-like state cannot be deep copied";
         }
 
-        if (type is not INamedTypeSymbol named || Helper.IsTrulyPrimitive(type))
+        if (type is not INamedTypeSymbol named)
         {
             return null;
         }
 
         var original = named.OriginalDefinition.ToDisplayString();
+        var knownCollection = Helper.IsGenericCollection(original, out var kind);
 
-        if (original.StartsWith("System.Collections.Immutable.", System.StringComparison.Ordinal) ||
-            original.StartsWith("System.Collections.Frozen.", System.StringComparison.Ordinal))
+        if (!knownCollection && (original.StartsWith("System.Collections.Immutable.", System.StringComparison.Ordinal) ||
+            original.StartsWith("System.Collections.Frozen.", System.StringComparison.Ordinal)))
         {
-            return "immutable and frozen collection types are not supported; use a supported collection or a custom copy method";
+            return "this immutable or frozen collection type is not supported; use a supported collection or a custom copy method";
         }
 
-        if (Helper.IsGenericCollection(original, out var kind) && kind == "ConcurrentDictionary" && !named.GetMembers("Comparer").Any())
+        if (kind is "ImmutableArray" or "ImmutableSet" or "ImmutableMap" or "FrozenSet" or "FrozenMap" &&
+            !Helper.IsImmutableScalar(named.TypeArguments[0]))
+        {
+            return "immutable and frozen collections require immutable scalar keys or set elements; immutable arrays require immutable scalar elements";
+        }
+
+        if (Helper.IsTrulyPrimitive(type))
+        {
+            return null;
+        }
+
+        if (kind == "ConcurrentDictionary" && !named.GetMembers("Comparer").Any())
         {
             return "this target framework does not expose ConcurrentDictionary.Comparer";
         }
 
-        if (Helper.IsGenericCollection(original, out _) || named.IsTupleType ||
+        if (knownCollection || named.IsTupleType ||
             original.StartsWith("System.Tuple<", System.StringComparison.Ordinal) ||
             original.StartsWith("System.ValueTuple<", System.StringComparison.Ordinal) ||
             named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
@@ -394,7 +425,8 @@ internal static class Validation
 
     internal static IEnumerable<ITypeSymbol> MissingOptIns(ITypeSymbol type)
     {
-        if (Helper.IsTrulyPrimitive(type) || Helper.IsUri(type) || type is ITypeParameterSymbol)
+        if (Helper.IsTrulyPrimitive(type) || Helper.IsUri(type) || type is ITypeParameterSymbol ||
+            type.SpecialType == SpecialType.System_Array)
         {
             yield break;
         }

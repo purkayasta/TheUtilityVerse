@@ -26,7 +26,10 @@ internal static class DeepCopyGenerator
         var context = "global::UtilityVerse.Copy.CopyContext";
         const string boxedInterface = "global::UtilityVerse.Copy.IBoxedDeepCopyable";
         var supportsBoxCycles = type.IsValueType && CanUnbox(compilation);
+        var supportsConcurrentMapViews = compilation.GetTypeByMetadataName(
+            "System.Collections.Concurrent.ConcurrentDictionary`2")?.GetMembers("Comparer").Length > 0;
         var hasBase = Helper.HasGeneratedDeepBase(type);
+        var followsSynthesizedRecordChain = Helper.UsesSynthesizedRecordCopy(type);
         var sequenceTypes = SequenceRegistration.GetElementTypes(type, models, compilation);
         var states = Helper.GetCopiedState(type)
             .Select((member, index) => new StoredState(member, index,
@@ -40,7 +43,26 @@ internal static class DeepCopyGenerator
         var sb = new StringBuilder(Helper.BeginType(type, copyInterface));
 
         sb.AppendLine($"{indent}[global::System.CodeDom.Compiler.GeneratedCode(\"DeepCopyGenerator\", \"1.0\")]");
-        sb.AppendLine($"{indent}public {(hasBase ? "new " : "")}{name} DeepCopy() => new {context}().Copy(this);");
+
+        if (type.IsValueType)
+        {
+            sb.AppendLine($"{indent}public {name} DeepCopy()");
+            sb.AppendLine($"{indent}{{");
+
+            if (sequenceTypes.Length != 0)
+            {
+                sb.AppendLine($"{bodyIndent}_ = __UtilityVerseSequenceTypes;");
+                sb.AppendLine();
+            }
+
+            sb.AppendLine($"{bodyIndent}return new {context}().CopyValue(this, static (source, copyContext) => new {name}(source, copyContext));");
+            sb.AppendLine($"{indent}}}");
+        }
+        else
+        {
+            sb.AppendLine($"{indent}public {(hasBase ? "new " : "")}{name} DeepCopy() => new {context}().Copy(this);");
+        }
+
         sb.AppendLine();
         sb.AppendLine($"{indent}object global::UtilityVerse.Copy.IDeepCopyable.Copy({context} context)");
         sb.AppendLine($"{indent}{{");
@@ -152,13 +174,13 @@ internal static class DeepCopyGenerator
             sb.AppendLine($"{indent}[global::System.CodeDom.Compiler.GeneratedCode(\"{StorageAccess.Capability}\", \"1\")]");
         }
 
-        var chain = ConstructorInitializer(type, hasBase, states);
+        var chain = followsSynthesizedRecordChain ? "this(source)" : ConstructorInitializer(type, hasBase, states);
 
         sb.AppendLine($"{indent}{(type.IsValueType || type.IsSealed ? "private" : "protected")} {Helper.Identifier(type.Name)}({name} source, {context} context)");
         sb.AppendLine($"{bodyIndent}: {chain}");
         sb.AppendLine($"{indent}{{");
 
-        if (!type.IsValueType && !hasBase)
+        if (!type.IsValueType && (!hasBase || followsSynthesizedRecordChain))
         {
             sb.AppendLine($"{bodyIndent}context.Register(source, this);");
             sb.AppendLine();
@@ -166,7 +188,15 @@ internal static class DeepCopyGenerator
 
         foreach (var state in states)
         {
-            var expression = CopyExpression(Helper.StateType(state.Member), state.Access("source"), "context", indentation: bodyIndent);
+            var source = state.Access("source");
+            var expression = Helper.GetCopyBehavior(state.Member) switch
+            {
+                CopyBehavior.Share => source,
+                CopyBehavior.Reset => "default!",
+                CopyBehavior.Custom => $"context.CopyExternal({source})",
+                _ => CopyExpression(Helper.StateType(state.Member), source, "context", supportsConcurrentMapViews,
+                    indentation: bodyIndent)
+            };
 
             sb.AppendLine($"{bodyIndent}{state.Access("this")} = {expression};");
         }
@@ -198,11 +228,6 @@ internal static class DeepCopyGenerator
 
     private static string ConstructorInitializer(INamedTypeSymbol type, bool hasBase, StoredState[] states)
     {
-        if (type.IsRecord && !type.IsValueType)
-        {
-            return "this(source)";
-        }
-
         var primaryConstructor = Helper.PrimaryConstructor(type);
 
         if (primaryConstructor != null)
@@ -246,6 +271,7 @@ internal static class DeepCopyGenerator
         ITypeSymbol type,
         string expression,
         string context,
+        bool supportsConcurrentMapViews,
         int depth = 0,
         string indentation = "")
     {
@@ -260,9 +286,17 @@ internal static class DeepCopyGenerator
 
         if (type is IArrayTypeSymbol array)
         {
-            var element = CopyExpression(array.ElementType, value, nestedContext, depth + 1, argumentIndent);
+            if (Helper.IsTrulyPrimitive(array.ElementType))
+            {
+                return $"({Helper.TypeName(type)}){context}.CopyArrayContainer({expression})!";
+            }
 
-            return $"{context}.CopyArray(\n" +
+            var element = CopyExpression(array.ElementType, value, nestedContext, supportsConcurrentMapViews, depth + 1, argumentIndent);
+            var copy = array.IsSZArray
+                ? $"{context}.CopyArray"
+                : $"({Helper.TypeName(type)}){context}.CopyShapedArray<{Helper.TypeName(array.ElementType)}>";
+
+            return $"{copy}(\n" +
                 $"{argumentIndent}{expression},\n" +
                 $"{argumentIndent}({value}, {nestedContext}) => {element})!";
         }
@@ -272,7 +306,7 @@ internal static class DeepCopyGenerator
             if (named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
             {
                 var underlying = CopyExpression(
-                    named.TypeArguments[0], expression + ".Value", context, depth + 1, argumentIndent);
+                    named.TypeArguments[0], expression + ".Value", context, supportsConcurrentMapViews, depth + 1, argumentIndent);
 
                 return $"({expression}.HasValue\n" +
                     $"{argumentIndent}? ({Helper.TypeName(type)})({underlying})\n" +
@@ -285,6 +319,7 @@ internal static class DeepCopyGenerator
                     element.Type,
                     expression + "." + Helper.Identifier(element.Name),
                     context,
+                    supportsConcurrentMapViews,
                     depth + 1,
                     argumentIndent));
 
@@ -295,10 +330,21 @@ internal static class DeepCopyGenerator
 
             if (Helper.IsGenericCollection(original, out var kind))
             {
+                if (kind == "ImmutableArray")
+                {
+                    return expression;
+                }
+
+                if (kind is "ImmutableList" or "ImmutableSet" or "ImmutableMap" or "FrozenSet" or "FrozenMap")
+                {
+                    return ImmutableCollectionExpression(
+                        named, kind, expression, context, supportsConcurrentMapViews, depth, argumentIndent);
+                }
+
                 if (kind == "Sequence")
                 {
                     var element = CopyExpression(
-                        named.TypeArguments[0], value, nestedContext, depth + 1, argumentIndent);
+                        named.TypeArguments[0], value, nestedContext, supportsConcurrentMapViews, depth + 1, argumentIndent);
 
                     return $"({Helper.TypeName(type)}){context}.CopySequence(\n" +
                         $"{argumentIndent}{expression},\n" +
@@ -310,11 +356,22 @@ internal static class DeepCopyGenerator
                 var keyName = "key" + depth;
                 var itemName = "item" + depth;
                 var concrete = Helper.TypeName(type.WithNullableAnnotation(NullableAnnotation.NotAnnotated));
-                var copiedKey = CopyExpression(key, keyName, nestedContext, depth + 1, argumentIndent);
-                var copiedItem = CopyExpression(item, itemName, nestedContext, depth + 1, argumentIndent);
+                var copiedKey = CopyExpression(key, keyName, nestedContext, supportsConcurrentMapViews, depth + 1, argumentIndent);
+                var copiedItem = CopyExpression(item, itemName, nestedContext, supportsConcurrentMapViews, depth + 1, argumentIndent);
+
+                if (kind == "DictionaryInterface")
+                {
+                    var factory = DictionaryViewFactory(key, item, supportsConcurrentMapViews, argumentIndent);
+
+                    return $"{context}.CopyDictionaryView<{concrete}, {Helper.TypeName(key)}, {Helper.TypeName(item)}>(\n" +
+                        $"{argumentIndent}{expression},\n" +
+                        $"{argumentIndent}({keyName}, {nestedContext}) => {copiedKey},\n" +
+                        $"{argumentIndent}({itemName}, {nestedContext}) => {copiedItem}{factory})!";
+                }
+
                 var insert = "copy.Add(key, item)";
 
-                if (kind != "Dictionary")
+                if (kind == "ConcurrentDictionary")
                 {
                     insert = "\n" + argumentIndent + "{\n" +
                         argumentIndent + "    if (!copy.TryAdd(key, item))\n" +
@@ -339,6 +396,7 @@ internal static class DeepCopyGenerator
                     argument,
                     value + (index == 7 ? ".Rest" : ".Item" + (index + 1)),
                     context,
+                    supportsConcurrentMapViews,
                     depth + 1,
                     argumentIndent));
 
@@ -354,6 +412,7 @@ internal static class DeepCopyGenerator
                     argument,
                     expression + (index == 7 ? ".Rest" : ".Item" + (index + 1)),
                     context,
+                    supportsConcurrentMapViews,
                     depth + 1,
                     argumentIndent));
 
@@ -363,5 +422,81 @@ internal static class DeepCopyGenerator
         }
 
         return $"{context}.Copy({expression})";
+    }
+
+    private static string DictionaryViewFactory(ITypeSymbol key, ITypeSymbol value, bool supportsConcurrentMapViews, string indent)
+    {
+        if (!supportsConcurrentMapViews || key.NullableAnnotation == NullableAnnotation.Annotated ||
+            key is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } ||
+            key is ITypeParameterSymbol parameter && !parameter.HasNotNullConstraint &&
+                !parameter.HasValueTypeConstraint &&
+                (!parameter.HasReferenceTypeConstraint ||
+                    parameter.ReferenceTypeConstraintNullableAnnotation == NullableAnnotation.Annotated))
+        {
+            return "";
+        }
+
+        var concurrent = $"global::System.Collections.Concurrent.ConcurrentDictionary<{Helper.TypeName(key)}, {Helper.TypeName(value)}>";
+
+        return $",\n{indent}static source => source is {concurrent} concurrent\n" +
+            $"{indent}    ? new {concurrent}(concurrent.Comparer)\n" +
+            $"{indent}    : throw new global::System.NotSupportedException($\"Unsupported dictionary runtime type '{{source.GetType()}}'.\")";
+    }
+
+    private static string ImmutableCollectionExpression(
+        INamedTypeSymbol type,
+        string kind,
+        string expression,
+        string context,
+        bool supportsConcurrentMapViews,
+        int depth,
+        string indent)
+    {
+        var source = "collection" + depth;
+        var builder = "builder" + depth;
+        var entry = "entry" + depth;
+        var body = indent + "    ";
+        var entryBody = body + "    ";
+        var isMap = kind is "FrozenMap" or "ImmutableMap";
+        var keyType = Helper.TypeName(type.TypeArguments[0]);
+        var valueType = isMap ? Helper.TypeName(type.TypeArguments[1]) : "";
+        var pair = $"global::System.Collections.Generic.KeyValuePair<{keyType}, {valueType}>";
+
+        var create = kind switch
+        {
+            "FrozenSet" => $"new global::System.Collections.Generic.List<{keyType}>({source}.Count)",
+            "FrozenMap" => $"new global::System.Collections.Generic.List<{pair}>({source}.Count)",
+            _ => $"{source}.Clear().ToBuilder()"
+        };
+
+        var copied = CopyExpression(
+            type.TypeArguments[isMap ? 1 : 0],
+            isMap ? entry + ".Value" : entry,
+            context,
+            supportsConcurrentMapViews,
+            depth + 1,
+            entryBody);
+
+        var add = kind switch
+        {
+            "FrozenMap" => $"{builder}.Add(new {pair}({entry}.Key, {copied}));",
+            "ImmutableMap" => $"{builder}.Add({entry}.Key, {copied});",
+            _ => $"{builder}.Add({copied});"
+        };
+
+        var finish = kind switch
+        {
+            "FrozenSet" => $"global::System.Collections.Frozen.FrozenSet.ToFrozenSet({builder}, {source}.Comparer)",
+            "FrozenMap" => $"global::System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary({builder}, {source}.Comparer)",
+            _ => $"{builder}.ToImmutable()"
+        };
+
+        return $"{context}.CopyImmutable(\n" +
+            $"{indent}{expression},\n" +
+            $"{indent}{source} =>\n{indent}{{\n" +
+            $"{body}var {builder} = {create};\n\n" +
+            $"{body}foreach (var {entry} in {source})\n" +
+            $"{body}{{\n{entryBody}{add}\n{body}}}\n\n" +
+            $"{body}return {finish};\n{indent}}})!";
     }
 }

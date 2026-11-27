@@ -18,6 +18,7 @@ internal static class SequenceRegistration
     {
         var elements = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
         var visited = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
+        var hasRuntimeElementState = false;
 
         void Visit(ITypeSymbol type)
         {
@@ -26,7 +27,11 @@ internal static class SequenceRegistration
                 return;
             }
 
-            if (type is IArrayTypeSymbol array)
+            if (type is ITypeParameterSymbol || type.SpecialType == SpecialType.System_Array)
+            {
+                hasRuntimeElementState = true;
+            }
+            else if (type is IArrayTypeSymbol array)
             {
                 Visit(array.ElementType);
             }
@@ -51,11 +56,14 @@ internal static class SequenceRegistration
         {
             foreach (var member in Helper.GetCopiedState(current))
             {
-                Visit(Helper.StateType(member));
+                if (Helper.GetCopyBehavior(member) == CopyBehavior.Copy)
+                {
+                    Visit(Helper.StateType(member));
+                }
             }
         }
 
-        if (elements.Count == 0)
+        if (elements.Count == 0 && !hasRuntimeElementState)
         {
             return System.Array.Empty<ITypeSymbol>();
         }
@@ -64,13 +72,14 @@ internal static class SequenceRegistration
 
         foreach (var model in models)
         {
-            if (model.IsStatic || HasTypeParameters(model) || !model.IsReferenceType ||
+            if (model.IsStatic || model.IsRefLikeType || HasTypeParameters(model) ||
+                (!hasRuntimeElementState && !model.IsReferenceType) ||
                 !compilation.IsSymbolAccessibleWithin(model, owner))
             {
                 continue;
             }
 
-            if (views.Any(view => view is ITypeParameterSymbol ||
+            if (hasRuntimeElementState || views.Any(view => view is ITypeParameterSymbol ||
                 compilation.ClassifyCommonConversion(model, view).IsImplicit))
             {
                 elements.Add(model);
