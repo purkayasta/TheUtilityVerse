@@ -84,6 +84,11 @@ scope objects. Pending work is allocated lazily; map entries are value-type
 KeyValuePair values, not per-entry work objects. Keep the context itself a reference
 type because graph identity and nesting state must be shared.
 
+CopyMap checks the factory's result against the source's actual runtime type
+before registering it or copying entries. Generated factories for standard maps
+therefore reject unsupported subclasses. Custom factories can preserve a
+subclass and are responsible for its additional state.
+
 Generated IDeepCopyable.Copy routes through CopyContext.CopyGenerated with a static
 factory so direct interface calls also establish a complete graph operation. Keep
 existing public context signatures intact. Failed operations clear cached partial
@@ -125,6 +130,24 @@ consumer documentation, and tests together.
 
 ## Tests and checks
 
+The test-first workflow is mandatory for Copy implementation work, including
+review findings, bug fixes, new support, and performance changes.
+
+1. Define the claim and the expected behavior before writing tests. Identify the
+   relevant edge cases, failure paths, and existing behavior that must continue
+   to work. For example, consider empty and null inputs, aliases, cycles,
+   different traversal orders, and framework differences where they apply.
+2. Write the full set of tests before touching the implementation. Run them on
+   the current code and confirm that the new regression tests fail for the
+   expected reason and that control cases pass. If the claim cannot be reproduced
+   or the failure has a different cause, verify the premise before implementing
+   a fix.
+3. Once the tests establish the baseline, keep them unchanged. Implement the
+   fix and rerun the same tests with the same inputs, assertions, and expected
+   results. Never rewrite, weaken, skip, or remove a test to make it pass. Fix the
+   implementation if verification fails. Run the relevant broader checks after
+   the original tests pass.
+
 - DeepCopyGenerationTests compiles original model scenarios and checks analyzer
   results, generated presence, and assembly emission.
 - DeepCopyRuntimeTests and ShallowCopyRuntimeTests assert copying behavior.
@@ -133,6 +156,9 @@ consumer documentation, and tests together.
 - HashCollectionHydrationTests covers hash/equality dependencies on later state,
   collection bucket rebuilding, direct context/interface entry points, duplicate
   rejection, unstable hashing, and context recovery after failures.
+- MapRuntimeTypeTests covers subclass rejection for both built-in map adapters,
+  null and exact-type maps, comparers, aliases, cycles, and retry with a custom
+  subclass factory in the same context.
 - VirtualPropertyStorageTests covers independent virtual slots, computed overrides,
   generic bases, cross-assembly metadata, and virtual/abstract/explicit-field/shallow
   behavior. PhysicalStorageAccessTests executes readonly aliases, nested generic

@@ -261,6 +261,7 @@ public sealed partial class CopyContext
     }
 
     /// <summary>Copies a mutable map with a generated factory that preserves its comparer.</summary>
+    /// <remarks>The factory must preserve the source's runtime type and any custom map state.</remarks>
     public TMap? CopyMap<TMap, TKey, TValue>(
         TMap? source,
         Func<TMap, TMap> create,
@@ -296,7 +297,15 @@ public sealed partial class CopyContext
             return (TMap)existing;
         }
 
+        var sourceType = source.GetType();
         var result = create(source);
+
+        if (result?.GetType() != sourceType)
+        {
+            throw new NotSupportedException(
+                $"Map runtime type '{sourceType}' requires a copy factory that preserves its runtime type and state.");
+        }
+
         Register(source, result);
 
         var capacity = source is ICollection<KeyValuePair<TKey, TValue>> collection ? collection.Count : 0;

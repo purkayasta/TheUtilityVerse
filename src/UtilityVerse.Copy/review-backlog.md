@@ -81,9 +81,12 @@ scenarios. Passing the original suite did not cover the failures below.
    alias/cycle checks on .NET 8 and .NET 11. Existing public context signatures
    remain intact; static RegisterSequenceType<T>() is additive. This does not
    resolve the separate configuration/backing-store findings (#8 and #9).
-5. **Open — P1 — Dictionary subclasses are sliced.** A subclass in a Dictionary
-   member becomes an ordinary Dictionary and loses additional state. Apply a
-   consistent runtime-type policy across all container adapters.
+5. **Completed — P1 — Dictionary subclasses are sliced.** CopyMap verifies the
+   runtime type returned by the factory before registering it or copying entries.
+   Generated Dictionary and ConcurrentDictionary factories now fail explicitly
+   on unsupported subclasses. Custom factories can supply the same runtime type
+   and preserve subclass state. Five regressions failed on the baseline and six
+   controls passed. All eleven passed unchanged after the fix.
 6. **Open — P1 — Boxed structs lose shared identity.** Two generic members pointing
    to one boxed opted-in struct produce separate destination boxes. Track boxed
    values separately from ordinary value copies.

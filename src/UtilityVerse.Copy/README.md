@@ -116,6 +116,9 @@ Supported state includes:
   subclasses are rejected rather than losing their additional state.
 - `Dictionary<TKey,TValue>` and, on frameworks exposing its public `Comparer`,
   `ConcurrentDictionary<TKey,TValue>`. Dictionary and set comparers are retained.
+  Generated copies throw `NotSupportedException` for runtime subclasses of these
+  maps. A custom `CopyContext.CopyMap` factory can handle a subclass by returning
+  the same runtime type and preserving its additional state.
 - Reference tuples and value tuples; their mutable children are copied recursively.
 - Nested collections and opted-in mutable structs. A struct containing mutable
   references must opt in; it is never silently treated as an immutable value.
