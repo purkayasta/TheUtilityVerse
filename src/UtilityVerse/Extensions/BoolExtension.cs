@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------
+// ---------------------------------------------------------------
 // Copyright (c) Pritom Purkayasta All rights reserved.
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
@@ -12,7 +12,7 @@ public static class BoolExtension
 {
 
     /// <summary>
-    /// This method will convert 1 or 0 to boolean
+    /// Converts true to 1 and false to 0.
     /// </summary>
     /// <param name="value"></param>
     /// <returns>int</returns>

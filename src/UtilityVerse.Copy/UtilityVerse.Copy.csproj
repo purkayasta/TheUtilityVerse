@@ -1,5 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
         <TargetFramework>netstandard2.0</TargetFramework>
     </PropertyGroup>
 
@@ -49,5 +51,9 @@
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
         </None>
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="examples.md" Pack="true" PackagePath="/" />
+        <None Update="README.md" Pack="true" PackagePath="/" />
     </ItemGroup>
 </Project>

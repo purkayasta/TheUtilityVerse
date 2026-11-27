@@ -3,7 +3,6 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
-using UtilityVerse.Helpers;
 using UtilityVerse.Shared;
 
 namespace UtilityVerse.Extensions;
@@ -23,7 +22,7 @@ public static class ByteExtension
         if (byteArr is null || byteArr.Length < 1) return new UtilityVerseResult<object>("byte array is invalid");
         try
         {
-            return new UtilityVerseResult<object>(System.Text.Json.JsonSerializer.Deserialize<object>(byteArr));
+            return new UtilityVerseResult<object>(System.Text.Json.JsonSerializer.Deserialize<object>(byteArr, UtilityVerse.Helpers.Utils.JsonOptions));
         }
         catch (System.Text.Json.JsonException jsonException)
         {
@@ -49,11 +48,7 @@ public static class ByteExtension
 
         try
         {
-            if (Utils.IsStruct(typeof(T)))
-            {
-                return new UtilityVerseResult<T>(ConvertStructIntoT<T>(byteArr));
-            }
-            return new UtilityVerseResult<T>(System.Text.Json.JsonSerializer.Deserialize<T>(byteArr));
+            return new UtilityVerseResult<T>(System.Text.Json.JsonSerializer.Deserialize<T>(byteArr, UtilityVerse.Helpers.Utils.JsonOptions));
         }
         catch (System.Text.Json.JsonException jsonException)
         {
@@ -65,14 +60,5 @@ public static class ByteExtension
         }
     }
 
-    private static T ConvertStructIntoT<T>(byte[] arrBytes)
-    {
-        int size = arrBytes.Length;
-        IntPtr ptr = System.Runtime.InteropServices.Marshal.AllocHGlobal(size);
-        System.Runtime.InteropServices.Marshal.Copy(arrBytes, 0, ptr, size);
-        object obj = System.Runtime.InteropServices.Marshal.PtrToStructure(ptr, typeof(T));
-        System.Runtime.InteropServices.Marshal.FreeHGlobal(ptr);
-        return (T)obj;
-    }
 #endif
 }

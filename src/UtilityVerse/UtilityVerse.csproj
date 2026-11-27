@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
@@ -23,10 +23,13 @@
 			<PackagePath>\</PackagePath>
 		</None>
 		<ProjectReference Include="..\UtilityVerse.Shared\UtilityVerse.Shared.csproj" />
-		<None Update="nuget.md">
+		<None Include="nuget.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
 	</ItemGroup>
 
+    <ItemGroup>
+        <None Include="examples.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
 </Project>

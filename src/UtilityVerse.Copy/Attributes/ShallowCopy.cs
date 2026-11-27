@@ -1,11 +1,9 @@
-/// <summary>
-/// Author: Pritom Purkayasta
+// Author: Pritom Purkayasta
 //  Copyright (c) Pritom Purkayasta All rights reserved.
 //  FREE TO USE TO CONNECT THE WORLD
-/// </summary>
 
 using System;
 namespace UtilityVerse.Copy;
 
-[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
 public sealed class ShallowCopy : Attribute;

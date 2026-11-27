@@ -20,9 +20,17 @@ internal sealed class LoadedAssembly : IDisposable
         _assembly = assembly;
     }
 
-    public static LoadedAssembly From(Stream stream)
+    public static LoadedAssembly From(Stream stream) => From(stream, Array.Empty<Stream>());
+
+    public static LoadedAssembly From(Stream stream, IEnumerable<Stream> dependencies)
     {
         var context = new AssemblyLoadContext(name: null, isCollectible: true);
+
+        foreach (var dependency in dependencies)
+        {
+            context.LoadFromStream(dependency);
+        }
+
         return new LoadedAssembly(context, context.LoadFromStream(stream));
     }
 

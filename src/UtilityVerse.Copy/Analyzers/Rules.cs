@@ -1,24 +1,31 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 
 namespace UtilityVerse.Copy.Analyzers;
 
 internal static class Rules
 {
+    private const string DiagnosticGuide =
+        "https://github.com/purkayasta/TheUtilityVerse/blob/development/src/UtilityVerse.Copy/README.md#";
+
     internal static readonly DiagnosticDescriptor MissingPartialRule = new(
         id: "UV001",
         title: "Type must be marked as partial",
-        messageFormat: "Type '{0}' must be marked as 'partial' to support DeepCopy/ShallowCopy generation",
+        messageFormat: "Add 'partial' to the declaration of '{0}' to generate {1}",
         category: "UtilityVerse.Copy",
         DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        description: "Add the partial modifier to the named type so UtilityVerse can generate the requested copy methods.",
+        helpLinkUri: DiagnosticGuide + "uv001");
 
     internal static readonly DiagnosticDescriptor DeepRule = new(
         id: "UV002",
-        title: "Nested type missing DeepCopy attribute",
-        messageFormat: "Property '{0}' of type '{1}' requires nested type '{2}' to have DeepCopy attribute or implement IDeepCopy",
+        title: "Stored member needs deep-copy support",
+        messageFormat: "Member '{0}' on '{1}' needs deep-copy support for '{2}'. {3}.",
         category: "UtilityVerse.Copy",
         DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        description: "A stored field or property contains a type that needs a deep-copy opt-in or an explicit member policy.",
+        helpLinkUri: DiagnosticGuide + "uv002");
 
     internal static readonly DiagnosticDescriptor ShallowRule = new(
         id: "UV003",
@@ -27,4 +34,31 @@ internal static class Rules
         category: "UtilityVerse.Copy",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+    internal static readonly DiagnosticDescriptor UnsupportedShapeRule = new(
+        id: "UV004",
+        title: "Unsupported copy shape",
+        messageFormat: "Cannot generate a safe copy for '{0}'. {1}.",
+        category: "UtilityVerse.Copy",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "The declaration or stored state needs a supported shape before the requested copy method can be generated.",
+        helpLinkUri: DiagnosticGuide + "uv004");
+
+    internal static readonly DiagnosticDescriptor IgnoredCopyPolicyRule = new(
+        id: "UV005",
+        title: "Copy policy has no effect",
+        messageFormat: "CopyPolicy '{0}' on '{1}' has no effect. {2}.",
+        category: "UtilityVerse.Copy",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "CopyPolicy applies when generating a deep copy for a stored instance field or auto-property.",
+        helpLinkUri: DiagnosticGuide + "uv005");
+    internal static readonly DiagnosticDescriptor DepthConfigurationRule = new(
+        id: "UV006",
+        title: "Invalid or ignored depth configuration",
+        messageFormat: "Depth configuration on '{0}': {1}",
+        category: "UtilityVerse.Copy",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        helpLinkUri: DiagnosticGuide + "uv006");
 }

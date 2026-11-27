@@ -16,7 +16,7 @@ namespace UtilityVerse.Extensions;
 public static class SpanExtension
 {
     /// <summary>
-    /// This method will convert an readonly span byte array into an object.
+    /// Deserializes UTF-8 JSON from a byte span into an object result. JSON objects are represented as JsonElement values.
     /// </summary>
     /// <param name="spanByteArr"></param>
     /// <returns>UtilityVerseResult</returns>
