@@ -73,6 +73,7 @@ internal static class SequenceRegistration
         foreach (var model in models)
         {
             if (model.IsStatic || model.IsRefLikeType || HasTypeParameters(model) ||
+                Validation.FindFileLocalDeclaration(model) != null ||
                 (!hasRuntimeElementState && !model.IsReferenceType) ||
                 !compilation.IsSymbolAccessibleWithin(model, owner))
             {

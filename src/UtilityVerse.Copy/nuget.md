@@ -15,5 +15,9 @@ code uses a small graph context from this package, with no model-member reflecti
 or external runtime dependencies. Retain the runtime package reference.
 
 Unsupported shapes receive a compiler diagnostic instead of unsafe generated code.
+The analyzer tells you which type needs `partial` and warns when a copy policy
+has no effect.
+See the [diagnostic guide](https://github.com/purkayasta/TheUtilityVerse/blob/development/src/UtilityVerse.Copy/README.md#unsupported-shapes-and-diagnostics)
+for fixes by rule ID and ways to share build diagnostics with coding agents.
 See the [supported types, behavior changes, and limitations](https://github.com/purkayasta/TheUtilityVerse/blob/development/src/UtilityVerse.Copy/README.md)
 before adopting the package.

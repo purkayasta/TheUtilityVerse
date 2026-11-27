@@ -137,6 +137,29 @@ passed on .NET 8 and .NET 11. Additional smoke checks against the installed
 package verified binding-list settings, wrapper alias rejection in both traversal
 orders, and a valid generic overload on both runtimes.
 
+12. **Completed — P1 — Recursive struct declarations can crash the compiler.**
+    Scalar and constructor-state validation track the active value-type path.
+    Roslyn can report an invalid recursive layout while the generator and
+    analyzer continue running.
+13. **Completed — P1 — File-local models emit code that cannot access the model.**
+    Both opt-in styles report UV004 at the file-local declaration. File-local
+    types are also excluded from generated sequence registration.
+14. **Completed — P2 — Copy diagnostics can be silent or imprecise in editors.**
+    UV004 points to unsupported stored members, UV005 warns about ignored
+    policies, and UV001 tells users which declaration needs `partial` and
+    which copy methods it enables. EditorDiagnosticsTests exercises diagnostic
+    severity, source locations, and successful generation after adding
+    `partial`. The installed-package check covers both opt-in styles and
+    warning and error reporting. Full validation passed 347 tests, including
+    310 Copy tests, and fresh package consumers passed on .NET 8 and .NET 11.
+15. **Completed — P2 — Diagnostic messages lack repair guidance.** Active
+    diagnostics have rule-specific help links and actionable messages. UV002
+    includes a related source declaration. The consumer README documents a
+    coding-agent workflow and SARIF export. Full validation passed 355 tests,
+    including 318 Copy tests. The installed package emitted all four help links
+    in the compiler's SARIF log and through the Roslyn language server. The
+    tested language server did not forward the UV002 related location.
+
 ## Support and optimization work
 
 - **Completed.** Emit both methods for dual opt-ins. Validate each mode

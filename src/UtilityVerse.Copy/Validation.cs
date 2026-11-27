@@ -3,6 +3,7 @@
 // FREE TO USE TO CONNECT THE WORLD
 // ---------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -12,28 +13,58 @@ namespace UtilityVerse.Copy;
 
 internal static class Validation
 {
-    internal static bool HasUnsupportedShape(INamedTypeSymbol type, bool deep, out string reason, Compilation compilation)
+    internal static INamedTypeSymbol? FindFileLocalDeclaration(INamedTypeSymbol type)
+    {
+        for (var current = type; current != null; current = current.ContainingType)
+        {
+            if (current.IsFileLocal)
+            {
+                return current;
+            }
+        }
+
+        return null;
+    }
+
+    internal static string FileLocalReason(INamedTypeSymbol declaration) =>
+        $"Remove the 'file' modifier from '{declaration.Name}'. Generated copies cannot access file-local types";
+
+    internal static bool HasUnsupportedShape(
+        INamedTypeSymbol type,
+        bool deep,
+        out string reason,
+        Compilation compilation,
+        Action<ISymbol, string>? reportMemberIssue = null)
     {
         reason = "";
 
+        if (FindFileLocalDeclaration(type) is { } fileLocal)
+        {
+            reason = FileLocalReason(fileLocal);
+            return true;
+        }
+
+        var copyMethodName = deep ? "DeepCopy" : "ShallowCopy";
+
         if (type.IsStatic || type.IsRefLikeType)
         {
-            reason = "static and ref-like types cannot be copied";
+            reason = "Generated copies do not support static or ref-like types. Remove the opt-in and use an explicit copy method if needed";
+            return true;
         }
 
         for (var parent = type.ContainingType; parent != null; parent = parent.ContainingType)
         {
             if (!Helper.IsPartial(parent))
             {
-                reason = "containing types must also be partial";
+                var name = parent.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+                reason = $"Add 'partial' to the containing type '{name}' to generate {copyMethodName}()";
+                return true;
             }
         }
 
-        var copyMethodName = deep ? "DeepCopy" : "ShallowCopy";
-
         if (HasMethodCollision(type, copyMethodName))
         {
-            reason = $"a declaration conflicts with the generated method '{copyMethodName}()'";
+            reason = $"A declaration conflicts with the generated method '{copyMethodName}()'. Rename it or remove the opt-in if your own copy method is intentional";
             return true;
         }
 
@@ -46,27 +77,27 @@ internal static class Validation
 
         if (contextType != null && HasMethodCollision(type, "__UtilityVerseDeepCopy", contextType))
         {
-            reason = "a declaration conflicts with the generated helper '__UtilityVerseDeepCopy(CopyContext)'";
+            reason = "Rename the declaration that conflicts with the generated helper '__UtilityVerseDeepCopy(CopyContext)'";
             return true;
         }
 
         if (HasExplicitCopyImplementation(type, compilation, "UtilityVerse.Copy.IDeepCopyable", "Copy"))
         {
-            reason = "the generated implementation of 'IDeepCopyable.Copy' is already declared explicitly";
+            reason = "Remove the explicit implementation of 'IDeepCopyable.Copy' to use the generated implementation, or remove the deep-copy opt-in to keep your own";
             return true;
         }
 
         if (type.IsValueType && DeepCopyGenerator.CanUnbox(compilation) &&
             HasExplicitCopyImplementation(type, compilation, "UtilityVerse.Copy.IBoxedDeepCopyable", "CopyBoxed"))
         {
-            reason = "the generated implementation of 'IBoxedDeepCopyable.CopyBoxed' is already declared explicitly";
+            reason = "Remove the explicit implementation of 'IBoxedDeepCopyable.CopyBoxed' to use the generated implementation, or remove the deep-copy opt-in to keep your own";
             return true;
         }
 
         if (type.GetMembers("__UtilityVerseSequenceTypes").Any(IsUserDeclared) ||
             type.GetMembers("__UtilityVerseRegisterSequenceTypes").Any(IsUserDeclared))
         {
-            reason = "the generated sequence registration name is reserved";
+            reason = "Rename your declaration of '__UtilityVerseSequenceTypes' or '__UtilityVerseRegisterSequenceTypes'. These names are reserved for generated registration";
         }
 
         var hasGeneratedBase = Helper.HasGeneratedDeepBase(type);
@@ -75,13 +106,14 @@ internal static class Validation
         if (type.GetMembers().OfType<IEventSymbol>().Any(e => !e.IsStatic) ||
             type.GetMembers().OfType<IFieldSymbol>().Any(f => !f.IsStatic && f.IsImplicitlyDeclared && f.AssociatedSymbol == null))
         {
-            reason = "event subscriptions and captured primary-constructor state require a custom copy implementation";
+            reason = "Instance event subscriptions or captured primary-constructor state need an explicit copy implementation. " +
+                "For captured parameters, consider storing their values in named instance fields or auto-properties";
         }
 
         if (contextType != null && type.InstanceConstructors.Any(constructor =>
             MatchesGraphConstructor(constructor, type, contextType) && IsUserDeclared(constructor)))
         {
-            reason = "the generated copy constructor signature is reserved";
+            reason = $"The generated copy constructor signature ({type.Name}, CopyContext) is reserved. Change your constructor signature or keep an explicit copy implementation";
         }
 
         if (type.IsRecord && !type.IsValueType)
@@ -92,7 +124,8 @@ internal static class Validation
                     !constructor.IsImplicitlyDeclared && constructor.Parameters.Length == 1 &&
                     IsByValueParameter(constructor.Parameters[0], record)))
                 {
-                    reason = $"record '{record.Name}' may use a custom record copy constructor that could mutate the source";
+                    reason = $"Record '{record.Name}' may use a custom record copy constructor that could mutate the source. " +
+                        "Use the compiler-generated record copy constructor or implement the deep copy explicitly";
                     return true;
                 }
             }
@@ -106,20 +139,20 @@ internal static class Validation
             {
                 if (hasGeneratedBase)
                 {
-                    reason = "a primary constructor cannot chain to the generated base copy constructor";
+                    reason = "A primary constructor cannot chain to the generated base copy constructor. Use an ordinary constructor or implement the deep copy explicitly";
                 }
 
                 if (primary.Parameters.Any(p => p.RefKind != RefKind.None || !Helper.IsConstructorArgumentSafe(p.Type) ||
                     Helper.MatchParameter(type, p) is not { } member || !Helper.IsConstructorArgumentSafe(Helper.StateType(member)) ||
                     Helper.GetCopyBehavior(member) != CopyBehavior.Copy))
                 {
-                    reason = "primary constructor arguments must match stored immutable values with the default copy policy to avoid mutating the source";
+                    reason = "Use an ordinary constructor or make the primary constructor arguments match stored immutable values with the default Copy policy";
                 }
             }
             else if (!type.IsValueType && !hasGeneratedBase && type.BaseType is { } baseType &&
                 !baseType.InstanceConstructors.Any(c => c.Parameters.Length == 0 && CanAccess(c, type)))
             {
-                reason = "the base type needs an accessible parameterless constructor or generated deep-copy support";
+                reason = $"Give base type '{baseType.Name}' an accessible parameterless constructor or opt it into generated deep copying with [DeepCopy] or IDeepCopy";
             }
         }
 
@@ -132,12 +165,12 @@ internal static class Validation
                 if (contextType == null || !parent.InstanceConstructors.Any(constructor =>
                     MatchesGraphConstructor(constructor, parent, contextType)))
                 {
-                    reason = "the base type must be rebuilt with graph-aware copy support";
+                    reason = $"Rebuild base type '{parent.Name}' with the current UtilityVerse.Copy generator, or implement the deep copy explicitly";
                 }
             }
             else if (!Helper.IsPartial(parent) || HasUnsupportedShape(parent, true, out _, compilation))
             {
-                reason = "the opted-in base type must support generated deep copying";
+                reason = $"Fix the deep-copy diagnostics for base type '{parent.Name}' before generating a copy for this type";
             }
         }
 
@@ -149,7 +182,7 @@ internal static class Validation
                     parent.GetMembers().OfType<IEventSymbol>().Any(e => !e.IsStatic) ||
                     parent.GetMembers().OfType<IFieldSymbol>().Any(f => !f.IsStatic && f.IsImplicitlyDeclared && f.AssociatedSymbol == null))
                 {
-                    reason = "the base hierarchy must opt into deep copying to preserve hidden state";
+                    reason = $"Opt base type '{parent.Name}' into deep copying to preserve its hidden state. Use an explicit copy implementation if the base type cannot be changed";
                 }
 
                 foreach (var inherited in Helper.GetOwnState(parent))
@@ -162,53 +195,14 @@ internal static class Validation
                     if (!CanAccess(inherited, type) || inherited is IFieldSymbol { IsReadOnly: true } ||
                         inherited is IPropertySymbol p && (p.GetMethod == null || p.SetMethod == null || !CanAccess(p.GetMethod, type) || !CanAccess(p.SetMethod, type)))
                     {
-                        reason = "the base type must opt into deep copying to preserve inaccessible or readonly stored state";
+                        reason = $"Opt base type '{parent.Name}' into deep copying to preserve inaccessible or readonly stored state such as '{inherited.Name}'";
                     }
 
                     if (type.GetMembers(inherited.Name).Any(m => m is IFieldSymbol || m is IPropertySymbol { IsOverride: false }))
                     {
-                        reason = "the base type must opt into deep copying to preserve hidden state with duplicate names";
+                        reason = $"Opt base type '{parent.Name}' into deep copying to preserve its hidden member '{inherited.Name}', or rename the conflicting member";
                     }
                 }
-            }
-        }
-
-        foreach (var member in Helper.GetCopiedState(type))
-        {
-            if (member is IPropertySymbol { ExplicitInterfaceImplementations.Length: > 0 } explicitProperty)
-            {
-                reason = $"explicit interface auto-property '{explicitProperty.Name}' requires an explicit backing field or a custom copy implementation";
-                return true;
-            }
-
-            if (!SymbolEqualityComparer.Default.Equals(member.ContainingType, type) && !StorageAccess.CanUse(member, compilation))
-            {
-                if (member.DeclaredAccessibility == Accessibility.Private ||
-                    member is IFieldSymbol { IsReadOnly: true } ||
-                    member is IPropertySymbol { SetMethod: null } ||
-                    member is IPropertySymbol { SetMethod.DeclaredAccessibility: Accessibility.Private })
-                {
-                    reason = "the base type must opt into deep copying to preserve inaccessible or readonly stored state";
-                }
-            }
-
-            var stateType = Helper.StateType(member);
-            var behavior = Helper.GetCopyBehavior(member);
-
-            if (behavior is < CopyBehavior.Copy or > CopyBehavior.Custom)
-            {
-                reason = member.Name + ": invalid copy policy";
-                return true;
-            }
-
-            var unsupported = behavior == CopyBehavior.Copy ||
-                stateType.TypeKind is TypeKind.Pointer or TypeKind.FunctionPointer || stateType.IsRefLikeType
-                ? UnsupportedType(stateType)
-                : null;
-
-            if (unsupported != null)
-            {
-                reason = member.Name + ": " + unsupported;
             }
         }
 
@@ -219,20 +213,65 @@ internal static class Validation
             reason = virtualStorageReason;
         }
 
+        var hasMemberIssue = false;
         var stateIndex = 0;
 
         foreach (var member in Helper.GetCopiedState(type))
         {
-            if (member is IPropertySymbol property && StorageAccess.CanUse(property, compilation) &&
-                StorageAccess.HasNameCollision(type, property, stateIndex, compilation))
+            var memberReason = UnsupportedMember(type, member, stateIndex, compilation);
+            stateIndex++;
+
+            if (memberReason == null)
             {
-                reason = "the generated physical storage helper name is reserved";
+                continue;
             }
 
-            stateIndex++;
+            if (reportMemberIssue == null)
+            {
+                reason = memberReason;
+                return true;
+            }
+
+            hasMemberIssue = true;
+            reportMemberIssue(member, memberReason);
         }
 
-        return reason.Length != 0;
+        return hasMemberIssue || reason.Length != 0;
+    }
+
+    private static string? UnsupportedMember(INamedTypeSymbol type, ISymbol member, int stateIndex, Compilation compilation)
+    {
+        if (member is IPropertySymbol { ExplicitInterfaceImplementations.Length: > 0 } explicitProperty)
+        {
+            return $"Use an explicit backing field for explicit interface auto-property '{explicitProperty.Name}', or implement the deep copy explicitly";
+        }
+
+        var stateType = Helper.StateType(member);
+        var behavior = Helper.GetCopyBehavior(member);
+
+        if (behavior is < CopyBehavior.Copy or > CopyBehavior.Custom)
+        {
+            return $"Member '{member.Name}' has an invalid copy policy. Choose Copy, Share, Reset, or Custom to match the intended copy behavior";
+        }
+
+        if (behavior == CopyBehavior.Copy ||
+            stateType.TypeKind is TypeKind.Pointer or TypeKind.FunctionPointer || stateType.IsRefLikeType)
+        {
+            var unsupported = UnsupportedType(stateType);
+
+            if (unsupported != null)
+            {
+                return $"Member '{member.Name}' of type '{stateType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)}'. {unsupported}";
+            }
+        }
+
+        if (member is IPropertySymbol property && StorageAccess.CanUse(property, compilation) &&
+            StorageAccess.HasNameCollision(type, property, stateIndex, compilation))
+        {
+            return $"Rename the declaration that conflicts with generated storage for '{member.Name}'. The generated helper name is reserved";
+        }
+
+        return null;
     }
 
     private static bool HasMethodCollision(INamedTypeSymbol type, string name, ITypeSymbol? parameterType = null)
@@ -324,11 +363,12 @@ internal static class Validation
                             continue;
                         }
 
-                        return "the base type must be rebuilt with accessible physical backing storage support: " + ancestor.ToDisplayString();
+                        return $"Base property '{ancestor.ToDisplayString()}' needs its type rebuilt with accessible physical backing storage support. " +
+                            "Rebuild the base with the current generator or use explicit backing fields";
                     }
 
-                    return $"override '{property.ToDisplayString()}' may bypass the backing storage of '{ancestor.ToDisplayString()}'; " +
-                        "use explicit backing fields or a custom copy implementation";
+                    return $"Override '{property.ToDisplayString()}' may bypass the backing storage of '{ancestor.ToDisplayString()}'. " +
+                        "Use explicit backing fields or implement the deep copy explicitly";
                 }
             }
         }
@@ -371,7 +411,7 @@ internal static class Validation
 
         if (type.TypeKind is TypeKind.Pointer or TypeKind.FunctionPointer || type.IsRefLikeType)
         {
-            return "pointer and ref-like state cannot be deep copied";
+            return "Implement the deep copy explicitly for pointer or ref-like state";
         }
 
         if (type is not INamedTypeSymbol named)
@@ -385,13 +425,15 @@ internal static class Validation
         if (!knownCollection && (original.StartsWith("System.Collections.Immutable.", System.StringComparison.Ordinal) ||
             original.StartsWith("System.Collections.Frozen.", System.StringComparison.Ordinal)))
         {
-            return "this immutable or frozen collection type is not supported; use a supported collection or a custom copy method";
+            return "This immutable or frozen collection type is unsupported. Use a supported collection or apply an explicit copy policy";
         }
 
         if (kind is "ImmutableArray" or "ImmutableSet" or "ImmutableMap" or "FrozenSet" or "FrozenMap" &&
             !Helper.IsImmutableScalar(named.TypeArguments[0]))
         {
-            return "immutable and frozen collections require immutable scalar keys or set elements; immutable arrays require immutable scalar elements";
+            return kind == "ImmutableArray"
+                ? "Immutable arrays require immutable scalar elements. Choose a supported element type or apply an explicit copy policy"
+                : "Immutable and frozen collections require immutable scalar keys or set elements. Choose supported types or apply an explicit copy policy";
         }
 
         if (Helper.IsTrulyPrimitive(type))
@@ -401,7 +443,7 @@ internal static class Validation
 
         if (kind == "ConcurrentDictionary" && !named.GetMembers("Comparer").Any())
         {
-            return "this target framework does not expose ConcurrentDictionary.Comparer";
+            return "The target framework does not expose ConcurrentDictionary.Comparer. Use a supported target or a custom copier that preserves the comparer";
         }
 
         if (knownCollection || named.IsTupleType ||
@@ -423,7 +465,7 @@ internal static class Validation
         return null;
     }
 
-    internal static IEnumerable<ITypeSymbol> MissingOptIns(ITypeSymbol type)
+    internal static IEnumerable<INamedTypeSymbol> MissingOptIns(ITypeSymbol type)
     {
         if (Helper.IsTrulyPrimitive(type) || Helper.IsUri(type) || type is ITypeParameterSymbol ||
             type.SpecialType == SpecialType.System_Array)

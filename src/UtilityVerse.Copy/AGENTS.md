@@ -32,6 +32,13 @@ unchanged files can be reused after a model or compilation edit.
 Hint names encode punctuation to avoid collisions and invalid
 generic names. Validation.HasUnsupportedShape is shared by generator and analyzer;
 unsupported shapes are diagnosed with UV004 and skipped by code generation.
+Report unsupported members at their declarations and file-local models at the
+declaration that uses `file`. UV005 warns when a copy policy on a copy model
+cannot affect its generated copy. UV001 identifies the declaration that needs
+`partial` and names the copy methods that will be generated.
+Each active rule links to its own heading in the consumer README. Include the
+affected symbol and a concrete correction in diagnostic messages. UV002 also
+reports the related type declaration when it is in the current compilation.
 Check the generated public methods and graph helper against same-type names and
 method signatures. Method generic arity and parameter passing mode distinguish
 valid overloads. Existing explicit implementations of the emitted deep-copy

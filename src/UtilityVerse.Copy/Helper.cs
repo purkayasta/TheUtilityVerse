@@ -30,9 +30,24 @@ internal static class Helper
     internal static string LocalName(INamedTypeSymbol type) => Identifier(type.Name) +
         (type.TypeParameters.Length == 0 ? "" : "<" + string.Join(", ", type.TypeParameters.Select(p => Identifier(p.Name))) + ">");
 
-    internal static bool IsTrulyPrimitive(ITypeSymbol type)
+    internal static bool IsTrulyPrimitive(ITypeSymbol type) => HasScalarState(type, allowBuiltIns: true);
+
+    private static bool HasScalarState(ITypeSymbol type, bool allowBuiltIns)
     {
-        if (IsImmutableScalar(type))
+        try
+        {
+            return HasScalarState(type, allowBuiltIns, activeTypes: null);
+        }
+        catch (System.InsufficientExecutionStackException)
+        {
+            // Invalid generic layouts can keep constructing new types at every level.
+            return false;
+        }
+    }
+
+    private static bool HasScalarState(ITypeSymbol type, bool allowBuiltIns, HashSet<ITypeSymbol>? activeTypes)
+    {
+        if (IsLanguageScalar(type) || (allowBuiltIns && IsBuiltinType(type)))
         {
             return true;
         }
@@ -42,17 +57,39 @@ internal static class Helper
             return false;
         }
 
-        return named.GetMembers().OfType<IFieldSymbol>().Where(f => !f.IsStatic).All(f => IsTrulyPrimitive(f.Type));
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+        activeTypes ??= new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
+
+        if (!activeTypes.Add(named))
+        {
+            // An inline value-type cycle is invalid C#. Leave that diagnostic to the compiler.
+            return true;
+        }
+
+        foreach (var member in named.GetMembers())
+        {
+            if (member is IFieldSymbol { IsStatic: false } field &&
+                !HasScalarState(field.Type, allowBuiltIns, activeTypes))
+            {
+                activeTypes.Remove(named);
+                return false;
+            }
+        }
+
+        activeTypes.Remove(named);
+        return true;
     }
 
     // Uri is extensible and must go through runtime dispatch, even inside structs.
     internal static bool IsUri(ITypeSymbol type) =>
         type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString() == "System.Uri";
 
-    internal static bool IsImmutableScalar(ITypeSymbol type) =>
+    internal static bool IsImmutableScalar(ITypeSymbol type) => IsLanguageScalar(type) || IsBuiltinType(type);
+
+    private static bool IsLanguageScalar(ITypeSymbol type) =>
         type.TypeKind == TypeKind.Enum ||
         type.SpecialType is >= SpecialType.System_Boolean and <= SpecialType.System_Decimal ||
-        type.SpecialType == SpecialType.System_String || IsBuiltinType(type);
+        type.SpecialType == SpecialType.System_String;
 
     private static bool IsBuiltinType(ITypeSymbol type) => type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString() is
         "System.DateTime" or "System.DateOnly" or "System.TimeOnly" or "System.DateTimeOffset" or "System.Guid" or "System.TimeSpan" or
@@ -232,11 +269,7 @@ internal static class Helper
     // A primary constructor runs before the destination can be registered. Never
     // pass it a mutable source reference, including one nested inside a struct.
 
-    internal static bool IsConstructorArgumentSafe(ITypeSymbol type) =>
-        type.SpecialType is >= SpecialType.System_Boolean and <= SpecialType.System_Decimal ||
-        type.SpecialType == SpecialType.System_String || type.TypeKind == TypeKind.Enum ||
-        type is INamedTypeSymbol { IsValueType: true } named &&
-        named.GetMembers().OfType<IFieldSymbol>().Where(f => !f.IsStatic).All(f => IsConstructorArgumentSafe(f.Type));
+    internal static bool IsConstructorArgumentSafe(ITypeSymbol type) => HasScalarState(type, allowBuiltIns: false);
 
     internal static ISymbol? MatchParameter(INamedTypeSymbol type, IParameterSymbol parameter) =>
         GetCopiedState(type)

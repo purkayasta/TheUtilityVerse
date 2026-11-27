@@ -245,12 +245,47 @@ reference field.
 
 ## Unsupported shapes and diagnostics
 
-`UV001` reports a missing `partial` modifier. `UV002` identifies stored deep-copy
-state whose mutable type has no opt-in, including array elements and struct state.
-`UV003` remains reserved for compatibility; shallow references no longer require
-nested opt-ins. `UV004` reports shapes that cannot safely be generated:
+The analyzer applies the same rules whether a model opts in with an attribute or
+a marker interface.
 
-- Non-partial containing types, static/ref-like types, and declarations that
+| ID | Default severity | When it appears |
+| --- | --- | --- |
+| [`UV001`](#uv001) | Error | A model declaration is missing `partial`. |
+| [`UV002`](#uv002) | Error | A stored field or property needs deep-copy support for its type or an element type. |
+| `UV003` | Reserved | Shallow copies can share references without a nested opt-in. |
+| [`UV004`](#uv004) | Error | A declaration or stored member cannot be copied safely. |
+| [`UV005`](#uv005) | Warning | A member's `[CopyPolicy]` has no effect on the generated copy. |
+
+### UV001
+
+Add `partial` to the declaration highlighted by the diagnostic. Keep the
+attribute or marker interface already on the type. For example,
+`public class Order : IDeepCopy` becomes `public partial class Order : IDeepCopy`.
+The diagnostic names the methods this enables.
+
+### UV002
+
+Start at the highlighted field or property. The message also names the type
+that needs support, which can be an array element, collection element,
+dictionary key or value, or tuple member. The analyzer includes a related
+location when that declaration is available in the same compilation.
+
+If you own a supported class or struct, make it partial and opt it in with
+`[DeepCopy]` or `IDeepCopy`. For an external type that needs its own copy,
+apply `[CopyPolicy(CopyBehavior.Custom)]` to the stored member and register a
+copier for the member value's exact runtime type. For a collection member, that
+means registering a copier for the collection itself. Use `Share` only when
+retaining the same reference is intentional. Use `Reset` only when assigning
+the type's default value is intentional. See
+[member policies and external copiers](#member-policies-and-external-copiers).
+
+### UV004
+
+Use the reason in the diagnostic to choose the fix. It identifies the blocked
+declaration or member and explains what the generator needs. Common cases include
+
+- File-local models, models nested in file-local types, non-partial containing
+  types, static/ref-like types, and declarations that
   conflict with emitted members. A field, property, event, or nested type named
   `DeepCopy` or `ShallowCopy` conflicts with the corresponding generated method.
   Methods with distinct signatures, such as `DeepCopy<T>()`, can coexist.
@@ -267,12 +302,37 @@ nested opt-ins. `UV004` reports shapes that cannot safely be generated:
 - Pointer state, unsupported immutable or frozen collection implementations,
   and mutable keys in immutable or frozen maps and sets.
 
-Use a custom copy implementation for those shapes. Cycles through immutable
-reference tuples and immutable or frozen collections throw
+When the existing shape and semantics are intentional, implement the copy
+explicitly. Cycles through immutable reference tuples and immutable or frozen collections throw
 `NotSupportedException`. Mutable object cycles are supported.
 Keys and set elements must retain stable hash/equality behavior on the completed
 graph, just as they must in the original collection. Copies are snapshots of a quiescent graph;
 concurrent mutation during copying is not synchronized.
+
+### UV005
+
+The warning identifies the policy and highlights its attribute. Remove the
+policy if the model is intended to stay shallow. If the copy needs member-specific
+behavior, opt in to deep copying and call `DeepCopy()`. For a computed, static,
+or other non-stored member, remove the attribute or move it to the instance
+field or auto-property that owns the value.
+
+### Using diagnostics with coding agents
+
+Give the agent the diagnostic ID, its full message, and the source location.
+Use the related declaration for `UV002` when the editor includes it. Ask the
+agent to apply the smallest source change that preserves the intended copy
+behavior. Before choosing `Share`, `Reset`, or shallow copying, confirm which
+references must remain shared and which must be copied. Rebuild the affected
+project and check that the diagnostic clears.
+
+For machine-readable input, the C# compiler can write the same diagnostics and
+their rule help links to a SARIF file. Run this for the affected project and
+select one target framework with `-f` if needed.
+
+```sh
+dotnet build -p:ErrorLog=copy-diagnostics.sarif
+```
 
 ## Validation
 

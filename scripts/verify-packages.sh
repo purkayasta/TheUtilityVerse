@@ -174,3 +174,59 @@ EOF
 dotnet restore "$scratch/Consumer.csproj" --configfile "$scratch/NuGet.Config" --packages "$scratch/cache"
 dotnet run --project "$scratch/Consumer.csproj" --no-restore -c Release -f net8.0
 dotnet run --project "$scratch/Consumer.csproj" --no-restore -c Release -f net11.0
+
+cat > "$scratch/Diagnostics.cs" <<'EOF'
+using UtilityVerse.Copy;
+
+[DeepCopy]
+public class AttributeModel { }
+
+public class MarkerModel : IDeepCopy { }
+
+public class Unconfigured { }
+
+[DeepCopy]
+public partial class ParentModel
+{
+    public List<Unconfigured>? Children { get; set; }
+}
+
+[DeepCopy]
+file partial class FileLocalModel { }
+
+public partial class ShallowModel : IShallowCopy
+{
+    [CopyPolicy(CopyBehavior.Reset)]
+    public int Value { get; set; }
+}
+EOF
+
+sarif="$scratch/copy-diagnostics.sarif"
+if diagnostic_output="$(dotnet build "$scratch/Consumer.csproj" --no-restore -c Release -f net11.0 \
+    -p:WarningsNotAsErrors=UV005 -p:ErrorLog="$sarif" 2>&1)"; then
+    echo "Expected analyzer errors from the installed Copy package."
+    exit 1
+fi
+
+for expected in \
+    "error UV001: Add 'partial' to the declaration of 'AttributeModel' to generate DeepCopy()" \
+    "error UV001: Add 'partial' to the declaration of 'MarkerModel' to generate DeepCopy()" \
+    "error UV002: Member 'Children' on 'ParentModel' needs deep-copy support for 'Unconfigured'" \
+    "error UV004: Cannot generate a safe copy for 'FileLocalModel'" \
+    "warning UV005:"; do
+    if [[ "$diagnostic_output" != *"$expected"* ]]; then
+        printf 'Missing diagnostic %s\n%s\n' "$expected" "$diagnostic_output"
+        exit 1
+    fi
+done
+
+test -s "$sarif"
+sarif_content="$(< "$sarif")"
+for rule in uv001 uv002 uv004 uv005; do
+    if [[ "$sarif_content" != *"README.md#$rule"* ]]; then
+        printf 'Missing help link for %s in the compiler SARIF log\n' "$rule"
+        exit 1
+    fi
+done
+
+echo "Fresh-package analyzer diagnostics passed."
