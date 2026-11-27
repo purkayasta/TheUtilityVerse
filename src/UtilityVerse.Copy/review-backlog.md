@@ -104,19 +104,38 @@ scenarios. Passing the original suite did not cover the failures below.
    bypassing the runtime check. Rebuild consumers to refresh generated assignments.
    Ten regressions failed on the baseline and the exact-type control passed.
    All eleven passed unchanged after the fix.
-8. **Open — P2 — Collection configuration is lost.** BindingList.AllowEdit,
-   AllowRemove, and RaiseListChangedEvents reset to defaults. Define and preserve
-   each supported collection's behavioral state and subscription policy.
-9. **Open — P2 — Wrapper backing-store aliases are lost.** A List and its
-   AsReadOnly view acquire separate copied backing lists. Preserve or explicitly
-   reject unsupported backing-store relationships.
-10. **Open — P2 — Explicit-interface auto-properties emit invalid C#.** An explicit
-    I.Data property is emitted as ordinary member access and fails with CS1061.
-    Add appropriate emission or an explanatory unsupported-shape diagnostic.
-11. **Open — P2 — Collision checks are incomplete and overbroad.** A ShallowCopy
-    field passes validation then causes CS0102; DeepCopy<T>() is incorrectly
-    rejected even though it can coexist with DeepCopy(). Compare full signatures
-    and all conflicting member kinds.
+8. **Completed — P2 — Collection configuration is lost.** BindingList copies
+   preserve AllowEdit, AllowRemove, RaiseListChangedEvents, and the effective
+   AllowNew setting. Normal insertion wires copied items to the new list.
+   External event subscribers and pending add-new transactions stay with the
+   source. Six regressions failed on the baseline and one control passed.
+   All seven passed unchanged after the fix.
+9. **Completed — P2 — Wrapper backing-store aliases are lost.** Wrapper copies
+   reject shared backing stores explicitly. Public synchronization roots detect
+   a wrapper and its list or array in either traversal order, plus distinct
+   wrappers sharing a root. Opaque roots and fixed-size or read-only backing for
+   mutable wrappers require a custom copier. Repeated views of the same wrapper
+   still share one destination. Nine regressions failed on the baseline and one
+   control passed. All ten passed unchanged after the fix.
+10. **Completed — P2 — Explicit-interface auto-properties emit invalid C#.**
+    Deep-copy generation skips these shapes and reports UV004 with the property
+    name and instructions to use an ordinary backing field or a custom copier.
+    Computed explicit-interface properties over ordinary fields and shallow
+    copies of auto-properties are supported. Two regressions failed with CS1061
+    on the baseline and two controls passed. All four passed unchanged after the fix.
+11. **Completed — P2 — Collision checks are incomplete and overbroad.** Generated
+    methods are checked against non-method members, containing type and type
+    parameter names, and conflicting method signatures. Duplicate explicit
+    copier implementations report UV004. Valid generic overloads and graph
+    constructor overloads with by-reference parameters coexist with generated
+    members. Fourteen regressions failed on the baseline and one control
+    passed. All fifteen passed unchanged after the fix.
+
+Validation for #8–#11: `scripts/build.sh` passed all 299 tests, including 262
+Copy tests, with zero build warnings or errors. `scripts/verify-packages.sh`
+passed on .NET 8 and .NET 11. Additional smoke checks against the installed
+package verified binding-list settings, wrapper alias rejection in both traversal
+orders, and a valid generic overload on both runtimes.
 
 ## Support and optimization work
 

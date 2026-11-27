@@ -185,7 +185,7 @@ internal static class DeepCopyGenerator
         return sb.ToString();
     }
 
-    private static bool CanUnbox(Compilation compilation) =>
+    internal static bool CanUnbox(Compilation compilation) =>
         compilation.GetTypeByMetadataName("System.Runtime.CompilerServices.Unsafe")?.GetMembers("Unbox")
             .OfType<IMethodSymbol>().Any(method => method is
             {

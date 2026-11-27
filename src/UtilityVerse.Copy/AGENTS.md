@@ -29,12 +29,20 @@ interfaces. Deep wins when both modes are selected. Symbols are deduplicated acr
 partial declarations. Hint names encode punctuation to avoid collisions and invalid
 generic names. Validation.HasUnsupportedShape is shared by generator and analyzer;
 unsupported shapes are diagnosed with UV004 and skipped by code generation.
+Check the generated public methods and graph helper against same-type names and
+method signatures. Method generic arity and parameter passing mode distinguish
+valid overloads. Existing explicit implementations of the emitted deep-copy
+interface methods conflict only when declared on the same type.
 
 Helper emits matching namespace/containing-type/generic partial wrappers, classifies
 immutable state, finds stored instance fields and auto-properties, and matches
 safe primary-constructor arguments to stored state. Static, computed, and indexer
 properties are not independently stored state. Explicit backing fields are copied
 directly.
+
+Deep copies diagnose explicit-interface auto-properties with UV004. An explicit
+interface property implemented over an ordinary field uses the existing field
+copy path. Shallow copying uses the usual whole-instance behavior.
 
 StorageAccess selects a typed UnsafeAccessor field backend per consumer
 Compilation: .NET 8+ for non-generic declaring types, .NET 9+ for generic declaring
@@ -94,7 +102,10 @@ factory so direct interface calls also establish a complete graph operation. Kee
 existing public context signatures intact. Failed operations clear cached partial
 destinations and pending work; suppressed nested failures poison the operation.
 Collection comparers and queue/stack ordering are
-preserved. Immutable tuple cycles are rejected explicitly. Generic parameter values
+preserved. Binding lists retain their editing flags and effective AllowNew setting.
+Populate them through their normal insertion API to establish fresh item change
+wiring. External subscribers and pending add-new transactions belong to the source.
+Immutable tuple cycles are rejected explicitly. Generic parameter values
 must be supported immutable scalars or implement generated IDeepCopyable.
 
 For reference-typed inputs, CopyContext.Copy tracks the original box of an
@@ -114,6 +125,12 @@ MakeGenericMethod, reflection invocation, or dynamic IL is permitted. Exact gene
 and array paths remain typed. Element adapters are readonly structs passed through
 constrained generic methods; preserve caller delegates, set hydration, ordering,
 and comparers. Unsupported collection subclasses must fail explicitly.
+
+CopyContext snapshots collection wrappers only when their public synchronization
+root identifies a built-in list or array. Track root identity to reject backing
+stores shared with another copied collection in either traversal order. Never
+use the synchronization root as a replacement for the immediate backing list.
+Opaque roots and nonresizable backing for mutable wrappers require a custom copier.
 
 SequenceRegistration gathers declared element types across the complete model
 hierarchy and accessible closed non-generic opted-in source models assignable to
@@ -180,6 +197,14 @@ review findings, bug fixes, new support, and performance changes.
 - UriRuntimeTypeTests covers subclass rejection through direct, generic runtime,
   and nested copy paths, custom copier dispatch with aliases and cycles, exact
   and null Uri values, and the opt-in diagnostic for a struct storing Uri state.
+- BindingListCopyTests covers settings on direct and covariant copies, default
+  flags, and the external-subscriber policy.
+- CollectionWrapperCopyTests covers shared list, array, and wrapper backing
+  stores, covariant views, opaque roots, fixed-size backing, and context recovery.
+- ExplicitInterfaceCopyTests covers UV004 for explicit-interface auto-properties,
+  deep copies of ordinary backing fields, and shallow copies of the same shape.
+- CopyMemberCollisionTests covers declaration-space and signature collisions,
+  explicit copier conflicts, and valid generic and by-reference overloads.
 - VirtualPropertyStorageTests covers independent virtual slots, computed overrides,
   generic bases, cross-assembly metadata, and virtual/abstract/explicit-field/shallow
   behavior. PhysicalStorageAccessTests executes readonly aliases, nested generic

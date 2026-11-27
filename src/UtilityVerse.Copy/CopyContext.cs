@@ -16,11 +16,16 @@ namespace UtilityVerse.Copy;
 /// <summary>Tracks reference identity during a generated deep copy. Use one instance per operation.</summary>
 public sealed partial class CopyContext
 {
+    private const string SharedBackingStoreMessage =
+        "A collection wrapper shares its backing store with another copied collection; use a custom copy implementation.";
+
     private readonly Dictionary<object, object> copies = new(ReferenceComparer.Instance);
 
     private readonly HashSet<object> constructing = new(ReferenceComparer.Instance);
 
     private List<IPendingCollection>? pendingCollections;
+
+    private HashSet<object>? wrapperRoots;
 
     private int copyDepth;
 
@@ -29,7 +34,15 @@ public sealed partial class CopyContext
     private int completedDepth;
 
     /// <summary>Registers a destination before copying its children, allowing cycles.</summary>
-    public void Register(object source, object destination) => copies.Add(source, destination);
+    public void Register(object source, object destination)
+    {
+        if (wrapperRoots?.Contains(source) == true)
+        {
+            throw new NotSupportedException(SharedBackingStoreMessage);
+        }
+
+        copies.Add(source, destination);
+    }
 
     /// <summary>Copies an opted-in object or an immutable scalar, preserving runtime type and identity.</summary>
     public T Copy<T>(T source)
@@ -267,8 +280,15 @@ public sealed partial class CopyContext
                 add = observable.Add;
                 break;
 
-            case BindingList<T>:
-                var binding = new BindingList<T>();
+            case BindingList<T> sourceBinding:
+                var binding = new BindingList<T>
+                {
+                    RaiseListChangedEvents = false,
+                    AllowEdit = sourceBinding.AllowEdit,
+                    AllowRemove = sourceBinding.AllowRemove,
+                    AllowNew = sourceBinding.AllowNew
+                };
+                binding.RaiseListChangedEvents = sourceBinding.RaiseListChangedEvents;
                 result = binding;
                 add = binding.Add;
                 break;
@@ -286,6 +306,11 @@ public sealed partial class CopyContext
                 break;
         }
 
+        if (source is Collection<T> or ReadOnlyCollection<T>)
+        {
+            RegisterWrapperBacking<T>((System.Collections.IList)source);
+        }
+
         Register(source, result);
 
         foreach (var item in source)
@@ -294,6 +319,26 @@ public sealed partial class CopyContext
         }
 
         return result;
+    }
+
+    private void RegisterWrapperBacking<T>(System.Collections.IList source)
+    {
+        // The public synchronization root can detect shared storage without
+        // assuming it is the wrapper's immediate backing list.
+        var root = source.SyncRoot;
+
+        if (root == null || (root.GetType() != typeof(List<T>) && root is not T[]) ||
+            (source is Collection<T> && (source.IsFixedSize || source.IsReadOnly)))
+        {
+            throw new NotSupportedException("The collection wrapper has unsupported or unidentifiable backing storage; use a custom copy implementation.");
+        }
+
+        wrapperRoots ??= new HashSet<object>(ReferenceComparer.Instance);
+
+        if (copies.ContainsKey(root) || !wrapperRoots.Add(root))
+        {
+            throw new NotSupportedException(SharedBackingStoreMessage);
+        }
     }
 
     /// <summary>Copies a mutable map with a generated factory that preserves its comparer.</summary>
@@ -511,6 +556,7 @@ public sealed partial class CopyContext
         copies.Clear();
         constructing.Clear();
         pendingCollections?.Clear();
+        wrapperRoots?.Clear();
         copyFailed = false;
     }
 

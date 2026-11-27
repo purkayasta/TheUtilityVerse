@@ -6,6 +6,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using UtilityVerse.Copy.Generators;
 
 namespace UtilityVerse.Copy;
 
@@ -28,19 +29,38 @@ internal static class Validation
             }
         }
 
-        if (type.GetMembers(deep ? "DeepCopy" : "ShallowCopy").OfType<IMethodSymbol>().Any(m => m.Parameters.Length == 0 && IsUserDeclared(m)))
-        {
-            reason = "a copy method with the generated signature already exists";
-        }
+        var copyMethodName = deep ? "DeepCopy" : "ShallowCopy";
 
-        if (type.GetMembers("__UtilityVerseDeepCopy").Any(IsUserDeclared))
+        if (HasMethodCollision(type, copyMethodName))
         {
-            reason = "the generated helper name is reserved";
+            reason = $"a declaration conflicts with the generated method '{copyMethodName}()'";
+            return true;
         }
 
         if (!deep)
         {
             return reason.Length != 0;
+        }
+
+        var contextType = compilation.GetTypeByMetadataName("UtilityVerse.Copy.CopyContext");
+
+        if (contextType != null && HasMethodCollision(type, "__UtilityVerseDeepCopy", contextType))
+        {
+            reason = "a declaration conflicts with the generated helper '__UtilityVerseDeepCopy(CopyContext)'";
+            return true;
+        }
+
+        if (HasExplicitCopyImplementation(type, compilation, "UtilityVerse.Copy.IDeepCopyable", "Copy"))
+        {
+            reason = "the generated implementation of 'IDeepCopyable.Copy' is already declared explicitly";
+            return true;
+        }
+
+        if (type.IsValueType && DeepCopyGenerator.CanUnbox(compilation) &&
+            HasExplicitCopyImplementation(type, compilation, "UtilityVerse.Copy.IBoxedDeepCopyable", "CopyBoxed"))
+        {
+            reason = "the generated implementation of 'IBoxedDeepCopyable.CopyBoxed' is already declared explicitly";
+            return true;
         }
 
         if (type.GetMembers("__UtilityVerseSequenceTypes").Any(IsUserDeclared) ||
@@ -60,9 +80,8 @@ internal static class Validation
             reason = "event subscriptions and captured primary-constructor state require a custom copy implementation";
         }
 
-        if (type.InstanceConstructors.Any(c => c.Parameters.Length == 2 &&
-            SymbolEqualityComparer.Default.Equals(c.Parameters[0].Type, type) &&
-            c.Parameters[1].Type.ToDisplayString() == "UtilityVerse.Copy.CopyContext" && IsUserDeclared(c)))
+        if (contextType != null && type.InstanceConstructors.Any(constructor =>
+            MatchesGraphConstructor(constructor, type, contextType) && IsUserDeclared(constructor)))
         {
             reason = "the generated copy constructor signature is reserved";
         }
@@ -103,9 +122,8 @@ internal static class Validation
 
             if (parent.DeclaringSyntaxReferences.Length == 0)
             {
-                if (!parent.InstanceConstructors.Any(c => c.Parameters.Length == 2 &&
-                    SymbolEqualityComparer.Default.Equals(c.Parameters[0].Type, parent) &&
-                    c.Parameters[1].Type.ToDisplayString() == "UtilityVerse.Copy.CopyContext"))
+                if (contextType == null || !parent.InstanceConstructors.Any(constructor =>
+                    MatchesGraphConstructor(constructor, parent, contextType)))
                 {
                     reason = "the base type must be rebuilt with graph-aware copy support";
                 }
@@ -150,6 +168,12 @@ internal static class Validation
 
         foreach (var member in Helper.GetCopiedState(type))
         {
+            if (member is IPropertySymbol { ExplicitInterfaceImplementations.Length: > 0 } explicitProperty)
+            {
+                reason = $"explicit interface auto-property '{explicitProperty.Name}' requires an explicit backing field or a custom copy implementation";
+                return true;
+            }
+
             if (!SymbolEqualityComparer.Default.Equals(member.ContainingType, type) && !StorageAccess.CanUse(member, compilation))
             {
                 if (member.DeclaredAccessibility == Accessibility.Private ||
@@ -191,6 +215,61 @@ internal static class Validation
 
         return reason.Length != 0;
     }
+
+    private static bool HasMethodCollision(INamedTypeSymbol type, string name, ITypeSymbol? parameterType = null)
+    {
+        if (type.Name == name || type.TypeParameters.Any(parameter => parameter.Name == name))
+        {
+            return true;
+        }
+
+        foreach (var member in type.GetMembers(name))
+        {
+            if (!IsUserDeclared(member))
+            {
+                continue;
+            }
+
+            if (member is not IMethodSymbol method)
+            {
+                return true;
+            }
+
+            if (method.Arity == 0 && (parameterType == null
+                ? method.Parameters.IsEmpty
+                : method.Parameters.Length == 1 && IsByValueParameter(method.Parameters[0], parameterType)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasExplicitCopyImplementation(
+        INamedTypeSymbol type,
+        Compilation compilation,
+        string interfaceName,
+        string methodName)
+    {
+        var interfaceMethod = compilation.GetTypeByMetadataName(interfaceName)?.GetMembers(methodName).FirstOrDefault();
+
+        return interfaceMethod != null &&
+            type.FindImplementationForInterfaceMember(interfaceMethod) is IMethodSymbol
+            {
+                MethodKind: MethodKind.ExplicitInterfaceImplementation
+            } implementation &&
+            SymbolEqualityComparer.Default.Equals(implementation.ContainingType, type) &&
+            IsUserDeclared(implementation);
+    }
+
+    private static bool MatchesGraphConstructor(IMethodSymbol constructor, INamedTypeSymbol owner, ITypeSymbol contextType) =>
+        constructor.Parameters.Length == 2 &&
+        IsByValueParameter(constructor.Parameters[0], owner) &&
+        IsByValueParameter(constructor.Parameters[1], contextType);
+
+    private static bool IsByValueParameter(IParameterSymbol parameter, ITypeSymbol type) =>
+        parameter.RefKind == RefKind.None && SymbolEqualityComparer.Default.Equals(parameter.Type, type);
 
     private static string? UnsupportedVirtualStorage(INamedTypeSymbol type, Compilation compilation)
     {

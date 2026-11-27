@@ -114,6 +114,10 @@ Supported state includes:
 - One-dimensional and jagged arrays, including nullable elements.
 - `List<T>`, `HashSet<T>`, `Queue<T>`, `Stack<T>`, `Collection<T>`,
   `ReadOnlyCollection<T>`, `ObservableCollection<T>`, and `BindingList<T>`.
+  Binding lists preserve `AllowEdit`, `AllowRemove`, `RaiseListChangedEvents`,
+  and the current `AllowNew` value. Copies start with fresh change-notification
+  wiring and a clean add-new transaction state. Reattach external subscribers to
+  the copy, including any `AddingNew` handler that supplied new items.
 - `IEnumerable<T>`, `IList<T>`, `ICollection<T>`, `IReadOnlyList<T>`, and
   `IReadOnlyCollection<T>`. Recognized runtime collection types are preserved;
   other enumerable sequences are materialized into lists. Unsupported collection
@@ -133,6 +137,14 @@ and `List<Derived>` members produces one `List<Derived>` copy in either traversa
 order. This also applies to empty and null-only collections, nested sequences,
 queue/stack order, and set comparers. `IEnumerable<T>` describes enumeration only;
 construction and insertion still use typed adapters for each supported container.
+
+Collection wrappers are copied as standalone snapshots when their public
+`ICollection.SyncRoot` identifies a supported list or array. A graph that copies
+both a wrapper and its backing store, or distinct wrappers sharing one backing
+store, throws `NotSupportedException`. Mutable wrappers with read-only or
+fixed-size backing and wrappers with opaque synchronization roots also require a
+custom copier. This includes frameworks that expose an opaque synchronization
+root for their standard list implementation.
 
 Generated code registers declared sequence element types across the model's
 inheritance hierarchy, plus accessible non-generic opted-in source models assignable
@@ -193,8 +205,10 @@ state whose mutable type has no opt-in, including array elements and struct stat
 `UV003` remains reserved for compatibility; shallow references no longer require
 nested opt-ins. `UV004` reports shapes that cannot safely be generated:
 
-- Non-partial containing types, static/ref-like types, and reserved method or
-  constructor collisions.
+- Non-partial containing types, static/ref-like types, and declarations that
+  conflict with emitted members. A field, property, event, or nested type named
+  `DeepCopy` or `ShallowCopy` conflicts with the corresponding generated method.
+  Methods with distinct signatures, such as `DeepCopy<T>()`, can coexist.
 - Primary constructors with unmatched or potentially mutable arguments,
   primary constructors requiring generated base copying, custom record copy
   constructors, captured primary-constructor state, and event subscriptions.
@@ -203,6 +217,8 @@ nested opt-ins. `UV004` reports shapes that cannot safely be generated:
 - Stored-property override chains requiring field access unavailable on the
   consumer framework, legacy external bases without physical-storage capability,
   or inaccessible nested owners that cannot host a safe generated helper.
+- Explicit-interface auto-properties in deep-copy models. Implement the property
+  with an ordinary backing field or supply a custom deep copier.
 - Deep-copy record inheritance, multidimensional arrays, pointer state, and
   immutable/frozen collection implementations.
 
