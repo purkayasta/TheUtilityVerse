@@ -97,9 +97,13 @@ scenarios. Passing the original suite did not cover the failures below.
    the context so it receives the original reference. Four regressions failed
    on the baseline and two controls passed. All six tests passed unchanged after
    the fix.
-7. **Open — P1 — Uri subclasses can retain mutable source state.** Uri is treated
-   as immutable even when the runtime object is a mutable subclass. Audit both
-   generated and runtime immutable classification.
+7. **Completed — P1 — Uri subclasses can retain mutable source state.** Generated
+   copies route Uri through CopyContext, which shares exact Uri values and dispatches
+   to custom copiers for supported subtypes. Unsupported runtime subtypes fail
+   explicitly. An unopted struct containing Uri now receives UV002 to prevent
+   bypassing the runtime check. Rebuild consumers to refresh generated assignments.
+   Ten regressions failed on the baseline and the exact-type control passed.
+   All eleven passed unchanged after the fix.
 8. **Open — P2 — Collection configuration is lost.** BindingList.AllowEdit,
    AllowRemove, and RaiseListChangedEvents reset to defaults. Define and preserve
    each supported collection's behavioral state and subscription policy.

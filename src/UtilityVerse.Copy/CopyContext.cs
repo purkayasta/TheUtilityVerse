@@ -76,7 +76,8 @@ public sealed partial class CopyContext
 
         var type = source.GetType();
 
-        if (type.IsPrimitive || type.IsEnum || source is string or decimal or DateTime or DateTimeOffset or TimeSpan or Guid or Uri or Version)
+        if (type.IsPrimitive || type.IsEnum || type == typeof(Uri) ||
+            source is string or decimal or DateTime or DateTimeOffset or TimeSpan or Guid or Version)
         {
             return source;
         }

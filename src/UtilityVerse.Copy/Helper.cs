@@ -51,9 +51,13 @@ internal static class Helper
         return named.GetMembers().OfType<IFieldSymbol>().Where(f => !f.IsStatic).All(f => IsTrulyPrimitive(f.Type));
     }
 
-    internal static bool IsBuiltinType(ITypeSymbol type) => type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString() is
+    // Uri is extensible and must go through runtime dispatch, even inside structs.
+    internal static bool IsUri(ITypeSymbol type) =>
+        type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString() == "System.Uri";
+
+    private static bool IsBuiltinType(ITypeSymbol type) => type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString() is
         "System.DateTime" or "System.DateOnly" or "System.DateTimeOffset" or "System.Guid" or "System.TimeSpan" or
-        "decimal" or "System.Decimal" or "System.Uri" or "System.Version" or "System.Numerics.BigInteger" or
+        "decimal" or "System.Decimal" or "System.Version" or "System.Numerics.BigInteger" or
         "System.Numerics.Complex" or "System.Index" or "System.Range" or "System.Half" or "System.Int128" or "System.UInt128";
 
     internal static bool IsGenericCollection(string? originalDef, out string? kind)

@@ -315,7 +315,7 @@ internal static class Validation
 
     internal static IEnumerable<ITypeSymbol> MissingOptIns(ITypeSymbol type)
     {
-        if (Helper.IsTrulyPrimitive(type) || type is ITypeParameterSymbol)
+        if (Helper.IsTrulyPrimitive(type) || Helper.IsUri(type) || type is ITypeParameterSymbol)
         {
             yield break;
         }

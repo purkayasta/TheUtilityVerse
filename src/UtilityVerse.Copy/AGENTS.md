@@ -131,6 +131,12 @@ need shallow opt-ins; UV003 remains tracked but no longer fires for them.
 
 ## Supported boundary
 
+Generated deep copies route Uri through CopyContext, even inside a struct,
+tuple, or container. Only the exact runtime Uri type is immutable. Allow Uri
+as a declared member without an opt-in, but do not classify a containing struct
+as trivially copyable on that basis. Runtime subclasses must implement
+IDeepCopyable or fail explicitly.
+
 [README.md](README.md) documents the complete consumer contract and explicit
 unsupported shapes. Do not silently skip inaccessible state, classify every struct as immutable, drop
 constructor arguments, slice runtime derived types, or produce incompatible
@@ -171,6 +177,9 @@ review findings, bug fixes, new support, and performance changes.
 - BoxedStructIdentityTests covers shared and distinct boxes, typed and nullable
   struct values, readonly box cycles with deferred hash keys, and the fallback
   compiled against .NET Standard 2.0.
+- UriRuntimeTypeTests covers subclass rejection through direct, generic runtime,
+  and nested copy paths, custom copier dispatch with aliases and cycles, exact
+  and null Uri values, and the opt-in diagnostic for a struct storing Uri state.
 - VirtualPropertyStorageTests covers independent virtual slots, computed overrides,
   generic bases, cross-assembly metadata, and virtual/abstract/explicit-field/shallow
   behavior. PhysicalStorageAccessTests executes readonly aliases, nested generic

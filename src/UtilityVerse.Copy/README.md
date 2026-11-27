@@ -106,7 +106,11 @@ enclosing operation to fail.
 Supported state includes:
 
 - Primitive values, enums, strings, immutable built-in values, nullable values,
-  `Uri`, and `Version`.
+  `Uri`, and `Version`. Only an exact `Uri` instance can be shared as immutable.
+  A runtime subclass needs an `IDeepCopyable` implementation or copying throws
+  `NotSupportedException`. A struct containing a `Uri` member needs a deep copy
+  opt-in so the copier checks the member's runtime type. Rebuild previously
+  generated consumers to replace assignments that shared `Uri` members directly.
 - One-dimensional and jagged arrays, including nullable elements.
 - `List<T>`, `HashSet<T>`, `Queue<T>`, `Stack<T>`, `Collection<T>`,
   `ReadOnlyCollection<T>`, `ObservableCollection<T>`, and `BindingList<T>`.
